@@ -11,9 +11,9 @@ function [N,scale] = fex_normalize(data,varargin)
 %
 % Optional arguments:
 %
-%  'method': a string, between 'zscore' (default), '0:1', and '-1:1'. The
-%       functon either zscore the data, or it scales them between the 0 and
-%       1, or between -1 and 1.
+%  'method': a string, between 'zscore' (default), 'center', '0:1', and
+%       '-1:1'. The functon either zscore the data, center them, or it
+%       scales them between the 0 and 1, or between -1 and 1.
 %
 %  'folds': A vector of the same length of data, with index marking
 %       different folds. Data will be scaled independently for each fold.
@@ -75,10 +75,15 @@ end
 % Space for the matrix with scaled data
 N   = []; 
 switch scale.method
-    case {'zscore','z'}
+    case {'zscore','z','center','c'}
         param = '';
         for ifolds = unique(scale.folds)'
-            z = nanz(data(scale.folds == ifolds,:));
+            if ismember(scale.method,{'zscore','z'})
+                z = nanz(data(scale.folds == ifolds,:));
+            else
+                z = data(scale.folds == ifolds,:) - repmat(nanmean(data(scale.folds == ifolds,:)),...
+                    [sum(scale.folds == ifolds),1]);
+            end
             if strcmp(scale.outliers,'on')
                 m = repmat(min(z,[],1),[size(z,1),1]);
                 M = repmat(max(z,[],1),[size(z,1),1]);
