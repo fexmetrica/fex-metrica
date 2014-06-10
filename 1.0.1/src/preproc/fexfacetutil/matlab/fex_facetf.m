@@ -91,7 +91,7 @@ function p = face2landmarks(x)
 %
 % drop pose information
 x = x(3:end-3);
-tp = [x(1:2:end)',x(2:2:end)];
+tp = [x(1:2:end),x(2:2:end)];
 
 % get face box position
 p(1,:) = tp(1,:);
