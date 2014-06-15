@@ -7,7 +7,7 @@ find_package(OpenCV)
 # ----------- START CHANGES HERE --------------------------------------
 #
 # Path for FACETMain to the main Facet directory
-set(FACETMain "/home/filippo/src/FACETSDK-UBUNTU1204-X64-GCC46")
+set(FACETMain "/home/filippor/Projects/FACETSDK-UBUNTU1204-X64-GCC46")
 #
 # ----------- END CHANGES HERE ----------------------------------------
 
@@ -23,6 +23,10 @@ include_directories(${FACETSDK_DIR} ${FACETSDK_INCL} ${OpenCV_INCLUDE_DIRS})
 link_directories(${FACETSDK_LIBS})
 
 set(EXECUTABLE_OUTPUT_PATH ../bin)
+
+# FexFacet
+add_executable(fexfacet fexfacet.cpp tools.cpp ${FACETSDK_LICENCE})
+target_link_libraries(fexfacet ${FACETSDK_LIBEMOTIENT} ${OpenCV_LIBS})
 
 # Face Analyzer code
 add_executable(fexfacet_face fexfacet_face.cpp tools.cpp ${FACETSDK_LICENCE})
