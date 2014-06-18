@@ -35,10 +35,16 @@ classdef fexppoc
 %           result file will be saved.
 % 'chanels' a string indicating the type of variables which will be
 %           outputed by the Emotient SDK.
-% 'framecmd' comand to cat the video into frames file. For more information
-%           use:
 %
 %           >> help fexppoc.video2frame
+%
+% 'videoInfo': a vector with information about the current video, s.t.:
+%
+%               videoInfo(1) = FrameRate
+%               videoInfo(2) = Duration
+%               videoInfo(3) = NumberOfFrames
+%               videoInfo(4) = Width
+%               videoInfo(5) = Height
 %
 % LIST OF DEPENDENT PROPERTIES:
 %
@@ -48,13 +54,6 @@ classdef fexppoc
 %              output from the Emotient SDK.
 % 'facetcmd':  string with the comand line used to lunch the Emotient SDK
 %              executable files in ../cppdir/bin.
-% 'videoInfo': a vector with information about the current video, s.t.:
-%
-%               videoInfo(1) = FrameRate
-%               videoInfo(2) = Duration
-%               videoInfo(3) = NumberOfFrames
-%               videoInfo(4) = Width
-%               videoInfo(5) = Height
 %
 % LIST OF PUBLIC METHODS:
 %
@@ -63,6 +62,7 @@ classdef fexppoc
 %
 %                >> help(fexppoc.video2frame)
 %
+% 'getvideoInfo': retrieve information for videoInfo.
 % 'step':        perprocess the video (calls cut_frames & run_facet) -- see
 %                help for details.
 % 'cut_frames':  execute comand generated from "video2frame".   
@@ -80,7 +80,7 @@ classdef fexppoc
 %
 % email: frossi@ucsd.edu
 %
-% Version: 06/05/14.
+% Version: 06/14/14.
 
 %**************************************************************************
 %**************************************************************************
@@ -92,14 +92,16 @@ classdef fexppoc
     properties
         % absolut path to video file
         video
+        % Information about the video
+        videoInfo
         % outpu directory for facet file
         outdir
         % chanels used by facet
         chanels
-        % comand for transforming video into frames
-        framecmd
         % file that will contain the preprocess output
         facetfile
+        % command to cat the video into frames
+        framecmd
     end
     
     % Protected properties
@@ -110,6 +112,8 @@ classdef fexppoc
         facetbin
         % temporary directory for frames
         framedir
+        % minimum face size
+        minfacesize
     end
     
     % Dependent properties
@@ -118,8 +122,6 @@ classdef fexppoc
         framefile
         % comand issued to facet
         facetcmd
-        % information about current video
-        videoInfo
     end
 
 %**************************************************************************
@@ -174,16 +176,44 @@ classdef fexppoc
                 name = sprintf('temp_%.2d',k);
             end
             self.framedir = sprintf('%s/%s',self.outdir,name);
+            % make the directory only when needed
             % I am not sure I want to make the directory here!!!
-            mkdir(self.framedir);
+%             mkdir(self.framedir);
             
             % Initialize cat video comand
-            self = self.video2frame();
+%             self = self.video2frame();
+            self.framecmd = '';
+
+            % Initialize VideoInfo
+            self.videoInfo = [];
             
             % get facet file name
             self.facetfile = self.facetfilename();
             
+            % Set minimum face size
+            self.minfacesize = 0.05;
+            
+            
         end
+        
+        function self = getvideoInfo(self)
+        % Get information about the video
+            vidObj = VideoReader(self.video);
+            self.videoInfo = [vidObj.FrameRate,vidObj.Duration,...
+                              vidObj.NumberOfFrames,...
+                              vidObj.Width,vidObj.Height];
+        end
+        
+        function self = setminfacewidth(self,val)
+            % set minimum face width
+            if ~exist('val','var')
+                warning('No minimum width value was entered.\n');
+            else
+                self.minfacesize = val;
+            end
+        end
+            
+        
         
         function self = step(self)
         %     
@@ -192,18 +222,21 @@ classdef fexppoc
         % for the required method calls "cut_frames" and
         % "run_facet."
         % -----------------------------------------------------------------
-            if self.status == 0
-                h = waitbar(0,'Initialization ...');
-                fprintf('Catting video into frames ....\n');
-                waitbar(.25,h,'Video 2 Frames');
-                self.cut_frames();
-                fprintf('Processing frames with the Emotient SDK ....\n');
-                waitbar(.5,h,'Emotient SDK');
-                self.run_facet();
-                waitbar(1,h,'Completed');
-                fprintf('Step completed.\n')
-                close(h)
-            end
+%             if self.status == 0
+%                 h = waitbar(0,'Initialization ...');
+%                 fprintf('Catting video into frames ....\n');
+%                 waitbar(.25,h,'Video 2 Frames');
+%                 self.cut_frames();
+%                 fprintf('Processing frames with the Emotient SDK ....\n');
+%                 waitbar(.5,h,'Emotient SDK');
+%                 self.run_facet();
+%                 waitbar(1,h,'Completed');
+%                 fprintf('Step completed.\n')
+%                 close(h)
+%             end
+            fprintf('Processing frames with the Emotient SDK ....\n');
+            self.run_facet();
+            self.status = 2;
         end
             
         
@@ -219,6 +252,9 @@ classdef fexppoc
         % Methods and parameters for cutting frames are habdled by the
         % method "video2frame."
         % -----------------------------------------------------------------
+            if ~exist(self.framedir,'dir');
+                mkdir(self.framedir);
+            end
             if ischar(self.framecmd)
                 % avconv or ffmpeg
                 unix(sprintf('source ~/.bashrc && %s',self.framecmd));
@@ -239,17 +275,25 @@ classdef fexppoc
     
         function self = run_facet(self)
         % Run the selected Emotient SDK executable ("chanels"), and save a
-        % file in the "outdir" folder.
+        % file in the "outdir" folder
         % -----------------------------------------------------------------
-            [~,desc] = unix(sprintf('source ~/.bashrc && %s',self.facetcmd));
+        
+        % CHANGE THIS: don't overide and don't repite
+        if self.status == 2
+            warning('You are about to delete an existing fexfile!')
+        end
+            desc = ''; %FIX THIS 
+            unix(sprintf('source ~/.bashrc && %s',self.facetcmd));
             test  = strfind(desc,'cannot execute');
             if isempty(test)
-                self.filehead();
+%                 self.filehead();
                 self.status = 2;
             else
                 warning('Cannot run executable file.')
                 self.facetfile();
             end
+            self.status = 2;
+
         end
         
         
@@ -351,7 +395,7 @@ classdef fexppoc
                 % 0.0 best, 1.0 worst
                 arg.qscale = arg.qscale;
             elseif strcmp(arg.method,'avconv')
-                % 1.1 worst, 31.0 best
+                % 2 best, 31.0 worst
                 arg.qscale = 1 + 30*arg.qscale;
             else
                 % 0.0 worst, 100 best
@@ -359,10 +403,10 @@ classdef fexppoc
             end
             % Combine the comand for ffmpeg or avconv
             if ismember(arg.method,{'ffmpeg','avconv'})
-                cmd = sprintf('%s -i %s -qscale %.1f -r %.4f %s -loglevel fatal %s/img_%s.jpg',...
+                cmd = sprintf('%s -i %s -qscale:v %.1f -r %.4f %s -loglevel fatal %s/img_%s.jpg',...
                 arg.method,...                  % Select method
                 self.video,...                  % Input file
-                arg.qscale,...                  % Quality scaling factor (0 = no csaling);
+                arg.qscale,...                  % Quality scaling factor (0 = no scaling);
                 self.videoInfo(1),...           % Framerate
                 arg.optargs,...                 % String with extra parameters
                 self.framedir,...               % output directory
@@ -386,7 +430,14 @@ classdef fexppoc
         % 'dead', or 'panic.'
         %
         %------------------------------------------------------------------
-          
+            if isempty(self.framedir)
+                % when frames were not generated, there is nothing to
+                % clean
+                warning('Nothing to clean ... exiting\n');
+                return
+            end
+        
+        
             %Read optional arguments
             exe_clean = 'Yes';
             if isempty(varargin)
@@ -441,7 +492,18 @@ classdef fexppoc
             fprintf('%s\tFrame processing: %s.\n\tFacet processing: %s.\n\n',str0,str1,str2)
         end 
         
+        function data = results(self)
+        % import the facet out as dataset
+        %
+        %------------------------------------------------------------------
+            if self.status == 2
+                data = dataset('File',self.facetfile);
+            else
+                warning('The file with video results need to be genereated.');
+            end
+        end
         
+  
     end
     
 %**************************************************************************
@@ -455,31 +517,25 @@ classdef fexppoc
         % Getter functions for framefile
             framefile = sprintf('%s/%s',self.framedir,'frame_file.txt');
         end
-
-        function videoInfo = get.videoInfo(self)
-        % Getter function for video info
-            vidObj = VideoReader(self.video);
-            videoInfo = [vidObj.FrameRate,vidObj.Duration,vidObj.NumberOfFrames,...
-                        vidObj.Width,vidObj.Height];
-        end
-        
         
         % Getter function for facetcmd 
         function facetcmd = get.facetcmd(self)
+            binf = sprintf('%s/fexfacet',self.facetbin);
             switch self.chanels
                 case {'all','All','a'}
-                    binf = sprintf('%s/fexfacet_full',self.facetbin);
+                    chid = 1;
                 case {'face','Face','f'}
-                    binf = sprintf('%s/fexfacet_face',self.facetbin);
+                    chid = 4;
                 case {'emotions','Emotions','emo','e'}
-                    binf = sprintf('%s/fexfacet_emotions',self.facetbin);
+                    chid = 2;
                 case {'au','AU','ActionUnits','aus','AUs'}
-                    binf = sprintf('%s/fexfacet_aus',self.facetbin);
+                    chid = 3;
                 otherwise
                     warning('Unknown chanels name: %s. Using all chanels.',self.chanels);
-                    binf = sprintf('%s/fexfacet_full',self.facetbin);
+                    chid = 1;
             end
-            facetcmd  = sprintf('%s < %s > %s',binf,self.framefile,self.facetfile);
+            facetcmd  = sprintf('%s -v %s -c %d -m %.2f -o %s',...
+                binf,self.video,chid,self.minfacesize,self.facetfile);
         end
     end
     
@@ -493,14 +549,14 @@ classdef fexppoc
     
     
     methods (Access = private) 
-        function filehead(self)
-        % Add header to fexfacet file and save.
-            data = importdata(self.facetfile);
-            load('fexfacethdr.mat');
-            ndata = mat2dataset(data.data,'VarNames',fexfacethdr.(lower(self.chanels)),...
-                        'ObsNames',data.textdata(1:end-1,1));
-            export(ndata,'File',self.facetfile);                
-        end
+%         function filehead(self)
+%         % Add header to fexfacet file and save.
+%             data = importdata(self.facetfile);
+%             load('fexfacethdr.mat');
+%             ndata = mat2dataset(data.data,'VarNames',fexfacethdr.(lower(self.chanels)),...
+%                         'ObsNames',data.textdata(1:end-1,1));
+%             export(ndata,'File',self.facetfile);                
+%         end
         
         
         function ffn = facetfilename(self)

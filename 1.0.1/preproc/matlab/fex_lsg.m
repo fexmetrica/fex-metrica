@@ -79,7 +79,7 @@ if strcmp(strk2,'filter')
     strk2 = '';
 end
 
-% if k2 == 1
+% if k2 == 1/home/filippo/Projects/UgPreprocessing
 %     strk2 = '';
 % else
 %     strk2 = get(handles.uifilter,'String');
@@ -112,7 +112,7 @@ if k1 == 1
     end 
     
     % Get the new data
-    [~,new_list] = unix(sprintf('find %s -name "%s"',PathName,strk2));
+    [~,new_list] = unix(sprintf('find %s -name "%s" | sort',PathName,strk2));
     % Divide the string into cell
     new_list = strsplit(new_list);
     

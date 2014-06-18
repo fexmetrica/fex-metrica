@@ -105,9 +105,9 @@ int main (int argc, char *argv[]){
     
     // Get command line information or set defaults
     string videoFile;
-    int   rate;
+    float ReducedFramerate(REDFRATE);
     
-    retVal = parseVideoArg(argc, argv, videoFile,ReducedFrameRate);
+    retVal = parseVideoArg(argc, argv, videoFile,ReducedFramerate);
     if (retVal != FacetSDK::SUCCESS) {
         printUsage();
         exit(retVal);
@@ -139,7 +139,7 @@ int main (int argc, char *argv[]){
     Determine the number of video frames so that all of them will be processed
     This is faulty OpenCV code so the estimate might be wrong **/
     size_t numtotalframes = videoCap.get(CV_CAP_PROP_FRAME_COUNT);
-	IncrementFrameUsed = int(videoCap.get(CV_CAP_PROP_FPS) / ReducedFrameRate);
+	float IncrementFrameUsed = videoCap.get(CV_CAP_PROP_FPS) / ReducedFramerate;
 	videoCap.set(CV_CAP_PROP_POS_FRAMES,0);
 	// CONSIDER PREALLOCATING
 	// frameanalysis.reserve(numtotalframes); // Pre-allocate

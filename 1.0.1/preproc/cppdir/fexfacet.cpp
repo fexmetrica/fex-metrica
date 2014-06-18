@@ -1,29 +1,6 @@
 /**
  file fexcrop.cpp
- This function uses the Emotient SDK, and OpenCv to read a
- prespecified number of frames in a video (e.g. 1 per second), 
- at a reduce quality factor (reduction 0.00-100.00%), and finds
- the largest face in the video. The function saves the face
- coordinates for the selected frames, and it can generate an 
- high quality video output using only the cropped area. 
- 
-  Copiright: Filippo Rossi, Institute for Neural Computation,
-  University of California, San Diego.
-  
-  Contact Info: frossi@ucsd.edu.
 
-
-
-
-Videofile -i string withe the path to a file (i.e. a video) or the 
-pattern to a file, s.a. "path_to_file/img%8d.jpg";
-
-
-Framerate (Do you want to skip any frame?) -r int
-Chanels   -w:c string ('face','emotions','aus','all')
-Outputfile -o string
-
-IMPORTANT: COMPUTE CROPPING MULTIPLICATIVE FACTOR!!!!
 
 **/
 
@@ -43,6 +20,7 @@ using namespace EMOTIENT;
 const float QSCALE    = 0.00; /**< Quality scaling factor: 0.00 = best quality; 1.00 = worst**/
 const int   SAMPLRATE = 1;    /** < Desired video sampling rate 1 = all available frames**/
 const int   CHANELS   = 1; /** Chanels to be used **/
+const float MINFACESIZEPCT = .05; /**< The minimum facebox size to search, as percentage of image width */
 
 /** Start Utilities Functions ++++++++++++++++++++++++++++++++++++++++++++ **/
 
@@ -51,17 +29,6 @@ const int   CHANELS   = 1; /** Chanels to be used **/
  */
 void printUsage(){
 	std::cout << "Usage:" << std::endl;
-	std::cout << "   videoanalysis -f MOVIEFILE [-m MINFACESIZEPCT] [-b STARTFRAME:ENDFRAME] [-o OUTPUTFILE]" << std::endl;
-	std::cout << "   - The required -f MOVIEFILE argument must be an absolute path to an opencv supported video file." << std::endl;
-    std::cout << "   - The optional [-m MINFACESIZEPCT] argument is a floating point percentage between 0 and 1." << std::endl;
-    std::cout << "     (defaults to .05)" << std::endl;
-    std::cout << "   - The optional [-b STARTFRAME:ENDFRAME] argument specifies start:end frames for baselining intensity." << std::endl;
-    std::cout << "     (if not specified, does not output intensity at all)" << std::endl;
-    std::cout << "   - The optional [-o OUTPUTFILE] argymebt specifies an output CSV file." << std::endl;
-	std::cout << std::endl;
-	std::cout << "Output:" << std::endl;
-    std::cout << "   - Prints to screen the average emotion outputs at regular intervals while processing the video." << std::endl;
-	std::cout << "   - Prints a CSV-formatted set of video analyzed emotion outputs to screen (or to file if OUTPUTFILE is specified.)" << std::endl;
 }
 
 // Get cmd line Input
@@ -82,7 +49,7 @@ bool cmdOptionExists(char** begin, char** end, const std::string& option)
 
 
  // Check cmd line Imput
-int parseVideoArg(int argc, char *argv[], string& videoFile, float& QualityScale, int& ChanelsList){
+int parseVideoArg(int argc, char *argv[], string& videoFile, float& QualityScale, int& ChanelsList, float&minFaceSizePct){
     int retVal(FacetSDK::SUCCESS);
 
     // Check that the video input file was passed
@@ -115,6 +82,17 @@ int parseVideoArg(int argc, char *argv[], string& videoFile, float& QualityScale
      ChanelsList = CHANELS;
     }
     
+    
+    // Set the minimum facebox size
+    if (cmdOptionExists(argv, argv + argc, "-m")) {
+        char* minsizearg = getCmdOption(argv, argv + argc, "-m");
+        std::istringstream iss(minsizearg);
+        iss >> minFaceSizePct;
+    } else {
+        minFaceSizePct = MINFACESIZEPCT;
+    }
+    
+    
      return retVal;
  }
  
@@ -135,8 +113,9 @@ int main (int argc, char *argv[]){
     string videoFile;
     float QualityScale(QSCALE);
     int   ChanelsList;
+    float minFaceSizePct(MINFACESIZEPCT);
     
-    retVal = parseVideoArg(argc, argv, videoFile, QualityScale, ChanelsList);
+    retVal = parseVideoArg(argc, argv, videoFile, QualityScale, ChanelsList,minFaceSizePct);
     if (retVal != FacetSDK::SUCCESS) {
         printUsage();
         exit(retVal);
@@ -162,6 +141,9 @@ int main (int argc, char *argv[]){
         std::cout << "Could not open video file for processing!" << std::endl;
         exit(FacetSDK::NOT_AVAILABLE);
     }
+    /** Determine the minimum-size facebox to search based on user-configured minFaceSizePct **/
+    float imageWidth = videoCap.get(CV_CAP_PROP_FRAME_WIDTH);
+    float minFaceWidth = minFaceSizePct * imageWidth;
     
     cv::Mat frame, grayFrame;
     size_t framenum(0);
@@ -175,6 +157,8 @@ int main (int argc, char *argv[]){
         std::cout << "Error code = " << FacetSDK::DefineErrorCode(retVal) << std::endl;
         exit(retVal);
     }
+    retVal = frameAnalyzer.SetMinFaceDetectionWidth(minFaceWidth);
+    std::cout << "min face size = " << minFaceWidth << std::endl;
 
     /** Activate or deactivate chanels for the analysis 
         1 = All features -- no deactivation required
@@ -205,12 +189,13 @@ int main (int argc, char *argv[]){
     
     
     /** Compile the file Header **/
-    outfilestream << "FrameNumber \t FrameRows \t FrameCols \t FaceBoxX \t FaceBoxY \t FaceBoxW \t FaceBoxH \t";
+    outfilestream << "FrameNumber" << "\t" << "FrameRows" << "\t" << "FrameCols" << "\t";
+	outfilestream << "FaceBoxX" << "\t" << "FaceBoxY" << "\t" << "FaceBoxW" << "\t" << "FaceBoxH" << "\t";
     std::vector<FacetSDK::LandmarkName> lmnames = FacetSDK::AllLandmarkNames();
     for (size_t i = 0; i < lmnames.size(); i++) {
         outfilestream << lmnames[i] <<"_x" << "\t" << lmnames[i] <<"_y" << "\t";
     }
-    outfilestream << "Roll \t Pitch \t Yaw \t";
+    outfilestream << "Roll" << "\t" << "Pitch" << "\t" << "Yaw" << "\t";
     if (frameAnalyzer.IsChannelActive(FacetSDK::PRIMARY_EMOTIONS)) {
         std::vector<FacetSDK::EmotionName> emotionNames = FacetSDK::AllPrimaryEmotionNames();
         for (size_t i = 0; i < emotionNames.size(); i++) {
