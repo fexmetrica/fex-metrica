@@ -1,6 +1,29 @@
 /**
  file fexcrop.cpp
+ This function uses the Emotient SDK, and OpenCv to read a
+ prespecified number of frames in a video (e.g. 1 per second), 
+ at a reduce quality factor (reduction 0.00-100.00%), and finds
+ the largest face in the video. The function saves the face
+ coordinates for the selected frames, and it can generate an 
+ high quality video output using only the cropped area. 
+ 
+  Copiright: Filippo Rossi, Institute for Neural Computation,
+  University of California, San Diego.
+  
+  Contact Info: frossi@ucsd.edu.
 
+
+
+
+Videofile -i string withe the path to a file (i.e. a video) or the 
+pattern to a file, s.a. "path_to_file/img%8d.jpg";
+
+
+Framerate (Do you want to skip any frame?) -r int
+Chanels   -w:c string ('face','emotions','aus','all')
+Outputfile -o string
+
+IMPORTANT: COMPUTE CROPPING MULTIPLICATIVE FACTOR!!!!
 
 **/
 
@@ -29,6 +52,17 @@ const float MINFACESIZEPCT = .05; /**< The minimum facebox size to search, as pe
  */
 void printUsage(){
 	std::cout << "Usage:" << std::endl;
+	std::cout << "   videoanalysis -f MOVIEFILE [-m MINFACESIZEPCT] [-b STARTFRAME:ENDFRAME] [-o OUTPUTFILE]" << std::endl;
+	std::cout << "   - The required -f MOVIEFILE argument must be an absolute path to an opencv supported video file." << std::endl;
+    std::cout << "   - The optional [-m MINFACESIZEPCT] argument is a floating point percentage between 0 and 1." << std::endl;
+    std::cout << "     (defaults to .05)" << std::endl;
+    std::cout << "   - The optional [-b STARTFRAME:ENDFRAME] argument specifies start:end frames for baselining intensity." << std::endl;
+    std::cout << "     (if not specified, does not output intensity at all)" << std::endl;
+    std::cout << "   - The optional [-o OUTPUTFILE] argymebt specifies an output CSV file." << std::endl;
+	std::cout << std::endl;
+	std::cout << "Output:" << std::endl;
+    std::cout << "   - Prints to screen the average emotion outputs at regular intervals while processing the video." << std::endl;
+	std::cout << "   - Prints a CSV-formatted set of video analyzed emotion outputs to screen (or to file if OUTPUTFILE is specified.)" << std::endl;
 }
 
 // Get cmd line Input
