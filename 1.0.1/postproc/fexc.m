@@ -551,6 +551,7 @@ classdef fexc < handle
         % Original image and false positive
         temp = [self.history.original.TimeStamps,...
                 self.history.original.(args.feature)];
+        temp(:,1) = temp(:,1) - temp(1,1);
             
         subplot(3,4,1:3), hold on, box on
         set(gca,'fontsize',12,'LineWidth',2);
@@ -568,7 +569,8 @@ classdef fexc < handle
             temp = [self.history.interpolate.TimeStamps,...
                 self.history.interpolate.(args.feature)];
             nanind = self.naninfo.count;
-            
+            temp(:,1) = temp(:,1) - temp(1,1);
+
             % Interpolated Signal Plot
             subplot(3,4,5:7), hold on, box on
             set(gca,'fontsize',12,'LineWidth',2);
@@ -597,7 +599,8 @@ classdef fexc < handle
             temp = [self.history.temporal.TimeStamps,...
                 self.history.temporal.(args.feature)];
             nanind = self.naninfo.count;
-            
+            temp(:,1) = temp(:,1) - temp(1,1);
+
             % Plot signal filtered
             subplot(3,4,9:11), hold on, box on
             set(gca,'fontsize',12,'LineWidth',2);
