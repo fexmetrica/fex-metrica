@@ -2,16 +2,13 @@ function str = fex_strtime(sec)
 %
 % str = fex_strtime(sec)
 %
-% "sec" is a float indicating time elappsed in seconds.
-% The function converts sec into a string formatted as
-% follow:
+% Transforms a double "sec", into a string "hh:mm:ss.msc." Alternatively,
+% transforms a string of the form "hh:mm:ss.msc" into a double. 
 %
-%   HH:MM:SS:MT
+% "sec" can be a char, a cell, a double, or a vector.
 %
-% HH = hours, MM = minutes, SS = seconds and MT = microtime resolution.
-% This format is used in ffmpeg to identify time in a video.
 %
-% _________________________________________________________________________
+%_______________________________________________________________________
 %
 %
 % Copiright: Filippo Rossi, Institute for Neural Computation, University
@@ -19,12 +16,18 @@ function str = fex_strtime(sec)
 %
 % email: frossi@ucsd.edu
 %
-% Version: 06/17/14.
+% Version: 06/14/14.
 
-str = sprintf('%.2d:%.2d:%.2d:%.2d',...
-               floor(sec/3600),...                 % hours
-               floor(mod(sec/60,60)),...           % Minutes
-               floor(mod(sec,60)),...              % Seconds
-               round((sec - floor(sec))*100));     % Microtime resolution
+
+if isa(sec,'char')
+    str = str2double(strsplit(sec,':'))*[60^2,60,1]';
+elseif isa(sec,'cell')
+    conrt = @(t)str2double(strsplit(t,':'));
+    st = cellfun(conrt,sec,'UniformOutput',false);
+    str = cell2mat(st)*[60^2,60,1]';
+elseif isa(sec,'double')
+    conrt = @(t) sprintf('%.2d:%.2d:%.3f',...
+        floor(t/3600),floor(mod(t/60,60)),mod(t,60));
+    str = cellfun(conrt,num2cell(sec),'UniformOutput',false);
 end
-
+         

@@ -140,7 +140,8 @@ switch type
     case {'band','bp','bandpass'}
         dfi = [0,(1-tw)*ffi(1) ffi(1) ffi(2) (1+tw)*ffi(2) nyquist];
         ifi = [0,0,1,1,0,0];
-        filt_kr.kernel = firls(filt_order,dfi./nyquist,ifi);
+%         filt_kr.kernel = firls(filt_order,dfi./nyquist,ifi);
+        filt_kr.kernel = fir1(filt_order,ffi(1:2)./nyquist);
     case{'low','lowpass','lp'}
         dfi = [0,(1-tw)*ffi(1),ffi(1), nyquist];
         ifi = [1,1,0,0];
