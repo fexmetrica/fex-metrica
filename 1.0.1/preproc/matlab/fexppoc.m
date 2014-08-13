@@ -90,6 +90,8 @@ classdef fexppoc
 
     % Public properties
     properties
+        % enter a subject ID                !!!!!!TODOD
+        subjectID
         % absolut path to video file
         video
         % Information about the video
