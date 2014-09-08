@@ -121,7 +121,7 @@ classdef fexc < handle
         % nullobservation info
         naninfo
         % dataset with design info
-%         design
+        design
         % baseline
         baseline
     end
@@ -152,7 +152,7 @@ classdef fexc < handle
         % -----------------------------------------------------------------
         %
         
-        % Create empty fex object (??)
+        % Create empty fex object
         if isempty(varargin)
             varargin = {'video','','videoInfo',[],'data',''};
             warning('Creating empty fexc object.')
@@ -202,7 +202,8 @@ classdef fexc < handle
         % given by the fexfacet code (load a structure named 'hdrs')
         load('fexheaders.mat');
         if isfield(temp,'textdata');
-            if ~iscell(temp.textdata)
+            % modified here
+            if length(temp.textdata) == 1
                 thdr = strsplit(temp.textdata{1});
             else
                thdr = temp.textdata;
@@ -247,22 +248,22 @@ classdef fexc < handle
         end
 
         
-        % THIS NEEDS TO BE DELETED ====================
-%         
-%         % Add design information when provided as dataset
-%         ind = find(strcmp(varargin,'design'));
-%         if ~isempty(ind) && isa(varargin{ind+1},'dataset')
-%             self.design = varargin{ind+1};
-%         elseif ~isempty(ind) && ~isa(varargin{ind+1},'dataset')
-%             % Add an header
-%             vnames = {'Var01'};
-%             for ivd = 2:size(varargin{ind+1},2)
-%                 vnames = cat(2,vnames,sprintf('Var%.2d',ivd));
-%             end
-%             self.design = mat2dataset(varargin{ind+1},'VarNames',vnames);
-%         else
-%             self.design = [];
-%         end
+        % THIS NEEDS TO BE Updated ====================
+        
+        % Add design information when provided as dataset
+        ind = find(strcmp(varargin,'design'));
+        if ~isempty(ind) && isa(varargin{ind+1},'dataset')
+            self.design = varargin{ind+1};
+        elseif ~isempty(ind) && ~isa(varargin{ind+1},'dataset')
+            % Add an header
+            vnames = {'Var01'};
+            for ivd = 2:size(varargin{ind+1},2)
+                vnames = cat(2,vnames,sprintf('Var%.2d',ivd));
+            end
+            self.design = mat2dataset(varargin{ind+1},'VarNames',vnames);
+        else
+            self.design = [];
+        end
 
         % Add naninfo & Coregistration parameters
         self.naninfo = mat2dataset(zeros(size(self.functional,1),3),'VarNames',{'count','tag','falsepositive'});
@@ -532,7 +533,112 @@ classdef fexc < handle
         self.history.interpolate = [self.time,self.naninfo,self.functional];  
         end
         
+        
 % *************************************************************************              
+% *************************************************************************         
+
+        function self = nanset(self,rule)
+        %
+        % -----------------------------------------------------------------  
+        % 
+        % Reintroduces null observation based on self.naninfo, in case you
+        % interpolated all nans out for preprocessing. 'rule' is the number
+        % of consecutie nan which will be considered nans. 
+        % 
+        % -----------------------------------------------------------------
+        %
+        
+        if ~exist('rule','var')
+            rule = 15;
+        end
+        
+        hdr = self.functional.Properties.VarNames;
+        X   = double(self.functional);
+        
+        X(repmat(self.naninfo.count >= rule,[1,size(X,2)])) = nan;
+        self.functional = mat2dataset(X,'VarNames',hdr);
+        end
+        
+% *************************************************************************
+% *************************************************************************  
+        
+        function M = getmatrix(self,index,varargin)
+        %
+        % -----------------------------------------------------------------  
+        % 
+        % Generate a matrix from the timeseries. Index is a vector of the
+        % same length of self.functional, s.t. [0,0,1,1,0,0,2,2,...] would
+        % select 2 events, and return a matrix where the first row is the
+        % average of the signal from frames tagged "1", the second row is
+        % the average of frames tagged with "2," and so on. Note that -Inf
+        % ,..., 0 are not considered tags, and will be excluded.
+        %
+        % varargin include:
+        %
+        %   'method': ...
+        %   'size'  : ...
+        % 
+        % -----------------------------------------------------------------
+        %
+        
+        % Set up event list
+        evlist = unique(index(index > 0));
+        index  = cat(2,index,zeros(size(index,1),1));
+        M = [];
+
+        
+        % Set up method argument
+        ind = find(strcmp('method',varargin));
+        if isempty(ind)
+            method = @nanmean;
+        elseif isa(varargin{ind+1},'function_handle')
+            method = varargin{ind+1};
+        else
+        % try char that can be converted into an handle, otherwise give up.
+            try
+               method = eval(sprintf('@%s',varargin{ind+1}));
+            catch errorID
+                warning(errorID.message);
+                return
+            end
+        end
+        
+        % Set up size argument
+        ind = find(strcmp('size',varargin));
+        if ~isempty(ind)
+        % get the position of the window
+            val = varargin{ind+1};
+            wps = find(val ~=0);
+            if ~ismember(wps,1:2)
+                warning('I couldn''t understand "size" parameter.');
+                return
+            end
+            % Resize the events
+            for i = evlist'
+                nc = (1:sum(index(:,1) == i))';
+                if wps == 1
+                % Get the beginning of the event
+                    index(index(:,1) == i,2) = nc;
+                else
+                % Get the end of the event
+                    index(index(:,1) == i,2) = flipud(nc);
+                end
+            end
+            index(index(:,2) > val(wps),1) = 0;
+        end
+        
+        % Compile the matrix
+        temp = double(self.functional);
+        for i = evlist'
+            M = cat(1,M,method(temp(index(:,1) == i,:)));
+        end
+        
+        % Add header
+        M = mat2dataset([evlist,M],'VarNames',['NumEvent',self.functional.Properties.VarNames]);
+       
+        end
+        
+% *************************************************************************
 % *************************************************************************                  
         
         function self = temporalfilt(self,param,varargin)
@@ -637,6 +743,118 @@ classdef fexc < handle
 
         end
         
+        function M = getband(self,param,varargin)
+        %
+        % -----------------------------------------------------------------  
+        % 
+        % Return analytic signal for a specific frequency, in a matrix:
+        %
+        %   'type':
+        %   'order':
+        %   'output':
+        %   'show':
+        % 
+        % -----------------------------------------------------------------
+        %
+        
+        % Set default:
+        type = {'','hp','bp'};
+        args = struct('order',round(4*param(end)/param(1)),...
+                      'type' , type{length(param)},...
+                      'output','real',...
+                      'show',false,...
+                      'matrix','off');
+        % Read varargin
+        argsn = fieldnames(args);
+        for i = 1:length(argsn)
+            ind = find(strcmp(argsn{i},varargin));
+            if ~isempty(ind)
+                args.(argsn{i}) = varargin{ind+1};
+            end
+        end
+        
+        % Test 'matrix' argumen:
+        eM = 'matrix is a structure with fields: events, method, and size.';
+        if ~strcmp(args.matrix,'off')
+            % Handle event list
+            if ~isfield(args.matrix,'events')
+                error(eM);
+            end
+            % Handle method
+            if ~isfield(args.matrix,'method')
+                args.matrix.method = @nanmean;
+            end
+            
+            % Handle size
+            if ~isfield(args.matrix,'size')
+                args.matrix.size = [Inf,0];
+            end
+        end
+            
+        % Apply filter
+        ts = fex_bandpass(double(self.functional),param,...
+                               'order',args.order,...
+                               'type',args.type);
+        
+        % Select output signal ('real','imag','power','analytic')
+        if strcmp(args.output,'real')
+            TS = ts.real;
+        elseif strcmp(args.output,'imag')
+            TS = imag(ts.analytic);
+        elseif strcmp(args.output,'power')
+            TS = abs(ts.analytic).^2;
+        elseif strcmp(args.output,'analytic')
+            TS = ts.analytic;
+        else
+            error('Unknwon output type.');
+        end
+            
+        if isa(args.matrix,'struct')
+            M = fex_getmatrix(TS,args.matrix.events,'method',args.matrix.method,'size',args.matrix.size);
+        else
+            M = TS;
+        end
+         
+        % Display animation of the filtering process
+        if args.show
+            scrsz = get(0,'ScreenSize');
+            figure('Position',[1 scrsz(4) scrsz(3)/1.5 scrsz(4)/1.5],...
+                'Name','Frequency Specific Signal','NumberTitle','off','Visible','off');
+            
+            ax(1) = subplot(3,3,1:3); hold on
+            bar(self.time.TimeStamps,self.functional.anger-nanmean(self.functional.anger));
+            ylim([min(self.functional.anger-nanmean(self.functional.anger)),max(self.functional.anger-nanmean(self.functional.anger))]);
+            title('Original Signal (centered)','fontname','Helvetica','fontsize',14);
+            
+            ax(2) = subplot(3,3,4:6); hold on
+            bar(self.time.TimeStamps,ts.real(:,1));
+            ylim([min(ts.real(:,1)),max(ts.real(:,1))]);
+            title('Filtered Signal (real)','fontname','Helvetica','fontsize',14);
+            
+            ax(3) = subplot(3,3,7:9); hold on
+            bar(self.time.TimeStamps,abs(ts.analytic(:,1)).^2);
+            ylim([min(abs(ts.analytic(:,1)).^2),max(abs(ts.analytic(:,1)).^2)]);
+            title('Inst. Power Estimate','fontname','Helvetica','fontsize',14);
+            xlabel('Time (sec.)','fontname','Helvetica','fontsize',14);
+            
+            % Movie style progression:
+            linkaxes([ax(3) ax(2) ax(1)],'x');
+            k1 = 101;
+            set(ax(1),'xlim',[self.time.TimeStamps(k1-100),self.time.TimeStamps(k1)]);
+            set(gcf,'Visible','on');
+            for i = 1:length(self.time.TimeStamps)-1
+                set(ax(1),'xlim',[self.time.TimeStamps(k1-100),self.time.TimeStamps(k1)]);
+                pause(.05)
+                k1 = k1+1;
+            end              
+        end
+        
+        
+        end
+        
+        
+        
+        
         
 % *************************************************************************
 % *************************************************************************  
@@ -658,7 +876,9 @@ classdef fexc < handle
             fprintf('something');
         end
 
-        
+% *************************************************************************
+% *************************************************************************  
+
         function [self,h] = showpreproc(self,varargin)
         % Make an image of the preprocessing steps.    
         
@@ -760,7 +980,9 @@ classdef fexc < handle
         end
         end        
 
-        
+% *************************************************************************
+% *************************************************************************  
+
         function drawface(self,varargin)
             % save image with facebox draw on it
             % test whether you have a video            
