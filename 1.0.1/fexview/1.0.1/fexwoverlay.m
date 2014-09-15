@@ -414,7 +414,7 @@ classdef fexwoverlay < handle
         end    
         % Test "name" argument
         if isempty(args.name)
-            args.name = sprintf('fxwo_%s',datestr(now,'-dd:mm:yy:HH:MM:SS'));
+            args.name = sprintf('fxwo_%s',datestr(now,'dd:mm:yy:HH:MM:SS'));
         end
         % Test type & format:
         if ismember(args.format,{'-dpdf', '-djpeg','-dpng','-dtiffn','-dbmp'});
