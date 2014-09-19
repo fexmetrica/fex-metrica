@@ -52,7 +52,7 @@ eId = eId(eId >0);
 DD = dummyvar(ids+1); DD = DD(:,2:end);
 DD = DD(:,sum(DD)>0);
 bts = ts;
-% bts(repmat(ids <= 0,[1,size(ts,2)])) = nan;
+bts(repmat(ids <= 0,[1,size(ts,2)])) = nan;
 
 % Set up kernel and convolve
 tskk = convn(bts,ones(ntps,1),'same');
@@ -69,7 +69,7 @@ inds = zeros(size(ts));
 indl = round(ntps/2);
 for iev = 1:length(eId)
     for jfeat = 1:size(ts,2)
-        if ~isnan(Midx(iev,jfeat));
+        if ntps < sum(ids == eId(iev)) %~isnan(Midx(iev,jfeat));
             tind = Midx(iev,jfeat)-indl:Midx(iev,jfeat)+indl;
             inds(tind,jfeat) = eId(iev);
         else

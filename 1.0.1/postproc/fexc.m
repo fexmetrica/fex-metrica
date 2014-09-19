@@ -856,10 +856,63 @@ classdef fexc < handle
 % *************************************************************************  
 
 
-        function self = normalize(self)
-            fprintf('something');
+        function self = normalize(self,varargin)
+        %
+        % -----------------------------------------------------------------  
+        % 
+        % Normalize the functional field
+        %
+        % -----------------------------------------------------------------
+        %
+    
+        % Read optional arguments
+        scale = {'method','zscore','folds',ones(size(self.functional,1),1),'outliers','off','threshold',2.5};
+        for i = 1:2:length(varargin)
+            idx = strcmp(scale,varargin{i});
+            idx = find(idx == 1);
+            if idx
+                scale{idx+1} = varargin{i+1};
+            end
+        end
+        % Normalize and update teh functional filed
+        self.update('functional',fex_normalize(double(self.functional),scale{:}));
+
+       
         end
 
+% *************************************************************************
+% *************************************************************************  
+
+
+        function self = update(self,arg,val)
+        %
+        % -----------------------------------------------------------------  
+        % 
+        % Update -- for now this only applies to the functional field
+        %
+        % -----------------------------------------------------------------
+        %
+        
+        switch arg
+            case 'functional'
+            % Check the provided value, and update the field
+                if size(val,2) == size(self.functional,2)
+                    self.functional = replacedata(self.functional,val);
+                else
+                    error('Wrong size for the updated functional data.')
+                end
+            
+            otherwise
+                warnning('Update is under development.');
+        end
+        
+        
+        end
+
+        
+% *************************************************************************
+% *************************************************************************         
+        
         function self = downsample(self)
             fprintf('something');
         end
