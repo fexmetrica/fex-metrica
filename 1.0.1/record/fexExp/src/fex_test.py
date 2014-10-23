@@ -5,10 +5,10 @@
 # participants are asked to show happiness or disgust 
 
 import pygtk, gtk, gobject, glib
-import time,os
-from numpy import loadtxt, shape, arange
-import subprocess
-import signal
+import time,os,sys
+from numpy import loadtxt, shape, arange, random
+from threading import Thread, activeCount
+import subprocess, signal
 from cv2 import *
 
 # Safely enter thread
@@ -16,8 +16,9 @@ gtk.gdk.threads_init()
 
 class FexMaster:
     # Habdle events in the experiment
-    def __init__(self):
+    def __init__(self,subj_nam = 101):
         # Initialize flags
+        self.sid = subj_nam
         self.stage   = 0  
         self.wnumb   = 0 
         self.run     = 1
@@ -27,9 +28,18 @@ class FexMaster:
         
         # Initialize object
         self.home = os.path.dirname(os.path.realpath(__file__))
-        self.design = loadtxt("%s/../include/design.txt" %(self.home),skiprows = 1)
-        #self.design = 'randomize'        
-
+        # Unzip include/img
+        if not os.path.exists(self.home + "/../include/img"):
+            print "Extracting images"
+            os.chdir("%s/../include" %self.home)
+            os.system("unzip img.zip")
+            os.chdir(self.home)
+            
+        design = loadtxt("%s/../include/design.txt" %(self.home),skiprows = 1)
+        idx = arange(shape(design)[0])
+        random.shuffle(idx)
+        self.design = design[idx,:]
+        
         # Get Monitor geometry
         monitor = gtk.gdk.Screen()
         self.cml = monitor.get_monitor_geometry(0)
@@ -75,29 +85,31 @@ class FexMaster:
         self.window.show_all()
         self.window.fullscreen()
         
-        
     def baseline(self):
     # Collect video baseline
         frame_n = 1
-        video   = VideoGrabber(101,self.run,"b")
+        video   = VideoGrabber(self.sid,self.run,"b")
         while frame_n < 451:
-            print "Collecting baseline ... " + str(frame_n)
             video.FrameGrab()
             frame_n += 1
-            # waitKey(66)
+            waitKey(66)
         video.VideoKill()
         self.stage   = 1
+        self.decision = "None"
         pixbuf = gtk.gdk.pixbuf_new_from_file(self.home + "/../include/img/f001.jpg")       
         scaled_buf = pixbuf.scale_simple(self.cml[2],self.cml[3],gtk.gdk.INTERP_BILINEAR)
         self.image.set_from_pixbuf(scaled_buf)
         self.t_init = time.time()
-        self.log = logger(101,self.run)
-        self.video  = VideoGrabber(101,self.run)
+        self.log = logger(self.sid,self.run)
+        self.video  = VideoGrabber(self.sid,self.run)
+        # Enter Video Collecting Thread
+        self.VideoThread = Thread(target=self.video.VideoGrab, args=([]))
+        self.VideoThread.start()
+        self.log.writer(self.sid,self.run,self.ntraial,self.stage,self.expression,self.decision,time.time(),self.design[self.ntraial-1,:])
         glib.idle_add(self.stage_one)
 
-    def stage_zero(self):
-    # Inter run window for stages 1,2,..,4            
-        if self.ntraial == 11 or self.ntraial == 51 or self.ntraial == 76:
+    def stage_zero(self):     
+        if self.ntraial == 26 or self.ntraial == 51 or self.ntraial == 76:
             print "I am here"
             self.stage = 0
             self.run +=1
@@ -115,12 +127,12 @@ class FexMaster:
             self.image.set_from_pixbuf(scaled_buf)
         else:
             self.stage = 1
+            self.decision = "None"
+            self.log.writer(self.sid,self.run,self.ntraial,self.stage,self.expression,self.decision,time.time(),self.design[self.ntraial-1,:])
             glib.idle_add(self.stage_one)
 
     def stage_one(self):
-    # Main trial master
-        self.video.FrameGrab()
-        self.log.writer(101,self.run,self.ntraial,self.expression,time.time(),self.design[self.ntraial,:])  
+    # Main trial master 
         if time.time()-self.t_init <= 4:
             glib.idle_add(self.stage_one)
         else:
@@ -131,61 +143,52 @@ class FexMaster:
             self.t_exp   = 0
             self.stage   = 2
             self.expression = 1
-            
+            self.log.writer(self.sid,self.run,self.ntraial,self.stage,self.expression,self.decision,time.time(),self.design[self.ntraial-1,:])
             # Add text for the offer amount
-            self.label.set_markup('<span size="20000" weight="bold" color ="white">Offer: $%d </span>' %self.design[self.ntraial,0])
-            glib.idle_add(self.stage_two)
-            
-#        self.wait = Thread(target=self.sleeping, args=([]))
-#        self.wait.start()
-
-        # This calls the video grabber, and refresh the window -- the 
-        # video grabber calls stage_one as well, the logger prints information 
-        # from the trigger master      
+            self.label.set_markup('<span size="20000" weight="bold" color ="white">Offer: $%d </span>' %self.design[self.ntraial-1,0])
+            glib.idle_add(self.stage_two)   
 
     def stage_two(self):
-    # Offer window
-        #print self.design[self.ntraial,:]
-        self.video.FrameGrab()
-        self.log.writer(101,self.run,self.ntraial,self.expression,time.time(),self.design[self.ntraial,:])  
-        if time.time()-self.t_init > self.design[self.ntraial,3] and self.expression == 1:
+        if time.time()-self.t_init > self.design[self.ntraial-1,3] and self.expression == 1:
         # Onset of emotion image
             self.expression = 2
-            pixbuf = gtk.gdk.pixbuf_new_from_file(self.home + "/../include/img/em00" + str(int(self.design[self.ntraial,1])) + ".jpg")       
+            self.log.writer(self.sid,self.run,self.ntraial,self.stage,self.expression,self.decision,time.time(),self.design[self.ntraial-1,:])
+            pixbuf = gtk.gdk.pixbuf_new_from_file(self.home + "/../include/img/em00" + str(int(self.design[self.ntraial-1,1])) + ".jpg")       
             scaled_buf = pixbuf.scale_simple(self.cml[2],self.cml[3],gtk.gdk.INTERP_BILINEAR)
             self.image.set_from_pixbuf(scaled_buf)
             self.t_exp = time.time()
             glib.idle_add(self.stage_two)           
-        elif time.time() - self.t_exp > self.design[self.ntraial,2] and self.expression == 2:
+        elif time.time() - self.t_exp > self.design[self.ntraial-1,2] and self.expression == 2:
         # Offset of emotion
             self.expression = 3
+            self.log.writer(self.sid,self.run,self.ntraial,self.stage,self.expression,self.decision,time.time(),self.design[self.ntraial-1,:])
             pixbuf = gtk.gdk.pixbuf_new_from_file(self.home + "/../include/img/em003.jpg")       
             scaled_buf = pixbuf.scale_simple(self.cml[2],self.cml[3],gtk.gdk.INTERP_BILINEAR)
             self.image.set_from_pixbuf(scaled_buf)
+            #print self.design[self.ntraial,:]
             glib.idle_add(self.stage_two)
         elif time.time()-self.t_init > 6:
-        # Change run
             self.label.set_markup('<span size="20000" weight="bold" color ="white"></span>')
             self.expression = 0
             self.t_init  = time.time()
             self.stage   = 3
+            self.log.writer(self.sid,self.run,self.ntraial,self.stage,self.expression,self.decision,time.time(),self.design[self.ntraial-1,:])
             pixbuf = gtk.gdk.pixbuf_new_from_file(self.home + "/../include/img/d001.jpg")       
             scaled_buf = pixbuf.scale_simple(self.cml[2],self.cml[3],gtk.gdk.INTERP_BILINEAR)
             self.image.set_from_pixbuf(scaled_buf)
+            #print self.design[self.ntraial,:]
             glib.idle_add(self.stage_three)
         else:
             glib.idle_add(self.stage_two)
-
         
     def stage_three(self):
-    # decision window.
-        self.video.FrameGrab()
-        self.log.writer(101,self.run,self.ntraial,self.expression,time.time(),self.design[self.ntraial,:])     
+    # decision window.  
         if time.time()-self.t_init <= 6 and self.stage == 3:
             glib.idle_add(self.stage_three)
         elif time.time()-self.t_init > 6 and self.stage == 3:
             self.stage    = 1
             self.ntraial += 1
+            self.log.writer(self.sid,self.run,self.ntraial,self.stage,self.expression,self.decision,time.time(),self.design[self.ntraial-1,:])
             pixbuf = gtk.gdk.pixbuf_new_from_file(self.home + "/../include/img/f001.jpg")       
             scaled_buf = pixbuf.scale_simple(self.cml[2],self.cml[3],gtk.gdk.INTERP_BILINEAR)
             self.image.set_from_pixbuf(scaled_buf)
@@ -199,9 +202,7 @@ class FexMaster:
         if (keyname == 'space' or keyname == 'Return') and self.stage == 0:
             self.wnumb +=1
             if self.wnumb > 5:
-                print "stage: " + str(self.stage)
-                print "trial: " + str(self.ntraial)
-                print "run: "   + str(self.run)
+                print "Starting baseline"
                 self.stage = 1
                 pixbuf = gtk.gdk.pixbuf_new_from_file(self.home + "/../include/img/b001.jpg")
                 scaled_buf = pixbuf.scale_simple(self.cml[2],self.cml[3],gtk.gdk.INTERP_BILINEAR)
@@ -213,6 +214,7 @@ class FexMaster:
                 self.image.set_from_pixbuf(scaled_buf)
         elif (keyname == 'Right' or keyname == 'Left') and self.stage == 3:
             self.decision = keyname
+            self.log.writer(self.sid,self.run,self.ntraial,self.stage,self.expression,self.decision,time.time(),self.design[self.ntraial-1,:])
             self.stage = 1
             self.ntraial += 1
             pixbuf = gtk.gdk.pixbuf_new_from_file(self.home + "/../include/img/f001.jpg")       
@@ -230,23 +232,25 @@ class VideoGrabber:
         # also run >> ffmpeg -encoders
         
         # Generate a data repository
+        self.recording = False
+        self.framen    = 1
         path = os.path.dirname(os.path.realpath(__file__))
         video_dir = '%s/../data/%s' %(path, str(name))
-        if not os.path.exists('%s/frames/%03d' %(video_dir,run)):
-            os.makedirs('%s/frames/%03d' %(video_dir,run))
+        if not os.path.exists('%s/%03d' %(video_dir,run)):
+            os.makedirs('%s/%03d' %(video_dir,run))
                 
         # Set up video writer (This is done framewise)
-        video_files = '%s/frames/%03d/%svideo' %(video_dir,run,prefix)
+        self.video_files = '%s/%03d/%svideo%03d' %(video_dir,run,prefix,run)
         self.FPS = 15 
         fourcc = cv.CV_FOURCC('m', 'p', '4', 'v')
         self.camcapture = VideoCapture(0)
         # width  = int(self.camcapture.get(cv.CV_CAP_PROP_FRAME_WIDTH))
         # height = int(self.camcapture.get(cv.CV_CAP_PROP_FRAME_HEIGHT))
-        self.camcapture.set(cv.CV_CAP_PROP_FRAME_WIDTH, 640)
-        self.camcapture.set(cv.CV_CAP_PROP_FRAME_HEIGHT,426)
-        width  = 640
+        self.camcapture.set(cv.CV_CAP_PROP_FRAME_WIDTH, 568)
+        self.camcapture.set(cv.CV_CAP_PROP_FRAME_HEIGHT,426) #640,426
+        width  = 568
         height = 426
-        self.writer = VideoWriter(video_files + ".mov",fourcc,self.FPS,(width, height),True) 
+        self.writer = VideoWriter(self.video_files + ".mov",fourcc,self.FPS,(width, height),True) 
         #self.writer = VideoWriter(video_files + "%8d.jpg",fourcc,self.FPS,(width, height),True) 
             
     def FrameGrab(self):
@@ -256,6 +260,24 @@ class VideoGrabber:
         else:
             print "Failed to collect frame"
         return flag
+        
+    def VideoGrab(self):
+        # Starts the video loop for self.duration sec.
+        if self.framen == 1:
+            self.videoinfo = open(self.video_files + "_info.txt","w")
+            self.videoinfo.write("Frame" + "\t" + "Acquired" + "\t" + "Time" + "\n")
+            self.recording = True
+        while self.recording:
+            flag, frame = self.camcapture.read()
+            if flag:
+                self.writer.write(frame)  
+            msg = str(self.framen) + '\t' + str(flag) + '\t' + str(time.time())  + '\n'
+            try:
+                self.videoinfo.write(msg)
+            except:
+                print "No log file is open."
+            self.framen += 1
+        self.videoinfo.close()
         
     def FrameLog(self):
     # Capture a frame
@@ -267,12 +289,13 @@ class VideoGrabber:
     
     def VideoKill(self):
     # Kill the video
+        if self.recording:
+            self.recording = False
         self.camcapture.release()
-         
+     
     def FrameMarry(self):
     # Kill the video
         print ""
-
 
 class GtkThreadSafe:
     def __enter__(self):
@@ -285,23 +308,22 @@ class GtkThreadSafe:
 class logger():
     def __init__(self,name,run):
         home = os.path.dirname(os.path.realpath(__file__))
-        self.file = open(home + "/../data/" + str(name) +  "_run_" + str(run) + ".txt", 'w')
+        self.file = open(home + "/../data/" + str(name) + "/" + str(name) +  "_run_" + str(run) + ".txt", 'w')
         self.header()
     def close(self):
         self.file.close()
-    def writer(self,sid,run,trial,exp,time,design):
-        data = "%s \t %s \t %s \t %s \t %s \t" %(str(sid),str(run),str(trial),str(exp),str(time))
+    def writer(self,sid,run,trial,stage,exp,dec,time,design):
+        data = "%s \t %s \t %s \t %s \t %s \t %s \t %s \t" %(str(sid),str(run),str(trial),str(stage),str(exp),str(dec),str(time))
         for i in range(4):
-            print data
-            print str(design[i])
             data = data + str(design[i]) + '\t'
         self.file.write(data + '\n')
     def header(self):
         #Change header between Ultimatum and Anger Game
-        self.file.write('SID \t Run \t Trial \t Stage \t Time \t Offer \t Joy \t Duration \t Onset\n')
-
-
+        self.file.write('SID \t Run \t Trial \t Stage \t Expression \t Decision \t Time \t Offer \t Joy \t Duration \t Onset\n')
 
 if __name__ == "__main__":
-    g = FexMaster()
+    if len(sys.argv) == 2:
+        g = FexMaster(sys.argv[1])
+    else:
+        g = FexMaster()
     gtk.main()
