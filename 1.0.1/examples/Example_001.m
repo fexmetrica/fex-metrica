@@ -29,7 +29,7 @@
 % 
 % Version: 10/23/2014
 
-%% (1.0) Dataset description
+%% (1.0) Dataset description & Create fexc Object
 %
 %
 % We used an artificial dataset (see Appendix A) from a single participant
@@ -66,16 +66,45 @@
 % -------------------------------------------------------------------------
 
 % Add the FexMetrica Toolbox
+clear all
 addpath(genpath('~/Documents/code/GitHub/fex-metrica/1.0.1/'))
 
+i = 1;
+% Import dataset with info on the experiment
+data = dataset('File',sprintf('data/E001/behavior/101_data_run_%.3d.txt',i));
+% Create a fexc Object
+fexObj(i) = fexc('data',sprintf('data/E001/facet/101_facet_%.3d.txt',i),...    % Facet text file;
+                 'TimeStamps',data.Time,...                                    % Timestamps (vector with one timestamp per frame);
+                 'design',data(:,1:6),...                                      % Information about the design;
+                 'video','data/E001/video/video.mov');                         % Path to video file**.
+             
+% Get info about a video (when there is a video).
+fexObj(i).getvideoInfo;
+% Facet file for baseline video. 
+fexObj(i).setbaseline(sprintf('data/E001/facet/101_facet_b%.3d.txt',i));
+
+% Import the other 2 runs ... 
+for i = 2:3
+    data = dataset('File',sprintf('data/E001/behavior/101_data_run_%.3d.txt',i));
+    fname = sprintf('data/E001/facet/101_facet_%.3d.txt',i);
+    fexObj(i) = fexc('data',fname,'TimeStamps',data.Time,'design',data(:,1:6));                                                  
+    fexObj(i).setbaseline(sprintf('data/E001/facet/101_facet_b%.3d.txt',i));
+end
+
+%% (1.1) Preprocessing: Coregistration & False Positive
+
+fexObj(1).coregister('steps',1,'fp',true);
 
 
-
-
-%% (1.1) Preprocessing: False Positive
 %% (1.2) Preprocessing: Interpolation
+
+fexObj(1).interpolate('fps',15,'rule',Inf);
+
 %% (1.3) Preprocessing: Baseline Normalization (?)
+
 %% (1.4) Preprocessing: Filtering
+
+fexObj(1).temporalfilt([.15,4,15]);
 
 
 %% (2.1) Wavelet features extraction
