@@ -63,21 +63,40 @@ if length(varargin) == 1 && isa(varargin{1},'fexc')
     B(:,3:4) = B(:,1:2) + B(:,3:4);
     handles.box = [min(B(:,1:2)), max(B(:,3:4)) - min(B(:,1:2))];
 
+    
+    [video,ti,Fdata] = get_alldata(handles,handles.box);
+    handles.video = video;
+    handles.Fdata = Fdata;
+    handles.time  = ti;
+    
     % Display first frame
-    videoFReader = vision.VideoFileReader(handles.fexc.video);
-    handles.videoFReader = videoFReader;
-    videoFrame = imcrop(rgb2gray(step(handles.videoFReader)),handles.box);
-    showFrameOnAxis(handles.VideoAxes,videoFrame);
+%     videoFReader = vision.VideoFileReader(handles.fexc.video);
+%     handles.videoFReader = videoFReader;
+%     videoFrame = imcrop(rgb2gray(step(handles.videoFReader)),handles.box);
+    img = reshape(handles.video(handles.frameCount,:),handles.box(4)+1,handles.box(3)+1);
+    showFrameOnAxis(handles.VideoAxes,img);
+
+%     showFrameOnAxis(handles.VideoAxes,videoFrame);
     
     % Set bargraph for emotions
-    set(handles.Channel,'String','joy')
-    X =  handles.fexc.time.TimeStamps;
-    X =  X - X(1);
-    Y = get_bardata(handles);
-    axes(handles.ChannelAxes);
+    
+    set(handles.Channel,'Value',5)
+    X =  handles.time;
+    Y = get_bardata2(handles);
+    
+    
+%     X =  handles.fexc.time.TimeStamps;
+%     X =  X - X(1);
+%     handles.time = diff(X);
+%     Y = get_bardata(handles);
+%     axes(handles.ChannelAxes);
     bar(X,Y);
     xlim([0,max(X)]); ylim([-3,3]);
     
+    % Adjust Cursor bar
+    set(handles.TimeSlider,'Max',length(X));
+    set(handles.TimeSlider,'Min',1);
+    set(handles.TimeSlider,'Value',1);
 end
 
 
@@ -228,21 +247,44 @@ else
 end
 
 flag = strcmp(get(handles.PlayButton,'String'),'Pause');
-while flag
-   fprintf('frame in: %d.\n',handles.frameCount)
-   Y = get_bardata(handles);
+t00 = now;
+while flag && handles.frameCount <= length(handles.time) %handles.fexc.videoInfo(3)
+   pause(.001);
+%    handles.frameCount = ceil(get(handles.TimeSlider,'Value'));
+   Y = get_bardata2(handles);
    set(get(handles.ChannelAxes,'Children'),'YData',Y)
-%    refreshdata(handles.ChannelAxes)
-   videoFrame = imcrop(rgb2gray(step(handles.videoFReader)),handles.box);
-   showFrameOnAxis(handles.VideoAxes,videoFrame);
+%    videoFrame = imcrop(rgb2gray(step(handles.videoFReader)),handles.box);
+
+%    % Add waiting time
+%    
+%    showFrameOnAxis(handles.VideoAxes,videoFrame);
+   img = reshape(handles.video(max(handles.frameCount,1),:),handles.box(4)+1,handles.box(3)+1);
+   showFrameOnAxis(handles.VideoAxes,img);
+
    flag = strcmp(get(handles.PlayButton,'String'),'Pause');
+   
+%    tdiff = t0 - now;
+%    twait = max(0,handles.time(handles.frameCount) - tdiff);
+%    pause(twait);
+
    handles.frameCount = handles.frameCount + 1;
+   set(handles.TimeSlider,'Value',handles.frameCount);
+%    fprintf('frame in: %d, fps: %d.\n',handles.frameCount-1,round((handles.frameCount-1)/(now-t00)));
+
 %    pause(.005)
     
     % ADD END OF VIDEO AND DELAY ... 
 
 
 end
+
+
+if handles.frameCount > length(handles.time) %handles.fexc.videoInfo(3)
+   handles.frameCount = 1;
+   set(handles.TimeSlider,'Value',handles.frameCount);
+   set(handles.PlayButton,'String','Play');
+end
+   
 guidata(hObject, handles);
 
 
@@ -255,13 +297,35 @@ function FwdButton_Callback(hObject, eventdata, handles)
 
 % --- Executes on slider movement.
 function TimeSlider_Callback(hObject, eventdata, handles)
-% hObject    handle to TimeSlider (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% %
+% %
 
-% Hints: get(hObject,'Value') returns position of slider
-%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+% set(handles.PlayButton,'String','Play');
+handles.frameCount = ceil(get(handles.TimeSlider,'Value'));
+guidata(hObject, handles);
 
+% flag = false;
+% if strcmp(get(handles.PlayButton,'String'),'Pause');
+%     set(handles.PlayButton,'String','Play'); 
+%     guidata(hObject, handles);
+%     PlayButton_Callback(hObject,eventdata,handles);
+%     flag = true;
+% end
+
+% flag = strcmp(get(handles.PlayButton,'String'),'Pause'); 
+% set(handles.PlayButton,'String','Pause'); 
+% PlayButton_Callback(hObject,eventdata,handles);
+% 
+% handles.frameCount = round(get(handles.TimeSlider,'Value'));
+% set(handles.TimeSlider,'Value',handles.frameCount);
+% guidata(hObject,handles);
+%  
+% if flag
+%     set(handles.PlayButton,'String','Play');
+% end
+% guidata(hObject, handles);
+% PlayButton_Callback(hObject,eventdata,handles);
+    
 
 % --- Executes during object creation, after setting all properties.
 function TimeSlider_CreateFcn(hObject, eventdata, handles)
@@ -314,9 +378,9 @@ else
     set(handles.StepNotes,'Enable','off');
     % Activate Video Comands
     set(handles.TimeSlider,'Enable','on');
-    set(handles.RwdButton,'Enable','on');
+%     set(handles.RwdButton,'Enable','on');
     set(handles.PlayButton,'Enable','on');
-    set(handles.FwdButton,'Enable','on');
+%     set(handles.FwdButton,'Enable','on');
 end
 
 
@@ -334,5 +398,44 @@ if fc+1 <= length(Y)
 end
     
 
-        
 
+function Y = get_bardata2(handles)
+
+fc = handles.frameCount;
+names = (get(handles.Channel,'String'));
+Y = handles.Fdata.(names{get(handles.Channel,'Value')});
+
+if fc+1 <= length(Y)
+    Y(fc+1:end) = nan;
+end
+
+%-------------------------------------------------------------------------
+%-------------------------------------------------------------------------
+
+function [video,ti,Fdata] = get_alldata(handles,box)
+%
+% Crop video, store images
+
+videoFReader = vision.VideoFileReader(handles.fexc.video);
+img1  = imcrop(rgb2gray(step(videoFReader)),box);
+video = single(zeros(handles.fexc.videoInfo(3),numel(img1)));
+video(1,:) = reshape(img1,1,numel(img1));
+tic;
+fprintf('Startig video import ');
+KK = round(linspace(0,handles.fexc.videoInfo(3),25)); l = 1; 
+for i = 2:handles.fexc.videoInfo(3)
+    img1  = imcrop(rgb2gray(step(videoFReader)),box);
+    video(i,:) = reshape(img1,1,numel(img1));
+    if KK(l) < i
+        l = l+1;
+        fprintf('.');
+    end
+end
+fprintf('Image interpolation:...\n')
+t  = handles.fexc.time.TimeStamps - handles.fexc.time.TimeStamps(1);
+ti = (0:1/10:t(end))';
+video = single(interp1(t,video,ti,'spline'));
+fprintf('Facet interpolation:...\n')
+Fdata = interp1(t,double(handles.fexc.functional),ti);
+Fdata = mat2dataset(Fdata,'VarNames',handles.fexc.functional.Properties.VarNames);
+fprintf('\nTime elapsed: %.2f \n',toc);
