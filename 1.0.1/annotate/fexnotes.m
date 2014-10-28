@@ -41,7 +41,7 @@ end
 
 
 % --- Executes just before fexnotes is made visible.
-function fexnotes_OpeningFcn(hObject, ~, handles, varargin)
+function fexnotes_OpeningFcn(hObject, eventdata, handles, varargin)
 %
 % Initialization and varargin reader. Varargin can only be a fexc
 % object.
@@ -64,21 +64,25 @@ if length(varargin) == 1 && isa(varargin{1},'fexc')
     handles.box = [min(B(:,1:2)), max(B(:,3:4)) - min(B(:,1:2))];
 
     
-    [video,ti,Fdata] = get_alldata(handles,handles.box);
-    handles.video = video;
+    [idx,ti,Fdata] = get_DataOut(handles,5);
+    % [video,ti,Fdata] = get_alldata(hObject, eventdata,handles,handles.box);
+    % handles.video = video;
+    handles.idx = idx;         % Index for the frames
     handles.Fdata = Fdata;
     handles.time  = ti;
-    
-    % Display first frame
-%     videoFReader = vision.VideoFileReader(handles.fexc.video);
-%     handles.videoFReader = videoFReader;
-%     videoFrame = imcrop(rgb2gray(step(handles.videoFReader)),handles.box);
-    img = reshape(handles.video(handles.frameCount,:),handles.box(4)+1,handles.box(3)+1);
-    showFrameOnAxis(handles.VideoAxes,img);
 
-%     showFrameOnAxis(handles.VideoAxes,videoFrame);
-    
-    % Set bargraph for emotions
+
+    handles.VideoFReader = VideoReader(handles.fexc.video);
+%     img = read(handles.VideoFReader,handles.idx(1));
+%     img = imcrop(rgb2gray(img),handles.box);
+    img = FormatFrame(handles);
+
+%     axes(handles.VideoAxes);
+%     handles.videoPlayer = vision.VideoPlayer();
+%     handles.videoPlayer.step(img);
+
+    % img = reshape(handles.video(handles.frameCount,:),handles.box(4)+1,handles.box(3)+1);
+    showFrameOnAxis(handles.VideoAxes,img);
     
     set(handles.Channel,'Value',5)
     X =  handles.time;
@@ -97,6 +101,14 @@ if length(varargin) == 1 && isa(varargin{1},'fexc')
     set(handles.TimeSlider,'Max',length(X));
     set(handles.TimeSlider,'Min',1);
     set(handles.TimeSlider,'Value',1);
+    
+    % Add video information
+    [~,name,ext] = fileparts(handles.fexc.video);
+    str = sprintf('Video Name: %s%s',name,ext);
+    set(handles.VideoNameText,'String',str);
+    td = fex_strtime(handles.fexc.videoInfo(2));
+    str = sprintf('Duration: %s',td{1});
+    set(handles.VideoDurationText,'String',str);
 end
 
 
@@ -118,6 +130,7 @@ function varargout = fexnotes_OutputFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Get default command line output from handles structure
+% release(handles.VideoFReader);
 varargout{1} = handles.output;
 
 
@@ -163,6 +176,40 @@ function StepNotes_Callback(hObject, eventdata, handles)
 % hObject    handle to StepNotes (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+
+% Start a segment to annotate
+if strcmp(get(handles.StepNotes,'Enable'),'on');
+   % disable
+   set(handles.StepNotes,'Enable','off');
+   set(handles.Annotation,'Enable','off');
+
+   t_step = str2double(get(handles.StepSizeAnnotation,'String'));
+   tval = handles.time(handles.frameCount) + t_step;
+   ind = dsearchn(handles.time,tval);
+   for i = handles.frameCount:ind
+       pause(.001)
+       Y = get_bardata2(handles);
+       set(get(handles.ChannelAxes,'Children'),'YData',Y)
+%        img = read(handles.VideoFReader,handles.idx(handles.frameCount));
+%        img = imcrop(rgb2gray(img),handles.box);
+       img = FormatFrame(handles);
+
+       showFrameOnAxis(handles.VideoAxes,img);
+       handles.frameCount = handles.frameCount + 1;
+       set(handles.TimeSlider,'Value',handles.frameCount);
+   end
+   set(handles.Annotation,'Enable','on');
+
+%    temp_notes = cellstr(repmat(get(handles.Annotation,'String'),[length(handles.frameCount:ind),1]));
+%    handles.annotations(handles.frameCount:ind) = temp_notes;
+end
+
+set(handles.StepNotes,'Enable','on');
+guidata(hObject, handles);
+
+
+
 
 
 
@@ -239,6 +286,12 @@ function RwdButton_Callback(hObject, eventdata, handles)
 % --- Executes on button press in PlayButton.
 function PlayButton_Callback(hObject, eventdata, handles)
 % 
+
+if ~isfield(handles,'fexc')
+    warning('You need to enter data first ... ')
+    return
+end
+
 % Play Pause callback
 if strcmp(get(handles.PlayButton,'String'),'Play')
     set(handles.PlayButton,'String','Pause');
@@ -247,10 +300,13 @@ else
 end
 
 flag = strcmp(get(handles.PlayButton,'String'),'Pause');
-t00 = now;
-while flag && handles.frameCount <= length(handles.time) %handles.fexc.videoInfo(3)
+TF   = [];
+axes(handles.VideoAxes)
+while flag && handles.frameCount <= length(handles.time) && get(handles.AnnotationOn, 'Value') == 0 %handles.fexc.videoInfo(3)
+   tic;
    pause(.001);
 %    handles.frameCount = ceil(get(handles.TimeSlider,'Value'));
+   
    Y = get_bardata2(handles);
    set(get(handles.ChannelAxes,'Children'),'YData',Y)
 %    videoFrame = imcrop(rgb2gray(step(handles.videoFReader)),handles.box);
@@ -258,18 +314,27 @@ while flag && handles.frameCount <= length(handles.time) %handles.fexc.videoInfo
 %    % Add waiting time
 %    
 %    showFrameOnAxis(handles.VideoAxes,videoFrame);
-   img = reshape(handles.video(max(handles.frameCount,1),:),handles.box(4)+1,handles.box(3)+1);
-   showFrameOnAxis(handles.VideoAxes,img);
+%    img = reshape(handles.video(max(handles.frameCount,1),:),handles.box(4)+1,handles.box(3)+1);
 
+%    img = read(handles.VideoFReader,handles.idx(handles.frameCount));
+%    img = imcrop(rgb2gray(img),handles.box);
+   img = FormatFrame(handles);
+   showFrameOnAxis(handles.VideoAxes,img);
+   
    flag = strcmp(get(handles.PlayButton,'String'),'Pause');
    
 %    tdiff = t0 - now;
 %    twait = max(0,handles.time(handles.frameCount) - tdiff);
 %    pause(twait);
 
-   handles.frameCount = handles.frameCount + 1;
-   set(handles.TimeSlider,'Value',handles.frameCount);
-%    fprintf('frame in: %d, fps: %d.\n',handles.frameCount-1,round((handles.frameCount-1)/(now-t00)));
+   if ceil(get(handles.TimeSlider,'Value')) == handles.frameCount;
+      handles.frameCount = handles.frameCount + 1;
+      set(handles.TimeSlider,'Value',handles.frameCount);
+   else
+      handles.frameCount = ceil(get(handles.TimeSlider,'Value'));
+   end
+   TF = cat(1,TF,toc);
+   fprintf('frame in: %d. Estimate fps (display): %d.\n',handles.frameCount-1,mean(1./TF));
 
 %    pause(.005)
     
@@ -284,7 +349,8 @@ if handles.frameCount > length(handles.time) %handles.fexc.videoInfo(3)
    set(handles.TimeSlider,'Value',handles.frameCount);
    set(handles.PlayButton,'String','Play');
 end
-   
+
+set(handles.PlayButton,'String','Play');
 guidata(hObject, handles);
 
 
@@ -352,6 +418,68 @@ function open_f_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+filename = uigetfile('*.mat', 'Select a fexc Object');
+if isequal(filename,0)
+   return
+end
+
+handles.fexc = importdata(filename);
+if ~isa(handles.fexc,'fexc')
+    error('File must contain a fexc Class object.');
+end
+    
+% Initialize frame count   
+handles.frameCount = 1;    
+% get image cropping info
+B = double(handles.fexc.structural(:,3:6));
+B(:,3:4) = B(:,1:2) + B(:,3:4);
+handles.box = [min(B(:,1:2)), max(B(:,3:4)) - min(B(:,1:2))];
+    
+[idx,ti,Fdata] = get_DataOut(handles,5);
+% [video,ti,Fdata] = get_alldata(hObject, eventdata,handles,handles.box);
+% handles.video = video;
+handles.idx = idx;         % Index for the frames
+handles.Fdata = Fdata;
+handles.time  = ti;
+    
+
+handles.VideoFReader = VideoReader(handles.fexc.video);
+% img = read(handles.VideoFReader,handles.idx(1));
+% img = imcrop(rgb2gray(img),handles.box);
+img = FormatFrame(handles);
+% img = reshape(handles.video(handles.frameCount,:),handles.box(4)+1,handles.box(3)+1);
+showFrameOnAxis(handles.VideoAxes,img);
+    
+set(handles.Channel,'Value',5)
+X =  handles.time;
+Y = get_bardata2(handles);    
+bar(X,Y);
+xlim([0,max(X)]); ylim([-3,3]);
+
+% Adjust Cursor bar
+set(handles.TimeSlider,'Max',length(X));
+set(handles.TimeSlider,'Min',1);
+set(handles.TimeSlider,'Value',1);
+    
+% Add video information
+[~,name,ext] = fileparts(handles.fexc.video);
+str = sprintf('Video Name: %s%s',name,ext);
+set(handles.VideoNameText,'String',str);
+td = fex_strtime(handles.fexc.videoInfo(2));
+str = sprintf('Duration: %s',td{1});
+set(handles.VideoDurationText,'String',str);
+
+% Add handles for annotation --> this is a cell with one annotation per
+% frame at 6 frames per seconds
+handles.annotations = cellstr(repmat('',[length(handles.time),1]));
+
+
+% Choose default command line output for fexnotes
+handles.output = hObject;
+% Update handles structure
+guidata(hObject, handles);
+
+
 
 % --- Executes on button press in AnnotationOn.
 function AnnotationOn_Callback(hObject, eventdata, handles)
@@ -362,11 +490,10 @@ if get(handles.AnnotationOn, 'Value') == 1
     % Activate Annotation Box
     set(handles.StepUnits,'Enable','on');
     set(handles.StepSizeAnnotation,'Enable','on');
-    set(handles.StepSizeAnnotation,'Enable','on');
     set(handles.Annotation,'Enable','on');
     set(handles.StepNotes,'Enable','on');
     % Deactivate video comands
-    set(handles.TimeSlider,'Enable','off');
+    set(handles.TimeSlider,'Enable','inactive');
     set(handles.RwdButton,'Enable','off');
     set(handles.PlayButton,'Enable','off');
     set(handles.FwdButton,'Enable','off');
@@ -396,8 +523,6 @@ Y = handles.fexc.functional.(get(handles.Channel,'String'));
 if fc+1 <= length(Y)
     Y(fc+1:end) = nan;
 end
-    
-
 
 function Y = get_bardata2(handles)
 
@@ -412,7 +537,19 @@ end
 %-------------------------------------------------------------------------
 %-------------------------------------------------------------------------
 
-function [video,ti,Fdata] = get_alldata(handles,box)
+function [idx,ti,Fdata] = get_DataOut(handles,nfd)
+%
+% Gets the new timestamps, the index of the frame to use, and the
+% interporlated facial expression data -- fps are set at 6fps
+
+t   = handles.fexc.time.TimeStamps - handles.fexc.time.TimeStamps(1);
+ti  = (0:1/nfd:t(end))';  % Sampling at 6 frames per second
+idx = dsearchn(t,ti);
+Fdata = interp1(t,double(handles.fexc.functional),ti);
+Fdata = mat2dataset(Fdata,'VarNames',handles.fexc.functional.Properties.VarNames);
+
+
+function [video,ti,Fdata] = get_alldata(hObject,eventdata,handles,box)
 %
 % Crop video, store images
 
@@ -421,21 +558,59 @@ img1  = imcrop(rgb2gray(step(videoFReader)),box);
 video = single(zeros(handles.fexc.videoInfo(3),numel(img1)));
 video(1,:) = reshape(img1,1,numel(img1));
 tic;
-fprintf('Startig video import ');
+
+fprintf('\nStartig video import ');
+str = 'Startig video import ';
+set(handles.VideoImportText,'String',str);
 KK = round(linspace(0,handles.fexc.videoInfo(3),25)); l = 1; 
 for i = 2:handles.fexc.videoInfo(3)
     img1  = imcrop(rgb2gray(step(videoFReader)),box);
     video(i,:) = reshape(img1,1,numel(img1));
     if KK(l) < i
         l = l+1;
+        str = sprintf('%s.',str);
+        set(handles.VideoImportText,'String',str);
+        guidata(hObject, handles);
         fprintf('.');
     end
 end
-fprintf('Image interpolation:...\n')
+fprintf('\nImage interpolation:...\n')
 t  = handles.fexc.time.TimeStamps - handles.fexc.time.TimeStamps(1);
 ti = (0:1/10:t(end))';
 video = single(interp1(t,video,ti,'spline'));
 fprintf('Facet interpolation:...\n')
 Fdata = interp1(t,double(handles.fexc.functional),ti);
 Fdata = mat2dataset(Fdata,'VarNames',handles.fexc.functional.Properties.VarNames);
-fprintf('\nTime elapsed: %.2f \n',toc);
+fprintf('Time elapsed: %.2f \n',toc);
+set(handles.VideoImportText,'String','');
+
+
+function img = FormatFrame(handles)
+
+% Get size of the image Axes
+% ss = round(get(handles.VideoAxes,'Position'));
+% Get image
+img = imcrop(read(handles.VideoFReader,handles.idx(handles.frameCount)),handles.box);
+if get(handles.BlackWhiteMode,'Value') == 1
+    img = rgb2gray(img);
+end
+% img = imresize(img,[348,316]);
+
+
+
+% --- Executes on button press in ActivateAudio.
+function ActivateAudio_Callback(hObject, eventdata, handles)
+% hObject    handle to ActivateAudio (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of ActivateAudio
+
+
+% --- Executes on button press in BlackWhiteMode.
+function BlackWhiteMode_Callback(hObject, eventdata, handles)
+% hObject    handle to BlackWhiteMode (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of BlackWhiteMode
