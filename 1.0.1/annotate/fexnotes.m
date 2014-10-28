@@ -47,62 +47,39 @@ function fexnotes_OpeningFcn(hObject, eventdata, handles, varargin)
 % object.
 
 if length(varargin) == 1 && isa(varargin{1},'fexc')
-    % Read the video;
-    % Get seconds for fps;
-    % Get cropping info here
-    % Get Landmarks (??)
-    % Set axis for display
-    % Set feature for display
-    
-    % Store the handle
+    % Generate Handle for fexc Object
     handles.fexc = varargin{1};
     handles.frameCount = 1;
     
-    % get image cropping info
+    % Get image box
     B = double(handles.fexc.structural(:,3:6));
     B(:,3:4) = B(:,1:2) + B(:,3:4);
     handles.box = [min(B(:,1:2)), max(B(:,3:4)) - min(B(:,1:2))];
 
-    
+    % Get image data
     [idx,ti,Fdata] = get_DataOut(handles,5);
-    % [video,ti,Fdata] = get_alldata(hObject, eventdata,handles,handles.box);
-    % handles.video = video;
     handles.idx = idx;         % Index for the frames
     handles.Fdata = Fdata;
     handles.time  = ti;
+    handles.dfps  = [1,5];     % Estimate of displaied frames per seconds
 
-
+    % Video Reader/Player
     handles.VideoFReader = VideoReader(handles.fexc.video);
-%     img = read(handles.VideoFReader,handles.idx(1));
-%     img = imcrop(rgb2gray(img),handles.box);
     img = FormatFrame(handles);
-
-%     axes(handles.VideoAxes);
-%     handles.videoPlayer = vision.VideoPlayer();
-%     handles.videoPlayer.step(img);
-
-    % img = reshape(handles.video(handles.frameCount,:),handles.box(4)+1,handles.box(3)+1);
     showFrameOnAxis(handles.VideoAxes,img);
     
+    % Emotions/AUs graph
     set(handles.Channel,'Value',5)
     X =  handles.time;
     Y = get_bardata2(handles);
+    bar(X,Y); xlim([0,max(X)]); ylim([-2,4]);
     
-    
-%     X =  handles.fexc.time.TimeStamps;
-%     X =  X - X(1);
-%     handles.time = diff(X);
-%     Y = get_bardata(handles);
-%     axes(handles.ChannelAxes);
-    bar(X,Y);
-    xlim([0,max(X)]); ylim([-3,3]);
-    
-    % Adjust Cursor bar
+    % Adjust slider for video display
     set(handles.TimeSlider,'Max',length(X));
     set(handles.TimeSlider,'Min',1);
     set(handles.TimeSlider,'Value',1);
     
-    % Add video information
+    % Add video information to info panel
     [~,name,ext] = fileparts(handles.fexc.video);
     str = sprintf('Video Name: %s%s',name,ext);
     set(handles.VideoNameText,'String',str);
@@ -111,11 +88,8 @@ if length(varargin) == 1 && isa(varargin{1},'fexc')
     set(handles.VideoDurationText,'String',str);
 end
 
-
-% Choose default command line output for fexnotes
+% Update
 handles.output = hObject;
-
-% Update handles structure
 guidata(hObject, handles);
 
 % UIWAIT makes fexnotes wait for user response (see UIRESUME)
@@ -124,21 +98,14 @@ guidata(hObject, handles);
 
 % --- Outputs from this function are returned to the command line.
 function varargout = fexnotes_OutputFcn(hObject, eventdata, handles) 
-% varargout  cell array for returning output args (see VARARGOUT);
-% hObject    handle to figure
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
-% Get default command line output from handles structure
-% release(handles.VideoFReader);
+
 varargout{1} = handles.output;
 
 
 % --- Executes when figure1 is resized.
 function figure1_ResizeFcn(hObject, eventdata, handles)
-% hObject    handle to figure1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+
 
 
 % --- Executes on button press in Channel.
@@ -154,8 +121,6 @@ function Annotation_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of Annotation as text
-%        str2double(get(hObject,'String')) returns contents of Annotation as a double
 
 
 % --- Executes during object creation, after setting all properties.
@@ -173,44 +138,39 @@ end
 
 % --- Executes on button press in StepNotes.
 function StepNotes_Callback(hObject, eventdata, handles)
-% hObject    handle to StepNotes (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+%
+% Log Annotations
+% temp_notes = cellstr(repmat(get(handles.Annotation,'String'),[length(handles.frameCount:ind),1]));
+% handles.annotations(handles.frameCount:ind) = temp_notes;
 
+% Start a segment to annotate   
+% Disable step button and annotation during viewing
+set(handles.StepNotes,'Enable','off');
+set(handles.Annotation,'Enable','off');
 
-% Start a segment to annotate
-if strcmp(get(handles.StepNotes,'Enable'),'on');
-   % disable
-   set(handles.StepNotes,'Enable','off');
-   set(handles.Annotation,'Enable','off');
+% Get list of frames to be streamed for "Annotation Step."
+t_step = str2double(get(handles.StepSizeAnnotation,'String'));
+tval = handles.time(handles.frameCount) + t_step;
+ind = dsearchn(handles.time,tval);
 
-   t_step = str2double(get(handles.StepSizeAnnotation,'String'));
-   tval = handles.time(handles.frameCount) + t_step;
-   ind = dsearchn(handles.time,tval);
-   for i = handles.frameCount:ind
-       pause(.001)
-       Y = get_bardata2(handles);
-       set(get(handles.ChannelAxes,'Children'),'YData',Y)
-%        img = read(handles.VideoFReader,handles.idx(handles.frameCount));
-%        img = imcrop(rgb2gray(img),handles.box);
-       img = FormatFrame(handles);
-
-       showFrameOnAxis(handles.VideoAxes,img);
-       handles.frameCount = handles.frameCount + 1;
-       set(handles.TimeSlider,'Value',handles.frameCount);
-   end
-   set(handles.Annotation,'Enable','on');
-
-%    temp_notes = cellstr(repmat(get(handles.Annotation,'String'),[length(handles.frameCount:ind),1]));
-%    handles.annotations(handles.frameCount:ind) = temp_notes;
+% Loop over frames to display and timeseries
+for i = handles.frameCount:ind
+   tic; pause(.001)
+   Y = get_bardata2(handles);
+   set(get(handles.ChannelAxes,'Children'),'YData',Y)
+   img = FormatFrame(handles);
+   showFrameOnAxis(handles.VideoAxes,img);
+   handles.dfps  = cat(1,handles.dfps,[handles.dfps(end,1)+1,toc]);
+   handles.frameCount = handles.frameCount + 1;
+   set(handles.TimeSlider,'Value',handles.frameCount);
 end
 
+% Reactivate annotation box and step
+set(handles.Annotation,'Enable','on');
 set(handles.StepNotes,'Enable','on');
+
+% Update
 guidata(hObject, handles);
-
-
-
-
 
 
 function StepSizeAnnotation_Callback(hObject, eventdata, handles)
@@ -300,47 +260,23 @@ else
 end
 
 flag = strcmp(get(handles.PlayButton,'String'),'Pause');
-TF   = [];
-axes(handles.VideoAxes)
 while flag && handles.frameCount <= length(handles.time) && get(handles.AnnotationOn, 'Value') == 0 %handles.fexc.videoInfo(3)
-   tic;
-   pause(.001);
-%    handles.frameCount = ceil(get(handles.TimeSlider,'Value'));
+   tic; pause(.001);
    
    Y = get_bardata2(handles);
    set(get(handles.ChannelAxes,'Children'),'YData',Y)
-%    videoFrame = imcrop(rgb2gray(step(handles.videoFReader)),handles.box);
-
-%    % Add waiting time
-%    
-%    showFrameOnAxis(handles.VideoAxes,videoFrame);
-%    img = reshape(handles.video(max(handles.frameCount,1),:),handles.box(4)+1,handles.box(3)+1);
-
-%    img = read(handles.VideoFReader,handles.idx(handles.frameCount));
-%    img = imcrop(rgb2gray(img),handles.box);
    img = FormatFrame(handles);
    showFrameOnAxis(handles.VideoAxes,img);
    
    flag = strcmp(get(handles.PlayButton,'String'),'Pause');
-   
-%    tdiff = t0 - now;
-%    twait = max(0,handles.time(handles.frameCount) - tdiff);
-%    pause(twait);
-
    if ceil(get(handles.TimeSlider,'Value')) == handles.frameCount;
       handles.frameCount = handles.frameCount + 1;
       set(handles.TimeSlider,'Value',handles.frameCount);
    else
       handles.frameCount = ceil(get(handles.TimeSlider,'Value'));
    end
-   TF = cat(1,TF,toc);
-   fprintf('frame in: %d. Estimate fps (display): %d.\n',handles.frameCount-1,mean(1./TF));
-
-%    pause(.005)
-    
-    % ADD END OF VIDEO AND DELAY ... 
-
-
+   handles.dfps  = cat(1,handles.dfps,[handles.dfps(end,1)+1,toc]);
+%    fprintf('frame in: %d. Estimate fps (display): %d.\n',handles.frameCount-1,mean(1./TF));
 end
 
 
@@ -363,34 +299,12 @@ function FwdButton_Callback(hObject, eventdata, handles)
 
 % --- Executes on slider movement.
 function TimeSlider_Callback(hObject, eventdata, handles)
-% %
-% %
+%
+% Update time slider
 
-% set(handles.PlayButton,'String','Play');
 handles.frameCount = ceil(get(handles.TimeSlider,'Value'));
 guidata(hObject, handles);
 
-% flag = false;
-% if strcmp(get(handles.PlayButton,'String'),'Pause');
-%     set(handles.PlayButton,'String','Play'); 
-%     guidata(hObject, handles);
-%     PlayButton_Callback(hObject,eventdata,handles);
-%     flag = true;
-% end
-
-% flag = strcmp(get(handles.PlayButton,'String'),'Pause'); 
-% set(handles.PlayButton,'String','Pause'); 
-% PlayButton_Callback(hObject,eventdata,handles);
-% 
-% handles.frameCount = round(get(handles.TimeSlider,'Value'));
-% set(handles.TimeSlider,'Value',handles.frameCount);
-% guidata(hObject,handles);
-%  
-% if flag
-%     set(handles.PlayButton,'String','Play');
-% end
-% guidata(hObject, handles);
-% PlayButton_Callback(hObject,eventdata,handles);
     
 
 % --- Executes during object creation, after setting all properties.
@@ -436,18 +350,13 @@ B(:,3:4) = B(:,1:2) + B(:,3:4);
 handles.box = [min(B(:,1:2)), max(B(:,3:4)) - min(B(:,1:2))];
     
 [idx,ti,Fdata] = get_DataOut(handles,5);
-% [video,ti,Fdata] = get_alldata(hObject, eventdata,handles,handles.box);
-% handles.video = video;
 handles.idx = idx;         % Index for the frames
 handles.Fdata = Fdata;
 handles.time  = ti;
+handles.dfps  = [];        % estimate of display frames per seconds
     
-
 handles.VideoFReader = VideoReader(handles.fexc.video);
-% img = read(handles.VideoFReader,handles.idx(1));
-% img = imcrop(rgb2gray(img),handles.box);
 img = FormatFrame(handles);
-% img = reshape(handles.video(handles.frameCount,:),handles.box(4)+1,handles.box(3)+1);
 showFrameOnAxis(handles.VideoAxes,img);
     
 set(handles.Channel,'Value',5)
@@ -469,10 +378,8 @@ td = fex_strtime(handles.fexc.videoInfo(2));
 str = sprintf('Duration: %s',td{1});
 set(handles.VideoDurationText,'String',str);
 
-% Add handles for annotation --> this is a cell with one annotation per
-% frame at 6 frames per seconds
+% Andles annotation
 handles.annotations = cellstr(repmat('',[length(handles.time),1]));
-
 
 % Choose default command line output for fexnotes
 handles.output = hObject;
@@ -494,9 +401,7 @@ if get(handles.AnnotationOn, 'Value') == 1
     set(handles.StepNotes,'Enable','on');
     % Deactivate video comands
     set(handles.TimeSlider,'Enable','inactive');
-    set(handles.RwdButton,'Enable','off');
     set(handles.PlayButton,'Enable','off');
-    set(handles.FwdButton,'Enable','off');
 else
     % Deactivate Annotation Box
     set(handles.StepUnits,'Enable','off');
@@ -505,97 +410,8 @@ else
     set(handles.StepNotes,'Enable','off');
     % Activate Video Comands
     set(handles.TimeSlider,'Enable','on');
-%     set(handles.RwdButton,'Enable','on');
     set(handles.PlayButton,'Enable','on');
-%     set(handles.FwdButton,'Enable','on');
 end
-
-
-%-------------------------------------------------------------------------
-%-------------------------------------------------------------------------
-
-function Y = get_bardata(handles)
-
-fc = handles.frameCount;
-
-Y = handles.fexc.functional.(get(handles.Channel,'String'));
-
-if fc+1 <= length(Y)
-    Y(fc+1:end) = nan;
-end
-
-function Y = get_bardata2(handles)
-
-fc = handles.frameCount;
-names = (get(handles.Channel,'String'));
-Y = handles.Fdata.(names{get(handles.Channel,'Value')});
-
-if fc+1 <= length(Y)
-    Y(fc+1:end) = nan;
-end
-
-%-------------------------------------------------------------------------
-%-------------------------------------------------------------------------
-
-function [idx,ti,Fdata] = get_DataOut(handles,nfd)
-%
-% Gets the new timestamps, the index of the frame to use, and the
-% interporlated facial expression data -- fps are set at 6fps
-
-t   = handles.fexc.time.TimeStamps - handles.fexc.time.TimeStamps(1);
-ti  = (0:1/nfd:t(end))';  % Sampling at 6 frames per second
-idx = dsearchn(t,ti);
-Fdata = interp1(t,double(handles.fexc.functional),ti);
-Fdata = mat2dataset(Fdata,'VarNames',handles.fexc.functional.Properties.VarNames);
-
-
-function [video,ti,Fdata] = get_alldata(hObject,eventdata,handles,box)
-%
-% Crop video, store images
-
-videoFReader = vision.VideoFileReader(handles.fexc.video);
-img1  = imcrop(rgb2gray(step(videoFReader)),box);
-video = single(zeros(handles.fexc.videoInfo(3),numel(img1)));
-video(1,:) = reshape(img1,1,numel(img1));
-tic;
-
-fprintf('\nStartig video import ');
-str = 'Startig video import ';
-set(handles.VideoImportText,'String',str);
-KK = round(linspace(0,handles.fexc.videoInfo(3),25)); l = 1; 
-for i = 2:handles.fexc.videoInfo(3)
-    img1  = imcrop(rgb2gray(step(videoFReader)),box);
-    video(i,:) = reshape(img1,1,numel(img1));
-    if KK(l) < i
-        l = l+1;
-        str = sprintf('%s.',str);
-        set(handles.VideoImportText,'String',str);
-        guidata(hObject, handles);
-        fprintf('.');
-    end
-end
-fprintf('\nImage interpolation:...\n')
-t  = handles.fexc.time.TimeStamps - handles.fexc.time.TimeStamps(1);
-ti = (0:1/10:t(end))';
-video = single(interp1(t,video,ti,'spline'));
-fprintf('Facet interpolation:...\n')
-Fdata = interp1(t,double(handles.fexc.functional),ti);
-Fdata = mat2dataset(Fdata,'VarNames',handles.fexc.functional.Properties.VarNames);
-fprintf('Time elapsed: %.2f \n',toc);
-set(handles.VideoImportText,'String','');
-
-
-function img = FormatFrame(handles)
-
-% Get size of the image Axes
-% ss = round(get(handles.VideoAxes,'Position'));
-% Get image
-img = imcrop(read(handles.VideoFReader,handles.idx(handles.frameCount)),handles.box);
-if get(handles.BlackWhiteMode,'Value') == 1
-    img = rgb2gray(img);
-end
-% img = imresize(img,[348,316]);
-
 
 
 % --- Executes on button press in ActivateAudio.
@@ -614,3 +430,43 @@ function BlackWhiteMode_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of BlackWhiteMode
+
+
+%-------------------------------------------------------------------------
+%-------------------------------------------------------------------------
+
+
+function [idx,ti,Fdata] = get_DataOut(handles,nfd)
+%
+% Gets the new timestamps, the index of the frame to use, and the
+% interporlated facial expression data -- fps are set at 6fps
+
+t   = handles.fexc.time.TimeStamps - handles.fexc.time.TimeStamps(1);
+ti  = (0:1/nfd:t(end))';  % Sampling at 6 frames per second
+idx = dsearchn(t,ti);
+Fdata = interp1(t,double(handles.fexc.functional),ti);
+Fdata = mat2dataset(Fdata,'VarNames',handles.fexc.functional.Properties.VarNames);
+
+
+function img = FormatFrame(handles)
+%
+% Get/format the current frame
+
+% Get size of the image Axes
+% ss = round(get(handles.VideoAxes,'Position'));
+% Get image
+img = imcrop(read(handles.VideoFReader,handles.idx(handles.frameCount)),handles.box);
+if get(handles.BlackWhiteMode,'Value') == 1
+    img = rgb2gray(img);
+end
+
+
+function Y = get_bardata2(handles)
+
+fc = handles.frameCount;
+names = (get(handles.Channel,'String'));
+Y = handles.Fdata.(names{get(handles.Channel,'Value')});
+
+if fc+1 <= length(Y)
+    Y(fc+1:end) = nan;
+end

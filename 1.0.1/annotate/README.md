@@ -3,9 +3,9 @@ Fex Annotate
 
 This code is part of FexView and it provides a UI to:
 
-* 1) stream the video associated with a fexc object;
-* 2) Visualize the facial expression time series;
-* 3) Annotate the video.
+* Stream the video associated with a fexc object;
+* Visualize the facial expression time series;
+* Annotate the video.
 
 Currently Being Developed
 ===========
@@ -25,4 +25,4 @@ Coming soon
 * Muscles display.
 
 ===========
-Version: 10/27.2014
+Version: 10/27/2014
