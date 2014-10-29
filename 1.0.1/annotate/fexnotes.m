@@ -464,6 +464,7 @@ if get(handles.AnnotationOn, 'Value') == 1
     set(handles.PlayButton,'Enable','off');
 else
     % Deactivate Annotation Box
+    handles.annotations.str = cat(1,handles.annotations.str,get(handles.Annotation,'String'));
     handles.WriteAnnotation  = false;
     set(handles.StepUnits,'Enable','off');
     set(handles.StepSizeAnnotation,'Enable','off');
