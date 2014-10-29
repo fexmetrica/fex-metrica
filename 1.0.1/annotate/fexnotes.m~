@@ -100,16 +100,15 @@ handles.output = hObject;
 guidata(hObject, handles);
 
 % UIWAIT makes fexnotes wait for user response (see UIRESUME)
-uiwait(handles.figure1);
+% uiwait(handles.figure1);
 
 
 % --- Outputs from this function are returned to the command line.
 function varargout = fexnotes_OutputFcn(hObject, eventdata, handles) 
 
-% varargout{1} = handles.annotations;
-% 
-varargout{1} = handles.annotations;
-delete(handles.figure1);
+
+varargout{1} = handles.output;
+
 
 % --- Executes when figure1 is resized.
 function figure1_ResizeFcn(hObject, eventdata, handles)
@@ -145,7 +144,7 @@ end
 
 
 % --- Executes on button press in StepNotes.
-function StepNotes_Callback(hObject,eventdata, handles)
+function StepNotes_Callback(hObject, eventdata, handles)
 %
 % Log Annotations
 % temp_notes = cellstr(repmat(get(handles.Annotation,'String'),[length(handles.frameCount:ind),1]));
@@ -153,9 +152,8 @@ function StepNotes_Callback(hObject,eventdata, handles)
 
 % Write annotation when required
 if handles.WriteAnnotation
-    handles.annotations.str = cat(1,handles.annotations.str,get(handles.Annotation,'String'));
+    handles.annotations.notes = cat(handles.annotations.text,get(handles.Annotation,'String'));
 end
-set(handles.Annotation,'String','');
 
 
 % Test whether you reached the end of the video:
@@ -164,7 +162,7 @@ if handles.frameCount >= length(handles.time)
     set(handles.TimeSlider,'Value',handles.frameCount);
     set(handles.Annotation,'String','Reached the end of the Video');
     guidata(hObject, handles);
-    return    
+    return
 end
 
 % Disable step button and annotation during viewing
@@ -186,7 +184,7 @@ use_frames = handles.frameCount:dsearchn(handles.time,tval);
 
 % Log time for annotation
 handles.annotations.time = cat(1,handles.annotations.time,...
-    [handles.time(handles.frameCount),tval,use_frames([1,end])]);
+    [handles.time(handles.frameCount),tval,use_frame([1,end])]);
 
 % Pre-load all images in memory now
 img = cell(1,length(use_frames));
@@ -215,7 +213,6 @@ end
 % Reactivate annotation box and step
 set(handles.Annotation,'Enable','on');
 set(handles.StepNotes,'Enable','on');
-handles.WriteAnnotation  = true;
 
 % Update
 guidata(hObject, handles);
@@ -436,7 +433,7 @@ str = sprintf('Frame:\t %d/%d',handles.frameCount,length(handles.time));
 set(handles.FrameTimeLog,'String',str);
 
 % Initialize annotation
-handles.WriteAnnotation  = false;
+    handles.WriteAnnotation  = false;
 handles.annotations.str  = cellstr('');
 handles.annotations.time = []; 
 
@@ -453,7 +450,6 @@ function AnnotationOn_Callback(hObject, eventdata, handles)
 % Activate the Annotation Box
 
 if get(handles.AnnotationOn, 'Value') == 1
-    set(handles.Annotation,'String','');
     % Activate Annotation Box
     set(handles.StepUnits,'Enable','on');
     set(handles.StepSizeAnnotation,'Enable','on');
@@ -464,7 +460,6 @@ if get(handles.AnnotationOn, 'Value') == 1
     set(handles.PlayButton,'Enable','off');
 else
     % Deactivate Annotation Box
-    handles.WriteAnnotation  = false;
     set(handles.StepUnits,'Enable','off');
     set(handles.StepSizeAnnotation,'Enable','off');
     set(handles.Annotation,'Enable','off');
@@ -473,6 +468,7 @@ else
     set(handles.TimeSlider,'Enable','on');
     set(handles.PlayButton,'Enable','on');
 end
+
 
 % --- Executes on button press in ActivateAudio.
 function ActivateAudio_Callback(hObject, eventdata, handles)
@@ -520,7 +516,6 @@ if nargin == 1
 end
 
 img = imcrop(read(handles.VideoFReader,handles.idx(frame_n)),handles.box);
-img = imresize(img,[340,310]);
 if get(handles.BlackWhiteMode,'Value') == 1
     img = rgb2gray(img);
 end
@@ -535,24 +530,3 @@ Y = handles.Fdata.(names{get(handles.Channel,'Value')});
 if fc+1 <= length(Y)
     Y(fc+1:end) = nan;
 end
-
-
-% --- Executes when user attempts to close figure1.
-function figure1_CloseRequestFcn(hObject, eventdata, handles)
-% hObject    handle to figure1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: delete(hObject) closes the figure
-if isequal(get(hObject,'waitstatus'),'waiting')
-    uiresume(hObject);
-else
-    delete(hObject);
-end
-
-
-% --- Executes during object deletion, before destroying properties.
-function figure1_DeleteFcn(hObject, eventdata, handles)
-% hObject    handle to figure1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
