@@ -6,12 +6,9 @@ function varargout = fexnotes(varargin)
 %
 % note = fexnotes()
 % note = fexnotes(fexObj)
-% note = fexnotes(str_video, str_fexdata)**
 %
 % You can call the function without input and then use the drop down menu
-% to import a fexObj. Alterbatively, you can enter a fexObj directly. The
-% ** indicates that this syntax is not yet implemented in this version of
-% the code.
+% to import a fexObj. Alterbatively, you can enter a fexObj directly. 
 %
 %
 % -------------------------------------------------------------------------
@@ -80,9 +77,9 @@ if length(varargin) == 1 && isa(varargin{1},'fexc')
     set(handles.TimeSlider,'Value',1);
     
     % Add video information to info panel
-    [~,name,ext] = fileparts(handles.fexc.video);
-    str = sprintf('Video Name: %s%s',name,ext);
-    set(handles.VideoNameText,'String',str);
+%     [~,name,ext] = fileparts(handles.fexc.video);
+%     str = sprintf('Video Name: %s%s',name,ext);
+%     set(handles.VideoNameText,'String',str);
     td = fex_strtime(handles.fexc.videoInfo(2));
     str = sprintf('Duration: %s',td{1});
     set(handles.VideoDurationText,'String',str);
@@ -108,7 +105,12 @@ function varargout = fexnotes_OutputFcn(hObject, eventdata, handles)
 
 % varargout{1} = handles.annotations;
 % 
-varargout{1} = handles.annotations;
+
+if isfield(handles,'annotations')
+    varargout{1} = handles.annotations;
+else
+    varargout{1} = '';
+end
 delete(handles.figure1);
 
 % --- Executes when figure1 is resized.
@@ -424,9 +426,9 @@ set(handles.TimeSlider,'Min',1);
 set(handles.TimeSlider,'Value',1);
     
 % Add video information
-[~,name,ext] = fileparts(handles.fexc.video);
-str = sprintf('Video Name: %s%s',name,ext);
-set(handles.VideoNameText,'String',str);
+% [~,name,ext] = fileparts(handles.fexc.video);
+% str = sprintf('Video Name: %s%s',name,ext);
+% set(handles.VideoNameText,'String',str);
 td = fex_strtime(handles.fexc.videoInfo(2));
 str = sprintf('Duration: %s',td{1});
 set(handles.VideoDurationText,'String',str);
@@ -555,5 +557,188 @@ end
 % --- Executes during object deletion, before destroying properties.
 function figure1_DeleteFcn(hObject, eventdata, handles)
 % hObject    handle to figure1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function MenuHome_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuHome (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function Untitled_6_Callback(hObject, eventdata, handles)
+% hObject    handle to Untitled_6 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function MenuSaveMain_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuSaveMain (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function MenuHelp_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuHelp (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function MenuOpenHelp_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuOpenHelp (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function MenuSaveImage_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuSaveImage (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function MenuSaveGif_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuSaveGif (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function MenuSaveNotes_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuSaveNotes (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function MenuLoadVideo_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuLoadVideo (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function MenuMask_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuMask (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function MenuAbout_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuAbout (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function SmoothingMenu_Callback(hObject, eventdata, handles)
+% hObject    handle to SmoothingMenu (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on selection change in OvCombineSelect.
+function OvCombineSelect_Callback(hObject, eventdata, handles)
+% hObject    handle to OvCombineSelect (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns OvCombineSelect contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from OvCombineSelect
+
+
+% --- Executes during object creation, after setting all properties.
+function OvCombineSelect_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to OvCombineSelect (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on selection change in OvColmapSelect.
+function OvColmapSelect_Callback(hObject, eventdata, handles)
+% hObject    handle to OvColmapSelect (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns OvColmapSelect contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from OvColmapSelect
+
+
+% --- Executes during object creation, after setting all properties.
+function OvColmapSelect_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to OvColmapSelect (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in OvColbar.
+function OvColbar_Callback(hObject, eventdata, handles)
+% hObject    handle to OvColbar (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of OvColbar
+
+
+% --- Executes on button press in OvSelectFeatures.
+function OvSelectFeatures_Callback(hObject, eventdata, handles)
+% hObject    handle to OvSelectFeatures (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in OvAdvanced.
+function OvAdvanced_Callback(hObject, eventdata, handles)
+% hObject    handle to OvAdvanced (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on selection change in OvTemplate.
+function OvTemplate_Callback(hObject, eventdata, handles)
+% hObject    handle to OvTemplate (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns OvTemplate contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from OvTemplate
+
+
+% --- Executes during object creation, after setting all properties.
+function OvTemplate_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to OvTemplate (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in OvApply.
+function OvApply_Callback(hObject, eventdata, handles)
+% hObject    handle to OvApply (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
