@@ -34,7 +34,7 @@ elseif isa(sec,'double') && strcmp(formatt,'long')
         floor(t/3600),floor(mod(t/60,60)),mod(t,60));
     str = cellfun(conrt,num2cell(sec),'UniformOutput',false);
 elseif isa(sec,'double') && strcmp(formatt,'short')
-    conrt = @(t) sprintf('%.2d:%.2d',floor(mod(t/60,60)),round(mod(t,60)));
+    conrt = @(t) sprintf('%.2d:%.2d',floor(mod(t/60,60)),round(mod(t,60));
     str = cellfun(conrt,num2cell(sec),'UniformOutput',false);
 end
          
