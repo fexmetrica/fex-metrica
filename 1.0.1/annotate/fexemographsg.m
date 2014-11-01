@@ -355,4 +355,3 @@ if isequal(get(hObject,'waitstatus'),'waiting')
 else
     delete(handles.figure1);
 end
-

@@ -153,14 +153,13 @@ print(h,'-dpdf','-r450','test_file.pdf')
 
 %% Notes on figure
 
+clear all, close all
 addpath(genpath('~/Documents/code/GitHub/fex-metrica/1.0.1/'))
 fexObj = importdata('/Users/filippo/Documents/code/GitHub/fex-metrica/1.0.1/examples/data/E002/fexObj.mat');
 
-close all
-
-feat_names = {'sadness','joy','anger','disgust','fear','surprise','confusion','frustration'};
+feat_names = {'sadness','joy','anger','disgust','fear','surprise'};%,'confusion','frustration'};
 data = fexObj.functional;
-args = struct('fps',15,'smoothing',10,'rectification',-1,'features',{feat_names});
+args = struct('fps',15,'smoothing',15,'rectification',-1,'features',{feat_names});
 
 
 
@@ -240,5 +239,110 @@ for k = 2:size(Y,2)
 end
     
 print(h,'-dpdf','-r450','test_file.pdf')
+
+
+%% STACK AREA VERSION (NOT WORKING/DON'T UNDERTSAND IT) 
+
+% close all
+% YY = [Y(:,3),Y(:,[2,4:end])];
+% r = corr(YY(:,2:end),YY(:,1));
+% [~,ind] = sort(r,'ascend');
+% YY = YY(:,ind);
+% names = args.features(ind);
+
+% YY  = Y(:,2:end);
+% [~,ind] = sort(mean(YY(:,1:end)),'descend');
+% YY = YY(:,ind);
+% names = args.features(ind);
+% 
+% figure, hold all
+% for i = 1:size(YY,2)
+%     area(time,YY(:,i),'LineWidth',2,'FaceColor',col(i),'EdgeColor','k')
+% end
+
+% names = args.features;
+
+% YY  = Y(:,2:end);
+% [~,ind] = sort(sum(YY(:,1:end)),'ascend');
+% YY = YY(:,ind);
+% names = args.features(ind);
+
+h = area(time,Y(:,[5,3]),'LineWidth',2,'EdgeColor','k');
+hold on
+set(h,'BaseValue',0);
+
+grid on
+colormap jet
+% set(gca,'Layer','top')
+title 'Stacked Area Plot'
+x   = get(gca,'XTick'); str = fex_strtime(x,'short');
+set(gca,'XTick',x(2:2:end-1),'XTickLabel',str(2:2:end-1))
+    ylim([0,yplotmax]);
+
+% legend(names);
+
+
+%% SURFACE MODEL
+
+close all
+
+scrsz = get(0,'ScreenSize');
+h = figure('Position',[0 scrsz(4) scrsz(3) scrsz(4)],...
+    'Name','Emotions','NumberTitle','off','Visible','on');
+% set(gcf, 'PaperOrientation', 'landscape');
+% hold on
+
+time2 = (0:1:time(end))';
+YY = interp1(time,Y(:,2:end),time2);
+
+YYY = [];
+for i = 1:size(YY,2)
+    YYY = cat(1,YYY,repmat(YY(:,i)',[20,1]));
+end
+YYY = (255*YYY./max(reshape(YYY,1,numel(YYY))));
+% YYY = uint8(YYY);
+% img = uint8(YYY);
+
+% H1 = fspecial('motion',  15,180);
+H2 = fspecial('gaussian',15,3.5);
+% img = imfilter(YYY,H1,'replicate');
+% img = imfilter(imfilter(YYY,H2,'replicate'),H1,'replicate');
+
+img = YYY;
+
+% imshow(imresize(img,[scrsz(4) scrsz(3)])',jet);
+pcolor(img)
+shading interp,
+colormap jet,
+% imshow(img',jet);
+
+% colorbar
+y_inc = size(img,1)/size(YY,2);
+y = y_inc-y_inc/2:y_inc:y_inc*size(YY,2);
+% 
+% x = get(gca,'XTick');
+% x = x + mode(diff(x));
+set(gca,'fontsize',18,'YTick',y,'YTickLabel',args.features,'box','on','LineWidth',3);
+
+t  = get(gca,'XTick');
+st = fex_strtime(t,'short');
+set(gca,'XTick',t,'XTickLabel',st,'PlotBoxAspectRatio',[1.5,.75,1],'YDir','reverse');
+title('Emotion Heat Map','fontsize',20);
+
+
+h1 = colorbar;
+y1_t = get(h1,'YTick');
+val_y   = unique(reshape(YY,1,numel(YY)));
+val_col = linspace(min(val_y),max(val_y),256)';
+strcol  = {''};
+for k = 2:length(y1_t)-1
+    strcol{k-1} = sprintf('%.2f',val_col(y1_t(k)));
+end
+set(h1,'YTick',y1_t(2:end-1),'YTickLabel',strcol,'fontsize',16,'LineWidth',2)
+
+
+set(h1,'box','on','LineWidth',2)
+
+print(h,'-dpdf','-r450','test_file2.pdf')
 
 
