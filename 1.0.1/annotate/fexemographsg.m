@@ -315,7 +315,7 @@ handles.args.data = '';
                                  '*.csv;*.txt;','Text File (*.csv, *.txt)'; ...
                                  '*.json','Json file'},'Select a file');
                               
-handles.args.data = sprintf('%s/%s',pathname,filename);
+handles.args.data = sprintf('%s%s',pathname,filename);
 guidata(hObject, handles);
 
 % --------------------------------------------------------------------

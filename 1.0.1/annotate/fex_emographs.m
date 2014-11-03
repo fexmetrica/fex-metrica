@@ -47,7 +47,6 @@ function hand = fex_emographs(varargin)
 
 if isempty(varargin)
     % lunch the gui
-    fprintf('Gui version for arguments');
     args = fexemographsg();
 else
     args = handle_VarArg(varargin);
@@ -55,9 +54,12 @@ end
 
 if isempty(args.data)
 % Error when data are not provided
-    error('You need to specify the data to plot (use the UI).');
+    warning('You need to specify the data to plot (use the UI).');
+    args.data = fexwsearchg();
 end
 
+% Handle data argument
+args.data = handle_data(args.data);
 
 for i = 1:length(args.data)
     fprintf('Creating image %d/%d',i,length(args.data)); 
@@ -70,7 +72,8 @@ end
 
 % ------------------- Helper function for time series processing ----------
 function ts = tslightpreproc(args,k)
-% 
+%
+% Find time information
 % Apply few preprocessing operation to emotions timeseries
 
     
@@ -205,7 +208,7 @@ function data = handle_data(data_in)
 
 if isa(data_in,'char')
 % Test string input
-    data = import_string(string);
+    data = import_string(data_in);
 elseif isa(data_in,'fexc') || isa(data_in,'dataset')
 % Import directly fexc objects or dataset objects
     data = data_in;
