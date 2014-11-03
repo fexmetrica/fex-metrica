@@ -109,7 +109,32 @@ end
 
 function WildCharBox_Callback(hObject, eventdata, handles)
 %
-%
+% Set wild char and update list automatically
+
+path_str = get(handles.PathStringEdit,'String');
+if isempty(path_str)
+% Safecheck for path search
+    path_str = pwd;
+    set(handles.PathStringEdit,'String',pwd);
+end
+
+path_wch = get(handles.WildCharBox,'String');
+if isempty(path_wch)
+% Safecheck for wildchar
+    path_wch = '.*';
+    set(handles.WildCharBox,'String',path_wch);
+end
+
+% Generate unix cmmand -- this won't work on windows 
+cmd = sprintf('find %s -name "%s" | sort',path_str,path_wch);
+[~,list] = unix(cmd);
+if ~isempty(list)
+    set(handles.FileListEditable,'String',list);
+    set(handles.FileListEditable,'Enable','on');
+else
+    set(handles.FileListEditable,'String','No file found ... ');
+end
+
 guidata(hObject, handles);
 
 

@@ -1,4 +1,4 @@
-classdef fexppoc
+classdef fexppoc < handle
 %
 % Obj = fexppoc('video', videofile);
 % Obj = fexppoc('video', videofile, 'ArgNam1',ArgVal1,...);
