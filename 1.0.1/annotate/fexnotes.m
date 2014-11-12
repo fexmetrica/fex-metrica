@@ -53,17 +53,16 @@ if length(varargin) == 1 && isa(varargin{1},'fexc')
     [~,ind] = ismember({'FaceBoxX','FaceBoxY','FaceBoxW','FaceBoxH'},str_names);
     B = double(handles.fexc.structural(:,ind));
     handles.all_boxes = int32(B);
-%     B = double(handles.fexc.structural(:,3:6));
     B(:,3:4) = B(:,1:2) + B(:,3:4);
     handles.box = [min(B(:,1:2)), max(B(:,3:4)) - min(B(:,1:2))];
-
+    
     % Get image data
-    [idx,ti,Fdata] = get_DataOut(handles,5);
+    [idx,ti,Fdata] = get_DataOut(handles);
     handles.idx = idx;         % Index for the frames
     handles.Fdata = Fdata;
     handles.time  = ti;
     handles.dfps  = [1,5];     % Estimate of displaied frames per seconds
-
+    
     % Video Reader/Player
     handles.VideoFReader = VideoReader(handles.fexc.video);
     img = FormatFrame(handles);
@@ -73,24 +72,26 @@ if length(varargin) == 1 && isa(varargin{1},'fexc')
     set(handles.Channel,'Value',5)
     X =  handles.time;
     Y = get_bardata2(handles);
-    axes(handles.ChannelAxes);
-    
+    axes(handles.ChannelAxes); hold on
+    plot(X,zeros(length(X),1),'--k');
     area(X,Y,'basevalue',-1,'LineWidth',2,'EdgeColor','b')
-    alpha(.4)
-    xlim([0,max(X)]); ylim([-1,3]);   
-%     bar(X,Y); xlim([0,max(X)]); ylim([-2,4]);
-    
+    alpha(.4); xlim([0,max(X)]); ylim([-1,3]);
+    xt  = get(gca,'XTick');
+    xts = fex_strtime(xt,'short');
+    set(gca,'XTick',xt(2:end),'XTickLabel',xts(2:end),'box','on','LineWidth',2,'fontsize',12)
+    ylabel('LogEvidence','fontsize',12);
+    handles.ChannelAxexesChild = get(gca,'Children');
+    hold off
+
     % Adjust slider for video display
     set(handles.TimeSlider,'Max',length(X));
     set(handles.TimeSlider,'Min',1);
     set(handles.TimeSlider,'Value',1);
     
-    % Add video information to info panel
-%     [~,name,ext] = fileparts(handles.fexc.video);
-%     str = sprintf('Video Name: %s%s',name,ext);
-%     set(handles.VideoNameText,'String',str);
+    % Add time Information
+    handles.time_str = fex_strtime(handles.time,'short');
     td = fex_strtime(handles.fexc.videoInfo(2),'short');
-    str = sprintf('Duration: %s',td{1});
+    str = sprintf('00:00 / %s ',td{1});
     set(handles.VideoDurationText,'String',str);
     str = sprintf('Frame:\t %d/%d',handles.idx(handles.frameCount),handles.idx(end));
     set(handles.FrameTimeLog,'String',str);
@@ -342,7 +343,7 @@ nfps   = 0;
 while flag && handles.frameCount <= length(handles.time) && get(handles.AnnotationOn, 'Value') == 0 %handles.fexc.videoInfo(3)
    pause(.001);
    Y = get_bardata2(handles);
-   set(get(handles.ChannelAxes,'Children'),'YData',Y)
+   set(handles.ChannelAxexesChild(1),'YData',Y);
    img = FormatFrame(handles);
    try
        showFrameOnAxis(handles.VideoAxes,img);
@@ -360,6 +361,10 @@ while flag && handles.frameCount <= length(handles.time) && get(handles.Annotati
    % Set Frame Time Displayed
    str = sprintf('Frame:\t %d/%d',handles.idx(handles.frameCount),handles.idx(end));
    set(handles.FrameTimeLog,'String',str);
+   
+   % Update Time information
+   str = sprintf('%s / %s',handles.time_str{handles.frameCount},handles.time_str{end});
+   set(handles.VideoDurationText,'String',str);
    
    
    flag = strcmp(get(handles.PlayButton,'String'),'Pause');
@@ -535,14 +540,39 @@ function BlackWhiteMode_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of BlackWhiteMode
 
 
+
+% --- Executes on selection change in FpsSampling.
+function FpsSampling_Callback(hObject, eventdata, handles)
+%
+% This function determine the sampling rate and affects most handles when
+% it is used.
+
+
+
+
+% --- Executes during object creation, after setting all properties.
+function FpsSampling_CreateFcn(hObject, eventdata, handles)
+%
+%
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
 %-------------------------------------------------------------------------
 %-------------------------------------------------------------------------
 
 
-function [idx,ti,Fdata] = get_DataOut(handles,nfd)
+function [idx,ti,Fdata] = get_DataOut(handles)
 %
 % Gets the new timestamps, the index of the frame to use, and the
 % interporlated facial expression data -- fps are set at 6fps
+
+% Read Desired Sampling frequency
+nfd = get(handles.FpsSampling,'Value');
+str = get(handles.FpsSampling,'String');
+nfd = str2double(str{nfd});
 
 t   = handles.fexc.time.TimeStamps - handles.fexc.time.TimeStamps(1);
 ti  = (0:1/nfd:t(end))';  % Sampling at 6 frames per second
@@ -551,8 +581,6 @@ Fdata = interp1(t,double(handles.fexc.functional),ti);
 
 % Rectification and normalization step
 Fdata(Fdata < -1) = -1;
-% Fdata = Fdata+1;
-
 
 Fdata = mat2dataset(Fdata,'VarNames',handles.fexc.functional.Properties.VarNames);
 
@@ -821,3 +849,33 @@ function DrawFaceBox_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of DrawFaceBox
+
+
+
+function RectificationVal_Callback(hObject, eventdata, handles)
+% hObject    handle to RectificationVal (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of RectificationVal as text
+%        str2double(get(hObject,'String')) returns contents of RectificationVal as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function RectificationVal_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to RectificationVal (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in SmoothingTools.
+function SmoothingTools_Callback(hObject, eventdata, handles)
+% hObject    handle to SmoothingTools (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
