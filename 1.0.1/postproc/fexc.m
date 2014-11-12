@@ -124,6 +124,8 @@ classdef fexc < handle
         design
         % baseline
         baseline
+        % diagnostic
+        diagnostics
     end
     
     
@@ -213,7 +215,7 @@ classdef fexc < handle
         end
 
         % Add frames numbers & timestamps if provided (this get's added latter)
-        self.time = [temp.data(:,ismember('FrameNumber',thdr)),nan(length(temp.data),1)];
+        self.time = [temp.data(:,ismember(thdr,'FrameNumber')),nan(length(temp.data),1)];
         self.time = mat2dataset(self.time,'VarNames',{'FrameNumber','TimeStamps'});
         indts = find(strcmp(varargin,'TimeStamps'));
         if ~isempty(indts)
@@ -232,6 +234,7 @@ classdef fexc < handle
         % Add structural image information
         [~,ind] = ismember(hdrs.structural,thdr);
         if ~sum(ind)==0
+            ind = ind(ind > 0);
             self.structural = mat2dataset(temp.data(:,ind),'VarNames',thdr(ind));
         else
             % Set an empty structural properties
@@ -263,6 +266,12 @@ classdef fexc < handle
             self.design = mat2dataset(varargin{ind+1},'VarNames',vnames);
         else
             self.design = [];
+        end
+
+        % Add diagnostic information
+        ind = find(strcmp(varargin,'diagnostics'));
+        if ~isempty(ind)
+            self.diagnostics = varargin{ind+1};
         end
 
         % Add naninfo & Coregistration parameters

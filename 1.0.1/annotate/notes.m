@@ -157,7 +157,8 @@ clear all, close all
 addpath(genpath('~/Documents/code/GitHub/fex-metrica/1.0.1/'))
 fexObj = importdata('/Users/filippo/Documents/code/GitHub/fex-metrica/1.0.1/examples/data/E002/fexObj.mat');
 
-feat_names = {'sadness','joy','anger','disgust','fear','surprise'};%,'confusion','frustration'};
+
+feat_names = {'sadness','joy','anger','disgust', 'fear', 'surprise','confusion','frustration'};
 data = fexObj.functional;
 args = struct('fps',15,'smoothing',15,'rectification',-1,'features',{feat_names});
 
@@ -240,6 +241,11 @@ end
     
 print(h,'-dpdf','-r450','test_file.pdf')
 
+% for emotions:
+% ADD "Evidence", add units.
+% For positive
+
+% >> Call it "test" subjects
 
 %% STACK AREA VERSION (NOT WORKING/DON'T UNDERTSAND IT) 
 

@@ -49,7 +49,11 @@ if length(varargin) == 1 && isa(varargin{1},'fexc')
     handles.frameCount = 1;
     
     % Get image box
-    B = double(handles.fexc.structural(:,3:6));
+    str_names = handles.fexc.structural.Properties.VarNames';
+    [~,ind] = ismember({'FaceBoxX','FaceBoxY','FaceBoxW','FaceBoxH'},str_names);
+    B = double(handles.fexc.structural(:,ind));
+    handles.all_boxes = int32(B);
+%     B = double(handles.fexc.structural(:,3:6));
     B(:,3:4) = B(:,1:2) + B(:,3:4);
     handles.box = [min(B(:,1:2)), max(B(:,3:4)) - min(B(:,1:2))];
 
@@ -69,7 +73,12 @@ if length(varargin) == 1 && isa(varargin{1},'fexc')
     set(handles.Channel,'Value',5)
     X =  handles.time;
     Y = get_bardata2(handles);
-    bar(X,Y); xlim([0,max(X)]); ylim([-2,4]);
+    axes(handles.ChannelAxes);
+    
+    area(X,Y,'basevalue',-1,'LineWidth',2,'EdgeColor','b')
+    alpha(.4)
+    xlim([0,max(X)]); ylim([-1,3]);   
+%     bar(X,Y); xlim([0,max(X)]); ylim([-2,4]);
     
     % Adjust slider for video display
     set(handles.TimeSlider,'Max',length(X));
@@ -80,16 +89,34 @@ if length(varargin) == 1 && isa(varargin{1},'fexc')
 %     [~,name,ext] = fileparts(handles.fexc.video);
 %     str = sprintf('Video Name: %s%s',name,ext);
 %     set(handles.VideoNameText,'String',str);
-    td = fex_strtime(handles.fexc.videoInfo(2));
+    td = fex_strtime(handles.fexc.videoInfo(2),'short');
     str = sprintf('Duration: %s',td{1});
     set(handles.VideoDurationText,'String',str);
-    str = sprintf('Frame:\t %d/%d',handles.frameCount,length(handles.time));
+    str = sprintf('Frame:\t %d/%d',handles.idx(handles.frameCount),handles.idx(end));
     set(handles.FrameTimeLog,'String',str);
     
+    % Check whether you can asses track number (this get's updated)
+    try
+        nt  = length(unique(handles.fexc.diagnostics.track_id));
+        txt = sprintf('Number of Tracks: %.0f. Current track = 0.',nt);
+        set(handles.TranString,'String',txt);
+        handles.trackN = [handles.fexc.diagnostics.track_id];
+        handles.trackN = cat(2,repmat(nt,[length(handles.trackN),1]),handles.trackN);
+    catch errorId
+        warning(errorId.message);
+        warning('No diagnostic information provided.');
+        txt = 'Number of Tracks: Nan. Current track = 0.';
+        set(handles.TranString,'String',txt);
+        handles.trackN = [nan(length(Y),1),zeros(length(Y),1)];
+    end
+
     % Initialize annotation
     handles.WriteAnnotation  = false;
     handles.annotations.str  = cellstr('');
     handles.annotations.time = []; 
+    
+    % Add box Inserter object
+    handles.drawbox = vision.ShapeInserter;
 end
 
 % Update
@@ -317,20 +344,33 @@ while flag && handles.frameCount <= length(handles.time) && get(handles.Annotati
    Y = get_bardata2(handles);
    set(get(handles.ChannelAxes,'Children'),'YData',Y)
    img = FormatFrame(handles);
-   showFrameOnAxis(handles.VideoAxes,img);
+   try
+       showFrameOnAxis(handles.VideoAxes,img);
+   catch
+   % change of frame size -- reinitialize
+       clear(handles.VideoAxes);
+       showFrameOnAxis(handles.VideoAxes,img);
+   end
+   
+   % Update the track number information
+   txttn = sprintf('Number of Tracks: %.0f. Current track = %.0f.',...
+       handles.trackN(handles.idx(handles.frameCount),1),handles.trackN(handles.idx(handles.frameCount),2));
+   set(handles.TranString,'String',txttn);
+   
+   % Set Frame Time Displayed
+   str = sprintf('Frame:\t %d/%d',handles.idx(handles.frameCount),handles.idx(end));
+   set(handles.FrameTimeLog,'String',str);
+   
    
    flag = strcmp(get(handles.PlayButton,'String'),'Pause');
    if ceil(get(handles.TimeSlider,'Value')) == handles.frameCount;
       handles.frameCount = handles.frameCount + 1;
-      set(handles.TimeSlider,'Value',handles.frameCount);
+      set(handles.TimeSlider,'Value',min(handles.frameCount,length(handles.idx)));
    else
       handles.frameCount = ceil(get(handles.TimeSlider,'Value'));
    end
    nfps = nfps + 1;
    handles.dfps  = cat(1,handles.dfps,[nfps,toc(timer1)]);
-   % Set Frame Time Displayed
-   str = sprintf('Frame:\t %d/%d',handles.frameCount,length(handles.time));
-   set(handles.FrameTimeLog,'String',str);
    set(handles.VideoImportText,'String',sprintf('FPS (display): %.2f',handles.dfps(end,1)/handles.dfps(end,2)));
 end
 
@@ -508,6 +548,12 @@ t   = handles.fexc.time.TimeStamps - handles.fexc.time.TimeStamps(1);
 ti  = (0:1/nfd:t(end))';  % Sampling at 6 frames per second
 idx = dsearchn(t,ti);
 Fdata = interp1(t,double(handles.fexc.functional),ti);
+
+% Rectification and normalization step
+Fdata(Fdata < -1) = -1;
+% Fdata = Fdata+1;
+
+
 Fdata = mat2dataset(Fdata,'VarNames',handles.fexc.functional.Properties.VarNames);
 
 
@@ -521,12 +567,27 @@ function img = FormatFrame(handles,frame_n)
 if nargin == 1
     frame_n = handles.frameCount;
 end
+% Read the image
+img = read(handles.VideoFReader,handles.idx(frame_n));
 
-img = imcrop(read(handles.VideoFReader,handles.idx(frame_n)),handles.box);
-img = imresize(img,[340,310]);
+% Draw/Don't Draw an image box
+if get(handles.DrawFaceBox,'Value') == 1
+    current_box = handles.all_boxes(handles.idx(frame_n),:);
+    img = step(handles.drawbox,img,current_box);
+end
+
+% Crop/Don't Crop The Image
+if get(handles.FaceCropSelect,'Value') == 1
+    img = imcrop(img,handles.box);
+end
+
+% Set to black and white
 if get(handles.BlackWhiteMode,'Value') == 1
     img = rgb2gray(img);
 end
+% Resize to fit the scrren
+img = imresize(img,[340,310]);
+
 
 
 function Y = get_bardata2(handles)
@@ -536,7 +597,7 @@ names = (get(handles.Channel,'String'));
 Y = handles.Fdata.(names{get(handles.Channel,'Value')});
 
 if fc+1 <= length(Y)
-    Y(fc+1:end) = nan;
+    Y(fc+1:end) = -1; % This was nan
 end
 
 
@@ -742,3 +803,21 @@ function OvApply_Callback(hObject, eventdata, handles)
 % hObject    handle to OvApply (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in FaceCropSelect.
+function FaceCropSelect_Callback(hObject, eventdata, handles)
+% hObject    handle to FaceCropSelect (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of FaceCropSelect
+
+
+% --- Executes on button press in DrawFaceBox.
+function DrawFaceBox_Callback(hObject, eventdata, handles)
+% hObject    handle to DrawFaceBox (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of DrawFaceBox
