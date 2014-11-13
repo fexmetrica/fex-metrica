@@ -111,10 +111,26 @@ if length(varargin) == 1 && isa(varargin{1},'fexc')
         handles.trackN = [nan(length(Y),1),zeros(length(Y),1)];
     end
 
-    % Initialize annotation
-    handles.WriteAnnotation  = false;
-    handles.annotations.str  = cellstr('');
-    handles.annotations.time = []; 
+    % Initialize annotation table
+    delta = str2double(get(handles.StepSizeAnnotation,'String'));
+    T = 0:2:handles.time(end); T = [T',T'+delta];
+    if T(end,1) >= handles.time(end)
+        T = T(1:end-1,:);
+    end
+    T(end,2) = handles.time(end);
+    table_data.Count    = (1:size(T,1))'; 
+    table_data.Start    = cellstr(fex_strtime(T(:,1)));
+    table_data.End      = cellstr(fex_strtime(T(:,2)));
+    table_data.Annotate = cellstr(repmat(' ',[size(T,1),1]));
+    handles.table_data  = struct2dataset(table_data);
+    temp_tabled         = dataset2cell(handles.table_data(1:4,2:4));
+    set(handles.TableAnnotations,'Data',temp_tabled(2:end,:));
+    handles.table_info  = [4,delta];      
+    
+    
+%     handles.WriteAnnotation  = false;
+%     handles.annotations.str  = cellstr('');
+%     handles.annotations.time = []; 
     
     % Add box Inserter object
     handles.drawbox = vision.ShapeInserter;
@@ -377,6 +393,19 @@ while flag && handles.frameCount <= length(handles.time) && get(handles.Annotati
    nfps = nfps + 1;
    handles.dfps  = cat(1,handles.dfps,[nfps,toc(timer1)]);
    set(handles.VideoImportText,'String',sprintf('FPS (display): %.2f',handles.dfps(end,1)/handles.dfps(end,2)));
+   
+   % Update table
+   table_flag = 0;
+   ttt = handles.table_data(handles.table_info(1),3);
+   if fex_strtime(ttt.End) < handles.time(min(handles.frameCount,length(handles.time)));
+      handles.table_info(1) = handles.table_info(1) + 1;
+      table_flag = 1;
+   end
+   if table_flag
+       temp_tabled  = dataset2cell(handles.table_data(handles.table_info(1)-3:handles.table_info(1),2:4));
+       set(handles.TableAnnotations,'Data',temp_tabled(2:end,:));
+   end
+       
 end
 
 
