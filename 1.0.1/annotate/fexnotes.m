@@ -571,10 +571,66 @@ function BlackWhiteMode_Callback(hObject, eventdata, handles)
 
 
 % --- Executes on selection change in FpsSampling.
-function FpsSampling_Callback(hObject, eventdata, handles)
+function FpsSampling_Callback(hObject,eventdata, handles)
 %
 % This function determine the sampling rate and affects most handles when
 % it is used.
+
+
+temp_time = handles.time(get(handles.TimeSlider,'Value'));
+
+[idx,ti,Fdata] = get_DataOut(handles);
+handles.idx = idx;         % Index for the frames
+handles.Fdata = Fdata;
+handles.time  = ti;
+handles.dfps  = [1,5]; 
+handles.frameCount = dsearchn(ti,temp_time);
+
+% Emotions/AUs graph
+X =  handles.time;
+Y = get_bardata2(handles);
+axes(handles.ChannelAxes); hold on
+plot(X,zeros(length(X),1),'--k');
+area(X,Y,'basevalue',-1,'LineWidth',2,'EdgeColor','b')
+alpha(.4); xlim([0,max(X)]); ylim([-1,3]);
+xt  = get(gca,'XTick');
+xts = fex_strtime(xt,'short');
+set(gca,'XTick',xt(2:end),'XTickLabel',xts(2:end),'box','on','LineWidth',2,'fontsize',12)
+ylabel('LogEvidence','fontsize',12);
+handles.ChannelAxexesChild = get(gca,'Children');
+hold off
+
+% Adjust slider for video display
+set(handles.TimeSlider,'Max',length(X));
+set(handles.TimeSlider,'Min',1);
+set(handles.TimeSlider,'Value',handles.frameCount);
+
+% Add time Information
+handles.time_str = fex_strtime(handles.time,'short');
+
+
+% choice = questdlg('To display at this FPS I need to load the full video.');
+% 
+% if strcmp(choice,'Yes');
+%     h = waitbar(0,'Loading Video ... ');
+%     handles.video_img = [];
+%     nframes = size(handles.fexc.functional,1);
+%     for i = 1:size(handles.fexc.functional,1)
+%         handles.video_img = cat(4,handles.video_img,FormatFrame(handles,i));
+%         waitbar(i/nframes)
+%         clc
+%         fprintf('%d/%d',i,nframes);
+%     end
+%     close(h);
+% end
+
+
+
+
+
+handles.output = hObject;
+guidata(hObject, handles);
+    
 
 
 
