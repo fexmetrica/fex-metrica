@@ -405,6 +405,65 @@ classdef fexc < handle
         end
 
         end
+        
+% *************************************************************************              
+% *************************************************************************
+
+        function X = getdata(self,spec,type)
+        % 
+        % Basic getter function which extract relevant features from the
+        % dataset.
+        % 
+        % "spec": a string between: "emotions," "sentiments," "aus,"
+        % "landmarks," and "face." This indicates which subset of the
+        % data is needed. Default: "emotions."
+        %
+        % "type": a string which indicates the format of the data outputed.
+        % This can be "dataset," in which case a dataset is outputed; it
+        % can be "struct," in which case the output X is a structure with
+        % field "data" (a matrix) and "hdr" (a cell with column names).
+        % Alternatively, "type" can be set to "double," in which case the
+        % output is a matrix without column names. Default: "dataset"
+        
+        % Read arguments
+        if nargin == 0
+            spec = 'emotions';
+            type = 'dataset';
+        elseif nargin == 1;
+            type = 'dataset';
+        end
+        
+        % Select variables for output
+        switch lower(spec)
+            case {'sentiments','aus','emotions'}
+
+                
+            case {'landmarks','face','pose'}
+                
+            otherwise
+            % Error message
+                warning('Unrecognized argument %s.',spec);
+                X = [];
+                return
+        end
+        
+        
+        % Change output type
+        if strcmpi(type,'double')
+            X = double(X);
+        elseif strcmpi(type,'struct')
+            X = struct('data',double(X),'hdr',X.Properties.VarNames);
+        end
+        
+
+        
+            
+        
+        
+        
+        
+        
+        end
 
 % *************************************************************************              
 % *************************************************************************              
@@ -570,6 +629,24 @@ classdef fexc < handle
         
 % *************************************************************************
 % *************************************************************************  
+                
+
+        function self = rectification(self,thrs)
+        % 
+        % Lower bound on smaller values
+        if ~exist('thrs','var')
+            thrs = -1;
+        end
+        
+        temp = double(self.functional);
+        temp(temp < thrs) = thrs;
+        self.functional = mat2dataset(temp,'VarNames',self.functional.Properties.VarNames);            
+            
+        end
+
+% *************************************************************************
+% *************************************************************************        
+        
         
         function M = getmatrix(self,index,varargin)
         %
@@ -922,6 +999,18 @@ classdef fexc < handle
 % *************************************************************************
 % *************************************************************************         
         
+        function self = smooth(self,kk)
+        %
+        % Smoothing providing kernell kk
+            
+            temp = convn(self.functional,kk,'same');
+            self.functional = mat2dataset(temp,'VarNames',self.functional.Properties.VarNames); 
+            
+        end
+        
+% *************************************************************************
+% *************************************************************************   
+
         function self = downsample(self)
             fprintf('something');
         end
