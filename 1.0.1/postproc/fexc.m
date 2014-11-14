@@ -410,6 +410,8 @@ classdef fexc < handle
 % *************************************************************************
 
         function X = getdata(self,spec,type)
+        %
+        % WORKING ON THIS ....
         % 
         % Basic getter function which extract relevant features from the
         % dataset.
@@ -456,13 +458,6 @@ classdef fexc < handle
         end
         
 
-        
-            
-        
-        
-        
-        
-        
         end
 
 % *************************************************************************              
@@ -597,6 +592,11 @@ classdef fexc < handle
             self.coregparam = self.coregparam(nfr,:);
         end
 
+        % Update design if it exists
+        if ~isempty(self.design)
+            self.design = self.design(nfr,:);
+        end
+        
         % Updare history
         self.history.interpolate = [self.time,self.naninfo,self.functional];  
         end
