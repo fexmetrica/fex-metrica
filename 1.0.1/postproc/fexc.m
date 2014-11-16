@@ -104,6 +104,8 @@ classdef fexc < handle
 
     % Public properties
     properties
+        % participant name
+        name
         % absolut path to video file
         video
         % Information about the video
@@ -294,6 +296,23 @@ classdef fexc < handle
 
 % *************************************************************************
 % *************************************************************************              
+
+        function str = info(self)
+        %
+        % Print information about the current fexObj
+        
+        
+        
+        
+        % WORK IN PROGRESS
+        
+
+        end
+
+
+
+% *************************************************************************
+% *************************************************************************          
 
         
         function self = reinitialize(self,flag)
