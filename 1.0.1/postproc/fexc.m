@@ -116,6 +116,8 @@ classdef fexc < handle
         functional
         % dataset with structural info
         structural
+        % derived sentiments matrix
+        sentiments
         % dataset with time information
         time
         % coregistration parameters
@@ -187,8 +189,9 @@ classdef fexc < handle
             try 
                 ind = find(strcmp(varargin,'data'));
                 if isa(varargin{ind+1},'dataset')
-                    temp.data = double(varargin{ind+1});
-                    temp.textdata = varargin{ind+1}.Properties.VarNames;
+                    ttt = varargin{ind+1};
+                    temp.colheaders = ttt.Properties.VarNames;
+                    temp.data = double(ttt);
                 elseif isa(varargin{ind+1},'char')
                     temp = importdata(varargin{ind+1});
                 elseif isa(varargin{ind+1},'double')
@@ -309,7 +312,111 @@ classdef fexc < handle
 
         end
 
+% *************************************************************************
+% ************************************************************************* 
+        
+        function self = derivesentiments(self)
+        %
+        % Max-pooling for derivation of sentiments from primary emotion
+        % scores.
+        
+        % Grab Positive/Negative channels
+        [~,indP] = ismember({'joy','surprise'},self.functional.Properties.VarNames);
+        [~,indN] = ismember({'anger','disgust','sadness','fear'},self.functional.Properties.VarNames);
+        
+        % Get within Maximum value
+        ValS = [max(double(self.functional(:,indP)),[],2),max(double(self.functional(:,indN)),[],2)];   
+        
+        % Neutral is defined as all features <=0
+        ValS = cat(2,ValS,max(ValS,[],2) <= 0);
+        
+        % Set to zero N/P for Neutal frames
+        ValS(:,1:2) = ValS(:,1:2).*repmat(1-ValS(:,3),[1,2]);
+        
+        % Set to zero N/P loosing frames
+        [mv,ind] = max(ValS(:,1:2),[],2);
+        ValS(ind == 2,1) = 0;
+        ValS(ind == 1,2) = 0;
+        
+        % Get Class (P,Ng,Nu);
+        [~,idxW] = max(ValS,[],2);
+        idxW(isnan(self.functional.anger)) = nan;
+        ValS = cat(2,idxW,ValS);
+        
+        % Get (P/N Feature)
+        ValS(:,5) = mv;
+        ValS(ValS(:,1) == 2,5) = -ValS(ValS(:,1) == 2,5);
+        ValS(ValS(:,1) == 3,5) = 0;
+        
+        self.sentiments = mat2dataset(ValS(:,[1:3,5]),'VarNames',{'Winner','Positive','Negative','Combined'});
+        self.sentiments.TimeStamps = self.time.TimeStamps;
+        self.sentiments = self.sentiments(~isnan(self.sentiments.Winner),:);
+            
+          
+        end
 
+% *************************************************************************
+% ************************************************************************* 
+
+        function self = downsample(self,fps)
+        %
+        % Downsample data << sub fps sampling with averaging ... WORKING
+        % PROGRESS (fps is an integer and mode can be gaussian or
+        % average ... );        
+        
+        % Get mode fps, set kernel, and set indices
+        mfps = round(1/mode(diff(self.time.TimeStamps)));
+        nfps = round(mfps/fps);
+        nfps = nfps + 1-mod(nfps,2);
+        if nfps < 2
+            error('Downsampling with base: %.2f --> desired %.2f',mfps,fps);
+        end
+        kk1 = normpdf(linspace(-2,2,mfps)',0,.5); kk1 = kk1./sum(kk1);
+        kk2 = ones(nfps,1)./nfps;
+
+        % Interpolate data first to mfps & Convolve
+        [ndata,ntsp,nfr,nan_info] = fex_interpolate(self.functional,self.time.TimeStamps,mfps,Inf);
+        idx = ceil(nfps/2):nfps:size(ndata,1);
+        ndata    = convn(ndata,kk1,'same');
+        ndata    = convn(ndata,kk2,'same');
+        
+        % Grab datapoints
+        ndata    = ndata(idx,:);
+        ntsp     = ntsp(idx,:);
+        nfr      = nfr(idx,:);
+        nan_info = nan_info(idx,:);
+        
+        
+        % Update functional and structural data
+        self.structural = self.structural(nfr,:);
+        self.functional = mat2dataset(ndata,'VarNames',...
+            self.functional.Properties.VarNames);
+
+        % Update timestamp information
+        self.time = self.time(nfr,:);
+        self.time(:,{'OldTime'}) = mat2dataset(self.time.TimeStamps);
+        self.time.TimeStamps = ntsp;
+        self.time.StrTime = fex_strtime(self.time.TimeStamps);
+
+        % Update naninformation
+        self.naninfo = mat2dataset(...
+            [nan_info,self.naninfo.falsepositive(nfr)],...
+            'VarNames',{'count','tag','falsepositive'});
+
+        % Update coregparam if they exists
+        if ~isempty(self.coregparam)
+            self.coregparam = self.coregparam(nfr,:);
+        end
+
+        % Update design if it exists
+        if ~isempty(self.design)
+            self.design = self.design(nfr,:);
+        end 
+       
+        % Update Sentiments
+        self.derivesentiments();
+        
+        end
 
 % *************************************************************************
 % *************************************************************************          
@@ -392,7 +499,7 @@ classdef fexc < handle
                     XX = bzln;
                 end
             case 'dataset'
-                [~,ind] = ismember(self.functional.Properties.VarNames,bxln.Properties.VarNames);
+                [~,ind] = ismember(self.functional.Properties.VarNames,bzln.Properties.VarNames);
                 XX = double(bzln(:,ind));
             otherwise
                 warning('Couldn''t set baseline.');
@@ -428,7 +535,7 @@ classdef fexc < handle
 % *************************************************************************              
 % *************************************************************************
 
-        function X = getdata(self,spec,type)
+        function X = get(self,spec,type)
         %
         % WORKING ON THIS ....
         % 
@@ -447,20 +554,38 @@ classdef fexc < handle
         % output is a matrix without column names. Default: "dataset"
         
         % Read arguments
-        if nargin == 0
+        if nargin == 1
             spec = 'emotions';
             type = 'dataset';
-        elseif nargin == 1;
+        elseif nargin == 2;
             type = 'dataset';
         end
         
         % Select variables for output
         switch lower(spec)
-            case {'sentiments','aus','emotions'}
-
-                
-            case {'landmarks','face','pose'}
-                
+            case 'sentiments'
+                list = {'positive','negative','neutral'};
+                [~,ind]  = ismember(list,self.functional.Properties.VarNames);
+                X    = self.functional(:,ind);
+            case 'au'
+                ind = strncmpi('au',self.functional.Properties.VarNames,2);
+                X    = self.functional(:,ind);
+            case 'emotions'
+                list = {'anger','contempt','disgust','joy','fear','sadness',...
+                        'surprise','confusion','frustration'};
+                [~,ind]  = ismember(list,self.functional.Properties.VarNames);
+                X    = self.functional(:,ind);
+            case 'landmarks'
+                k1 = cellfun(@isempty,strfind(self.structural.Properties.VarNames, '_x'));
+                k2 = cellfun(@isempty,strfind(self.structural.Properties.VarNames, '_y'));
+                X    = self.structural(:,k1==0|k2==0);
+            case 'face'
+                ind = cellfun(@isempty,strfind(self.structural.Properties.VarNames, 'Face'));
+                X    = self.structural(:,ind==0);
+            case 'pose'
+                list = {'Roll','Pitch','Yaw'};
+                [~,ind]  = ismember(list,self.structural.Properties.VarNames);
+                X    = self.structural(:,ind);   
             otherwise
             % Error message
                 warning('Unrecognized argument %s.',spec);
@@ -468,12 +593,13 @@ classdef fexc < handle
                 return
         end
         
-        
         % Change output type
         if strcmpi(type,'double')
             X = double(X);
         elseif strcmpi(type,'struct')
-            X = struct('data',double(X),'hdr',X.Properties.VarNames);
+            x.data = double(X);
+            x.hdr  = X.Properties.VarNames(:);
+            X = x;
         end
         
 
@@ -969,20 +1095,25 @@ classdef fexc < handle
         %
         % -----------------------------------------------------------------
         %
-    
+        
+        % Set defaults
+        scale = {'method','zscore','folds',ones(size(self.functional,1),1),'outliers','off','threshold',2.5};   
+        if isempty(varargin)
+            self.update('functional',fex_normalize(double(self.functional),scale{:}));
+        elseif strcmp(varargin{1},'baseline')
+           X = repmat(mean(double(self.baseline),1),[length(self.functional),1]);
+           self.update('functional', double(self.functional) - X);
+        else        
         % Read optional arguments
-        scale = {'method','zscore','folds',ones(size(self.functional,1),1),'outliers','off','threshold',2.5};
-        for i = 1:2:length(varargin)
-            idx = strcmp(scale,varargin{i});
-            idx = find(idx == 1);
-            if idx
-                scale{idx+1} = varargin{i+1};
+            for i = 1:2:length(varargin)
+                idx = strcmp(scale,varargin{i});
+                idx = find(idx == 1);
+                if idx
+                    scale{idx+1} = varargin{i+1};
+                end
             end
+            self.update('functional',fex_normalize(double(self.functional),scale{:}));
         end
-        % Normalize and update teh functional filed
-        self.update('functional',fex_normalize(double(self.functional),scale{:}));
-
-       
         end
 
 % *************************************************************************
@@ -1029,10 +1160,6 @@ classdef fexc < handle
         
 % *************************************************************************
 % *************************************************************************   
-
-        function self = downsample(self)
-            fprintf('something');
-        end
         
         function self = kernel(self)
             fprintf('something');
