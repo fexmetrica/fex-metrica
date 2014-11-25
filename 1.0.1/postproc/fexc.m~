@@ -327,8 +327,8 @@ classdef fexc < handle
         % Get within Maximum value
         ValS = [max(double(self.functional(:,indP)),[],2),max(double(self.functional(:,indN)),[],2)];   
         
-        % Neutral is defined as all features <= .1
-        ValS = cat(2,ValS,max(ValS,[],2) <= .75);
+        % Neutral is defined as all features <=0
+        ValS = cat(2,ValS,max(ValS,[],2) <= 0);
         
         % Set to zero N/P for Neutal frames
         ValS(:,1:2) = ValS(:,1:2).*repmat(1-ValS(:,3),[1,2]);
@@ -649,7 +649,7 @@ classdef fexc < handle
 % *************************************************************************              
 % *************************************************************************   
             
-        function self = motioncorrect(self)
+        function [self = motioncorrect(self)
         %
         % Use pose parameters to correct for artifacts in expression
         % detection caused by motions.
@@ -657,7 +657,7 @@ classdef fexc < handle
         % Get Pose info
         X = self.get('pose','double');
         ind  = ~isnan(sum(X,2));
-        X = X(ind,:) - repmat(nanmean(X),[sum(ind),1]);
+        X = X(ind,:)-repmat(nanmean(X),[sum(ind),1]);
         Y = double(self.functional(ind,:));
         R = nan(size(Y));
         
@@ -666,9 +666,7 @@ classdef fexc < handle
             R(ind == 1,i) = r;
         end
         R(ind == 0,:) = nan;
-        self.update('functional',R);
-        self.derivesentiments();
-        
+       
         end
 
 % *************************************************************************              
