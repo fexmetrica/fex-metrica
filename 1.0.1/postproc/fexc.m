@@ -315,20 +315,26 @@ classdef fexc < handle
 % *************************************************************************
 % ************************************************************************* 
         
-        function self = derivesentiments(self)
+        function self = derivesentiments(self,m,emotrect)
         %
         % Max-pooling for derivation of sentiments from primary emotion
         % scores.
         
+        if ~exist('m','var')
+            m = 0;
+        end
+        
         % Grab Positive/Negative channels
-        [~,indP] = ismember({'joy','surprise'},self.functional.Properties.VarNames);
-        [~,indN] = ismember({'anger','disgust','sadness','fear'},self.functional.Properties.VarNames);
+        pos_names = {'joy','surprise'};
+        neg_names = {'anger','disgust','sadness','fear','contempt'};
+        [~,indP] = ismember(pos_names,self.functional.Properties.VarNames);
+        [~,indN] = ismember(neg_names,self.functional.Properties.VarNames);
         
         % Get within Maximum value
         ValS = [max(double(self.functional(:,indP)),[],2),max(double(self.functional(:,indN)),[],2)];   
         
-        % Neutral is defined as all features <= .1
-        ValS = cat(2,ValS,max(ValS,[],2) <= .75);
+        % Neutral is defined as all features <= m (default is 0)
+        ValS = cat(2,ValS,max(ValS,[],2) <= m);
         
         % Set to zero N/P for Neutal frames
         ValS(:,1:2) = ValS(:,1:2).*repmat(1-ValS(:,3),[1,2]);
@@ -351,7 +357,23 @@ classdef fexc < handle
         self.sentiments = mat2dataset(ValS(:,[1:3,5]),'VarNames',{'Winner','Positive','Negative','Combined'});
         self.sentiments.TimeStamps = self.time.TimeStamps;
         self.sentiments = self.sentiments(~isnan(self.sentiments.Winner),:);
-            
+        
+        if exist('emotrect','var')
+        % Clean up emotions dataset
+            % Positive
+            for i = pos_names
+                temp = self.functional.(i{1});
+                temp(self.sentiments.Winner ~= 1 & temp > emotrect) = emotrect;
+                self.functional.(i{1}) = temp;
+            end
+            % Negative
+            for i = [neg_names,'confusion','frustration']
+                temp = self.functional.(i{1});
+                temp(self.sentiments.Winner ~=2 & temp > emotrect) = emotrect;
+                self.functional.(i{1}) = temp;
+            end
+        end
+ 
           
         end
 
@@ -376,8 +398,8 @@ classdef fexc < handle
 
         % Interpolate data first to mfps & Convolve
         [ndata,ntsp,nfr,nan_info] = fex_interpolate(self.functional,self.time.TimeStamps,mfps,Inf);
-        idx = ceil(nfps/2):nfps:size(ndata,1);
-        ndata    = convn(ndata,kk1,'same');
+        idx = ceil(nfps/2):ceil(nfps/2):size(ndata,1);
+        % ndata  = convn(ndata,kk1,'same');
         ndata    = convn(ndata,kk2,'same');
         
         % Grab datapoints
@@ -386,9 +408,22 @@ classdef fexc < handle
         nfr      = nfr(idx,:);
         nan_info = nan_info(idx,:);
         
+        % Interpolate structural data <-- Pose
+        Pose = self.get('pose');
+        [nsd,~,~] = fex_interpolate(Pose,self.time.TimeStamps,mfps,Inf);
+        Pose = mat2dataset(nsd,'VarNames',Pose.Properties.VarNames);
+%         % nsd    = convn(nsd,kk1,'same');
+%         nsd     = convn(nsd,kk2,'same');
+%         nsd(:,1:end-3) = round(nsd(:,1:end-3));
+        
         
         % Update functional and structural data
         self.structural = self.structural(nfr,:);
+        for i = Pose.Properties.VarNames
+            self.structural.(i{1}) = Pose.(i{1})(idx);
+        end
+%         self.structural = mat2dataset(nsd(idx,:),'VarNames',...
+%             self.structural.Properties.VarNames);
         self.functional = mat2dataset(ndata,'VarNames',...
             self.functional.Properties.VarNames);
 
@@ -581,7 +616,7 @@ classdef fexc < handle
                 X    = self.structural(:,k1==0|k2==0);
             case 'face'
                 ind = cellfun(@isempty,strfind(self.structural.Properties.VarNames, 'Face'));
-                X    = self.structural(:,ind==0);
+                X   = self.structural(:,ind==0);
             case 'pose'
                 list = {'Roll','Pitch','Yaw'};
                 [~,ind]  = ismember(list,self.structural.Properties.VarNames);
@@ -604,7 +639,52 @@ classdef fexc < handle
         
 
         end
+        
+        
+% *************************************************************************              
+% *************************************************************************
+        
+        function Y = descriptives(self,varargin)
+        %
+        %
+        % ....
+        
+        if ~isempty(varargin)
+            warning('Sorry ... no arguments yet.');
+        end
+        
+        % Fix sentiments in case they are needed
+        if isempty(self.sentiments)
+            self.derivesentiments();
+        end
+        
+        Incl = self.sentiments.Winner ~= 3;
+        
+        % Set up info
+        X = self.get('emotions');
+        X = X(Incl,:);
+        vnames = [X.Properties.VarNames,'Positive','Negative','Neutral'];
+        X = double(X);
+        d = dummyvar(double(self.sentiments(:,1)));
+        if size(d,2) < 3
+            d = cat(2,d,zeros(size(d,1),3-size(d,2)));
+        end
+        d = d(~isnan(X(:,1)),:);
+        X = X(~isnan(X(:,1)),:);
+        % Compute stats
+        Y = [median(X);quantile(X,.25);quantile(X,.75);mean(X);std(X)];
+        Y = cat(1,Y,Y(end,:)./sqrt(size(X,1)));
+        Y = cat(1,Y,mean(X >.25));
+        Y = cat(2,Y,nan(7,3));
+        Y(4,end-2:end) = mean(d);
+        % Make dataset
+        Y = mat2dataset(Y,'VarNames',vnames,...
+            'ObsNames',{'median','q25','q75','mean','std','st_err','Active25'});
+        
+    
+        end
 
+        
 % *************************************************************************              
 % *************************************************************************              
 
@@ -657,13 +737,20 @@ classdef fexc < handle
         % Get Pose info
         X = self.get('pose','double');
         ind  = ~isnan(sum(X,2));
-        X = X(ind,:) - repmat(nanmean(X),[sum(ind),1]);
+%         X = abs(X(ind,:));
+%         X(X < 10) = 0;
+%         X = [ones(sum(ind),1),X];
+        X = [ones(sum(ind),1),abs(X(ind,:))];% - repmat(nanmean(abs(X)),[sum(ind),1])];
         Y = double(self.functional(ind,:));
-        R = nan(size(Y));
+        R = nan(length(ind),size(Y,2));
         
+        % Maintain same mean
+        correct = mean(Y);
+        
+        % Regression
         for i = 1:size(Y,2);
             [~,~,r] = regress(Y(:,i),X);
-            R(ind == 1,i) = r;
+            R(ind == 1,i) = r + correct(i);
         end
         R(ind == 0,:) = nan;
         self.update('functional',R);
@@ -898,6 +985,102 @@ classdef fexc < handle
         M = mat2dataset([evlist,M],'VarNames',['NumEvent',self.functional.Properties.VarNames]);
        
         end
+ 
+% *************************************************************************
+% *************************************************************************         
+        
+        function self = export2viewer(self,filename)
+        %
+        %
+        % Write a csv file for Emotient viewer.
+        
+        % Get the helper dictionrary
+        dict = dataset('XLSFile','eviewerhdrs.xlsx');
+
+        % Add action units (set the correct order)
+        AUs = self.get('au');
+        X   = zeros(size(AUs));
+        for k = 1:size(AUs,2)
+            ind = strcmpi(AUs.Properties.VarNames{k},dict.Fexchdr);
+            X(:,ind) = double(AUs(:,k));
+        end
+        
+        % Anomaly Score
+        X = cat(2,X,nan(size(X,1),1));
+        % Add Gender
+        X = cat(2,X,3*ones(size(X,1),1));
+        
+        % Add Emotions
+        emos = {'anger','confusion','contempt','disgust','fear','frustration',...
+            'joy','negative','neutral','positive','sadness','surprise'};
+        Y = [];
+        for k = 1:length(emos)
+            Y = cat(2,Y,self.functional.(emos{k}));
+        end
+    
+        % Add sentiments ('Neutral is actually a combined version')
+        Y(~isnan(Y(:,1)),strcmpi('positive',emos))  = self.sentiments.Positive;
+        Y(~isnan(Y(:,1)),strcmpi('negative',emos))  = self.sentiments.Negative;
+        Y(~isnan(Y(:,1)),strcmpi('neutral' ,emos))  = self.sentiments.Combined;
+            
+        % Normalize Y to get Intensities
+        Y2(:,[1:7,11:12]) = exp(Y(:,[1:7,11:12]))./repmat(exp(sum(Y(:,[1:7,11:12]),2)),[1,9]);
+        temp_s = [self.functional.positive,self.functional.negative,self.functional.neutral];
+        Y2(:,8:10) = exp(temp_s)./repmat(exp(sum(temp_s,2)),[1,3]);
+        X = cat(2,X,[Y,Y2]);
+        
+        % Add face location
+        F = self.get('Face');
+        X = cat(2,X,[F.FaceBoxH,F.FaceBoxW,F.FaceBoxX,F.FaceBoxY]);
+        
+        % Add face quality
+        X = cat(2,X,repmat(~isnan(sum(Y,2)),[1,2]));
+        
+        % Add filepath (this needs to change)
+        X = cat(2,X,nan(length(X),1));
+        
+        % Add landmarks
+        X = cat(2,X,self.get('Landmarks','double'));
+    
+        % Add pose
+        P = self.get('Pose','double');
+        X = cat(2,X,P(:,[2,1,3]));
+    
+        % TimeStamps + track_id: THIS needs to be updated
+        track_id = ~isnan(sum(Y,2))-1;
+        X = cat(2,X,self.time.TimeStamps,track_id);
+        
+        % Stack nan at the end/convert nans to 0
+        N = X(track_id == -1,:);
+        N(isnan(N)) = 0;
+        X = cat(1,X(track_id ~= -1,:),N);
+        
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % Write the data to csv
+        
+        
+        % Create output directory
+        dirout = fileparts(filename);
+        if ~exist(dirout,'dir')
+            mkdir(dirout);
+        end
+
+        % Create header
+        header_string = dict.Viewerhdr{1};
+        for i = 2:length(dict.Viewerhdr)
+            header_string = [header_string,',',dict.Viewerhdr{i}];
+        end
+
+        % Write csv file with header 
+        fid = fopen(filename,'w');
+        fprintf(fid,'%s\r\n',header_string);    
+        fclose(fid);
+        dlmwrite(filename,X,'-append','delimiter',',');
+
+        end
+        
+        
+        
         
 % *************************************************************************
 % *************************************************************************                  
