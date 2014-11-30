@@ -138,6 +138,8 @@ classdef fexc < handle
         history
         % temporal filter kernel
         tempkernel
+        % threshold for emotions
+        thrsemo
     end
 
 
@@ -294,6 +296,9 @@ classdef fexc < handle
         
         % Initialize history
         self.history.original = [self.time,self.structural,self.functional];  
+        
+        % set emotions threshold
+        self.thrsemo = 0;
 
         end
 
@@ -323,6 +328,8 @@ classdef fexc < handle
         if ~exist('m','var')
             m = 0;
         end
+        self.thrsemo = m;
+
         
         % Grab Positive/Negative channels
         pos_names = {'joy','surprise'};
@@ -658,13 +665,19 @@ classdef fexc < handle
             self.derivesentiments();
         end
         
+        % MIND THIS 
         Incl = self.sentiments.Winner ~= 3;
+%         Incl = self.sentiments.Winner < 4;
         
         % Set up info
         X = self.get('emotions');
         X = X(Incl,:);
         vnames = [X.Properties.VarNames,'Positive','Negative','Neutral'];
         X = double(X);
+        
+        X = cat(2,X,[self.sentiments.Positive(Incl),self.sentiments.Negative(Incl),self.sentiments.Winner(Incl) == 3]);
+        
+        
         d = dummyvar(double(self.sentiments(:,1)));
         if size(d,2) < 3
             d = cat(2,d,zeros(size(d,1),3-size(d,2)));
@@ -674,12 +687,12 @@ classdef fexc < handle
         % Compute stats
         Y = [median(X);quantile(X,.25);quantile(X,.75);mean(X);std(X)];
         Y = cat(1,Y,Y(end,:)./sqrt(size(X,1)));
-        Y = cat(1,Y,mean(X >.25));
-        Y = cat(2,Y,nan(7,3));
+        Y = cat(1,Y,mean(X >self.thrsemo));
+%         Y = cat(2,Y,nan(7,3));
         Y(4,end-2:end) = mean(d);
         % Make dataset
         Y = mat2dataset(Y,'VarNames',vnames,...
-            'ObsNames',{'median','q25','q75','mean','std','st_err','Active25'});
+            'ObsNames',{'median','q25','q75','mean','std','st_err',sprintf('Active%.2f',self.thrsemo)});
         
     
         end
@@ -736,21 +749,29 @@ classdef fexc < handle
         
         % Get Pose info
         X = self.get('pose','double');
-        ind  = ~isnan(sum(X,2));
+        ind  = ~isnan(sum(double(self.functional),2)) & ~isnan(sum(X,2));
+        Y = double(self.functional(ind,:));
+%         ind  = ~isnan(sum(X,2));
 %         X = abs(X(ind,:));
 %         X(X < 10) = 0;
 %         X = [ones(sum(ind),1),X];
-        X = [ones(sum(ind),1),abs(X(ind,:))];% - repmat(nanmean(abs(X)),[sum(ind),1])];
-        Y = double(self.functional(ind,:));
+
+%         X = [ones(sum(ind),1), fex_whiteningt(abs(X(ind,:)))];
+        X = [ones(sum(ind),1),abs(X(ind,:))];
+
+        %X = [ones(sum(ind),1),abs(X(ind,:))];% - repmat(nanmean(abs(X)),[sum(ind),1])];
         R = nan(length(ind),size(Y,2));
         
         % Maintain same mean
-        correct = mean(Y);
+%         correct = mean(Y);
         
         % Regression
         for i = 1:size(Y,2);
-            [~,~,r] = regress(Y(:,i),X);
-            R(ind == 1,i) = r + correct(i);
+        % Include only feature significantly correlated
+            [rind,pind] = corr(X(:,2:end),Y(:,i));
+            idxpose  = [true,pind'<= 0.05 & abs(rind') >= .5];
+            [b,~,r] = regress(Y(:,i),X(:,idxpose));
+            R(ind == 1,i) = r + b(1); % Add constant back
         end
         R(ind == 0,:) = nan;
         self.update('functional',R);
