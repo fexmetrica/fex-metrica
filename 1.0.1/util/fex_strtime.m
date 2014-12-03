@@ -30,8 +30,9 @@ elseif isa(sec,'cell')
     st = cellfun(conrt,sec,'UniformOutput',false);
     str = cell2mat(st)*[60^2,60,1]';
 elseif isa(sec,'double') && strcmp(formatt,'long')
-    conrt = @(t) sprintf('%.2d:%.2d:%.3f',...
-        floor(t/3600),floor(mod(t/60,60)),mod(t,60));
+    conrt = @(t) sprintf('%.2d:%.2d:%.2d.%.3d',...
+        floor(t/3600),floor(mod(t/60,60)),floor(mod(t,60)),...
+        round(1000*(mod(t,60)-floor(mod(t,60)))));
     str = cellfun(conrt,num2cell(sec),'UniformOutput',false);
 elseif isa(sec,'double') && strcmp(formatt,'short')
     conrt = @(t) sprintf('%.2d:%.2d',floor(mod(t/60,60)),round(mod(t,60)));

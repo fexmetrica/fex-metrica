@@ -162,8 +162,9 @@ classdef fexc < handle
         
         % Create empty fex object
         if isempty(varargin)
-            varargin = {'video','','videoInfo',[],'data',''};
-            warning('Creating empty fexc object.')
+           % varargin = {'video','','videoInfo',[],'data',''};
+           % warning('Creating empty fexc object.')
+           return 
         end
 
         % function to handle "varargin"
@@ -302,8 +303,61 @@ classdef fexc < handle
 
         end
 
+        
+% *************************************************************************
+% *************************************************************************         
+        
+        function newself = clone(self)
+        % 
+        % make a copy of the fexObject (new handle)
+        
+        newself = feval(class(self));
+        
+        % Copy all non-hidden properties.
+        p = properties(newself);
+        for i = 1:length(p)
+            newself.(p{i}) = self.(p{i});
+        end
+
+        % Add hidden properties
+        newself.tempkernel = self.tempkernel;
+        newself.thrsemo    = self.thrsemo;
+        
+        end
+        
+        
 % *************************************************************************
 % *************************************************************************              
+
+        function h = viewer(self)
+        % 
+        % Stream the video using fexw_streamerui gui. See docs there for
+        % information on the Gui options.
+        
+        % Check that (1) you have the video, and that (2) the video has the
+        % correct estension:
+        if ~exist(self.video,'file')
+            error('No video provided for streaming.');
+        else
+        % check video formats
+            format = VideoReader.getFileFormats();
+            format = get(format, 'Extension');
+            [~,~,cew] = fileparts(self.video);
+            if ~ismember(cew(2:end),format)
+                error('Unsupported format. Use "VideoReader.getFileFormats" to see supported formats.');
+            end
+        end
+        
+        % Start video streamer gui
+        h = fexw_streamerui(self);
+            
+        
+        
+        end
+
+
+% *************************************************************************
+% ************************************************************************* 
 
         function str = info(self)
         %
@@ -666,8 +720,8 @@ classdef fexc < handle
         end
         
         % MIND THIS 
-        Incl = self.sentiments.Winner ~= 3;
-%         Incl = self.sentiments.Winner < 4;
+%         Incl = self.sentiments.Winner ~= 3;
+        Incl = self.sentiments.Winner < 4;
         
         % Set up info
         X = self.get('emotions');
@@ -678,18 +732,15 @@ classdef fexc < handle
         X = cat(2,X,[self.sentiments.Positive(Incl),self.sentiments.Negative(Incl),self.sentiments.Winner(Incl) == 3]);
         
         
-        d = dummyvar(double(self.sentiments(:,1)));
-        if size(d,2) < 3
-            d = cat(2,d,zeros(size(d,1),3-size(d,2)));
-        end
-        d = d(~isnan(X(:,1)),:);
+        d = dummyvar([self.sentiments.Winner(~isnan(self.sentiments.Winner));3]);
+        d = d(1:end-1,:);
         X = X(~isnan(X(:,1)),:);
         % Compute stats
         Y = [median(X);quantile(X,.25);quantile(X,.75);mean(X);std(X)];
         Y = cat(1,Y,Y(end,:)./sqrt(size(X,1)));
         Y = cat(1,Y,mean(X >self.thrsemo));
 %         Y = cat(2,Y,nan(7,3));
-        Y(4,end-2:end) = mean(d);
+        Y(end,end-2:end) = mean(d);
         % Make dataset
         Y = mat2dataset(Y,'VarNames',vnames,...
             'ObsNames',{'median','q25','q75','mean','std','st_err',sprintf('Active%.2f',self.thrsemo)});
@@ -756,8 +807,9 @@ classdef fexc < handle
 %         X(X < 10) = 0;
 %         X = [ones(sum(ind),1),X];
 
-%         X = [ones(sum(ind),1), fex_whiteningt(abs(X(ind,:)))];
-        X = [ones(sum(ind),1),abs(X(ind,:))];
+        % Excluding roll ... 
+        X = [ones(sum(ind),1), fex_whiteningt(X(ind,2:3))];
+%         X = [ones(sum(ind),1),abs(X(ind,:))];
 
         %X = [ones(sum(ind),1),abs(X(ind,:))];% - repmat(nanmean(abs(X)),[sum(ind),1])];
         R = nan(length(ind),size(Y,2));
