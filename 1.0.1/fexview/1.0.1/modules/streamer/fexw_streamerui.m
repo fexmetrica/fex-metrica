@@ -128,6 +128,7 @@ set(hl,'Position',[0 0.5695 0.1843 0.3343],'Box','off');
 
 % Set up timeseries related handles (position handles)
 handles.tsh = [];
+xct = repmat(handles.time(1),[1,10]);
 axes(handles.TSAxes);
 for i = 1:7
     subplot(7,1,i); hold on;
@@ -156,11 +157,13 @@ ind = ~isnan(B(:,1));
 for i = 1:7
     plot(handles.tsh(i),handles.time(ind),Y(ind,i),'Color',emocolor(i,:),'LineWidth',2);
     ylabel(handles.tsh(i),emoname{i});
+    hth = plot(handles.tsh(i),xct,linspace(-1,2,10),'w','LineWidth',1);
+    set(hth,'Tag','tslp');
+%     hold off
 %     area(handles.tsh(i),handles.time(ind),Y(ind,i),'basevalue',-1,...
 %          'FaceColor',emocolor(i,:),'LineWidth',2,'EdgeColor',emocolor(i,:));
 %     plot(handles.tsh(i),linspace(handles.time(1),handles.time(end),100),zeros(1,100),'--w','LineWidth',2);
 end
-
 
 % Add a set of flags for the face box (recognize sentiments for now).
 % Sentiments are inferred using max pooling across emotion channels. If
@@ -176,6 +179,10 @@ set(handles.drawbox,'CustomFillColor',[1,1,1]);
 handles.VideoFReader = VideoReader(handles.video);
 img = FormatFrame(handles,1);
 imshow(img,'parent',handles.FrameAxis);
+
+% Set Time Slider Properties
+set(handles.TimeSlider,'Min',0,'Max',handles.time(end),'Value',0);
+
 
 end
 
@@ -342,9 +349,20 @@ while flag && handles.frameCount < handles.nframes;
        return
    end
    handles.dfps = cat(1,handles.dfps,toc);
-   handles.current_time = handles.current_time + handles.dfps(end); 
+   
+   if handles.current_time == get(handles.TimeSlider,'Value')
+       handles.current_time = handles.current_time + handles.dfps(end); 
+   else
+      handles.current_time =  get(handles.TimeSlider,'Value');
+   end
    handles.frameCount = getIdx(handles);
-
+   set(handles.TimeSlider,'Value',handles.current_time);
+%    xct = repmat(handles.current_time,[1,10]);
+   set(findobj(handles.tsh,'Tag','tslp'),'XData',repmat(handles.current_time,[1,10]))
+%    upts = findobj(get(handles.TSAxes,'Children'),'Tag','tslp');
+%    set(upts,'XData',xct);
+%    refreshdata;
+   
    % Re-evaluate frame cound
    if mod(length(handles.dfps),100) == 0
        dfps = round(1/mean(handles.dfps));
@@ -361,7 +379,8 @@ if handles.frameCount >= handles.nframes
     % Reinitialize video
     set(handles.PlayButton,'String','Play');
     handles.frameCount = 1;
-    handles.current_time = handles.time(2);
+    set(handles.TimeSlider,'Value',handles.time(1));
+    handles.current_time = handles.time(1);
     img = FormatFrame(handles);
     imshow(img,'parent',handles.FrameAxis);
     set(handles.TimeSrtingUpdate,'String','00:00:00.000');
@@ -587,3 +606,42 @@ function MT_XaxisLength_Callback(hObject, eventdata, handles)
 % hObject    handle to MT_XaxisLength (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on slider movement.
+function TimeSlider_Callback(hObject, eventdata, handles)
+% hObject    handle to TimeSlider (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'Value') returns position of slider
+%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+
+handles.current_time = get(handles.TimeSlider,'Value'); 
+handles.frameCount = getIdx(handles);
+
+if strcmp(get(handles.PlayButton,'String'),'Play')
+   img = FormatFrame(handles);
+   strnowtime = fex_strtime(handles.current_time);
+   set(handles.TimeSrtingUpdate,'String',strnowtime{1});
+   set(findobj(handles.tsh,'Tag','tslp'),'XData',repmat(handles.current_time,[1,10]))
+   imshow(img,'parent',handles.FrameAxis);
+end
+
+
+guidata(hObject,handles);
+
+
+
+
+
+% --- Executes during object creation, after setting all properties.
+function TimeSlider_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to TimeSlider (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: slider controls usually have a light gray background.
+if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
+end
