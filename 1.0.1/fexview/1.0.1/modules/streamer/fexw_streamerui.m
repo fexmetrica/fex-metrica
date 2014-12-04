@@ -106,7 +106,7 @@ handles.dfps = [];
 if isempty(handles.fexc.sentiments)
     handles.fexc.derivesentiments(.25);
 end
-sidx = 3*ones(handles.nframes,1);
+sidx = 3*ones(handles.nframes,1); % note that 4 is for nans
 sidx(~isnan(B(:,1))) = handles.fexc.sentiments.Winner;
 handles.sentimentcolor = zeros(handles.nframes,3);
 col =  fex_getcolors(3); col(2,:) = [1,1,1]; col = col([3,1,2],:);
@@ -117,16 +117,49 @@ handles.sentimentidx = sidx;
 handles.sentimentlabels = {'Positive','Negative','Neutral'};
 
 % Piechart information & diagnostic information
-axes(handles.BarAxis)
-subplot(1,2,1)
-perc_s = zeros(1,4);
-for i = 1:3
-    perc_s(i) = nansum(handles.fexc.sentiments.Winner == i);
+axes(handles.BarAxis); subplot(1,2,1);
+sidx(isnan(B(:,1))) = 4;
+X = dummyvar([sidx;4]); X = nanmean(X(1:end-1,:));
+L = {'Positive','Negative','Neutral','Missing'};
+[~,~,hl] = fexw_pie(X,'Color',[col;[.2,1,.2]],'text',L,'isLegend',true);
+set(hl,'Color',[0,0,0],'TextColor',[1,1,1]);
+set(hl,'Position',[0 0.5695 0.1843 0.3343],'Box','off');
+
+
+% Set up timeseries related handles (position handles)
+handles.tsh = [];
+axes(handles.TSAxes);
+for i = 1:7
+    subplot(7,1,i); hold on;
+    handles.tsh = cat(1,handles.tsh,gca);
+    plot(linspace(handles.time(1),handles.time(end),100),zeros(1,100),'--w','LineWidth',2);
+    set(gca,'Tag',sprintf('%d',i),'Color','k','ylim',[-1,2],'YColor',[1 1 1],...
+        'XTickLabel','','xlim', [handles.time(1),handles.time(end)],'XColor',[1 1 1],...
+        'box','on','LineWidth',2,'fontsize',12);
+    if i == 1
+        x = get(gca,'XTick');
+        set(gca,'XTick',x,'XTickLabel',fex_strtime(x,'short'),'XAxisLocation','Top');   
+    else
+        set(gca,'XTick',[]);
+    end
 end
-perc_s(4) = sum(isnan(B(:,1)));
-perc_s    = perc_s./handles.nframes;
-pie(perc_s,[1,1,1,1]);
-hleg = legend({'Positive','Negative','Neutral','NaNs'},'Location','NorthWest');
+% Add time at the bottom
+set(gca,'XTick',x,'XTickLabel',fex_strtime(x,'short'));
+% Plot selected timeseries
+% plot_timeseries(handles);
+% This needs to be moved in "update_features" function below < -- CHANGE THIS 
+emocolor = fex_getcolors(7);
+Y = get(handles.fexc,'Emotions');
+emoname = Y.Properties.VarNames;
+Y = double(Y); Y(Y < -1) = -1;
+ind = ~isnan(B(:,1));
+for i = 1:7
+    plot(handles.tsh(i),handles.time(ind),Y(ind,i),'Color',emocolor(i,:),'LineWidth',2);
+    ylabel(handles.tsh(i),emoname{i});
+%     area(handles.tsh(i),handles.time(ind),Y(ind,i),'basevalue',-1,...
+%          'FaceColor',emocolor(i,:),'LineWidth',2,'EdgeColor',emocolor(i,:));
+%     plot(handles.tsh(i),linspace(handles.time(1),handles.time(end),100),zeros(1,100),'--w','LineWidth',2);
+end
 
 
 % Add a set of flags for the face box (recognize sentiments for now).
@@ -137,29 +170,12 @@ handles.drawbox = vision.ShapeInserter;
 set(handles.drawbox,'Fill',true,'FillColorSource','Property',...
     'FillColor','Custom','Opacity',.3);
 set(handles.drawbox,'CustomFillColor',[1,1,1]);
-set(hleg,'Color',[0,0,0],'TextColor',[1,1,1]);
-set(hleg,'Position',[0 0.5695 0.1843 0.3343],'Box','off');
 
 
 % Video Reader/Player
 handles.VideoFReader = VideoReader(handles.video);
 img = FormatFrame(handles,1);
 imshow(img,'parent',handles.FrameAxis);
-
-% Emotions/AUs graph
-% set(handles.Channel,'Value',5)
-% X =  handles.time;
-% Y = get_bardata2(handles);
-% axes(handles.ChannelAxes); hold on
-% plot(X,zeros(length(X),1),'--k');
-% area(X,Y,'basevalue',-1,'LineWidth',2,'EdgeColor','b')
-% alpha(.4); xlim([0,max(X)]); ylim([-1,3]);
-% xt  = get(gca,'XTick');
-% xts = fex_strtime(xt,'short');
-% set(gca,'XTick',xt(2:end),'XTickLabel',xts(2:end),'box','on','LineWidth',2,'fontsize',12)
-% ylabel('LogEvidence','fontsize',12);
-% handles.ChannelAxexesChild = get(gca,'Children');
-% hold off
 
 end
 
@@ -179,50 +195,46 @@ varargout{1} = '';
 delete(handles.figure1);
 
 
+% --- Executes when user attempts to close figure1.
+function figure1_CloseRequestFcn(hObject, eventdata, handles)
+%
+% Send Close request
+if isequal(get(hObject,'waitstatus'),'waiting')
+    uiresume(hObject);
+else
+    delete(hObject);
+end
+
+
 %+++++++++++++++++++++++++++++++++++++++++++++++ Get Indices for frames
 function idx = getIdx(handles)
 %
 %
-
-
-% DOESN"T WORK -- TRY TICK TOCK OPERATION -- getCurrentTime//setCurrentTime
-
-
-
-
-% nfr  = size(handles.fexc.functional,1);
-% nfst = round(handles.fexc.videoInfo(1)/nfd); 
-% idx1 = handles.idx(1:handles.frameCount-1);
-% idx2 = handles.idx(handles.frameCount):nfst:nfr;
-% idx  = [idx1(:);idx2(:)];
-% idx(end) = nfr;
-% handles.video_time = handles.fexc.time.TimeStamps(idx) - handles.fexc.time.TimeStamps(1);
-
-% t   = handles.fexc.time.TimeStamps - handles.fexc.time.TimeStamps(1);
-% ctime = handles.video_time(handles.frameCount);
-% ltime = handles.fexc.time.TimeStamps(end) - handles.fexc.time.TimeStamps(1);
-% ti1 = ctime:1/(nfd-1):ltime;
-% ti2 = handles.video_time(1:handles.frameCount);
-% ti  = [ti1(:); ti2(:)];
-% ti(end) = t(end);
-% 
-% % find new indices
-% idx = dsearchn(t,ti);
-% 
-% % Update video time and frame count
-% handles.video_time = ti;
-% handles.frameCount = find((ti - ctime) >= 0,1,'first');
 idx  = dsearchn(handles.time,handles.current_time);
 
-% ctime = handles.video_time(handles.frameCount);
-% t   = handles.fexc.time.TimeStamps - handles.fexc.time.TimeStamps(1);
-% ti  = (0:1/nfd:t(end))';
-% idx = dsearchn(t,ti);
-% idx = min(idx,size(handles.fexc.functional,1));
+
+%+++++++++++++++++++++++++++++++++++++++++++++++ ReadFeaturesFunction
+
+function list = update_featurelist(handles)
+%
+% Read from the menu the features to use for the timeseries graph; arange
+% them (up to 7), manage substitution -- in order -- and update timeseries
+% data to be displayed.
+
+
+% Get emotions names
+L = cellfun(@lower,[get(get(handles.MenuSelectAU,'Children'),'Label');...
+     get(get(handles.MenuSelectEmotions,'Children'),'Label')],...
+     'UniformOutput',false);
+ 
+% Get "Checked" value names
+S = strcmp([get(get(handles.MenuSelectAU,'Children'),'Checked');...
+     get(get(handles.MenuSelectEmotions,'Children'),'Checked')],'on');
+%  
+%  
 % 
-% % Update video time and frame count
-% handles.video_time = ti;
-% handles.frameCount = find((ti - ctime) >= 0,1,'first');
+% hand = [findobj(handles.MenuSelectEmotions,'Checked','on'); ...
+%         findobj(handles.MenuSelectEmotions,'Checked','on')];
 
 
 
@@ -361,78 +373,78 @@ guidata(hObject,handles);
 
 
 
-% --- Executes on button press in CropOption.
-function CropOption_Callback(hObject, eventdata, handles)
-% hObject    handle to CropOption (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of CropOption
-
-
-% --- Executes on button press in BWOption.
-function BWOption_Callback(hObject, eventdata, handles)
-% hObject    handle to BWOption (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of BWOption
+% % --- Executes on button press in CropOption.
+% function CropOption_Callback(hObject, eventdata, handles)
+% % hObject    handle to CropOption (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% 
+% % Hint: get(hObject,'Value') returns toggle state of CropOption
 
 
-% --- Executes on button press in FaceBoxOption.
-function FaceBoxOption_Callback(hObject, eventdata, handles)
-% hObject    handle to FaceBoxOption (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of FaceBoxOption
-
-
-% --- Executes on selection change in TSPlotXLim.
-function TSPlotXLim_Callback(hObject, eventdata, handles)
-% hObject    handle to TSPlotXLim (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns TSPlotXLim contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from TSPlotXLim
+% % --- Executes on button press in BWOption.
+% function BWOption_Callback(hObject, eventdata, handles)
+% % hObject    handle to BWOption (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% 
+% % Hint: get(hObject,'Value') returns toggle state of BWOption
 
 
-% --- Executes during object creation, after setting all properties.
-function TSPlotXLim_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to TSPlotXLim (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
+% % --- Executes on button press in FaceBoxOption.
+% function FaceBoxOption_Callback(hObject, eventdata, handles)
+% % hObject    handle to FaceBoxOption (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% 
+% % Hint: get(hObject,'Value') returns toggle state of FaceBoxOption
 
 
+% % --- Executes on selection change in TSPlotXLim.
+% function TSPlotXLim_Callback(hObject, eventdata, handles)
+% % hObject    handle to TSPlotXLim (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% 
+% % Hints: contents = cellstr(get(hObject,'String')) returns TSPlotXLim contents as cell array
+% %        contents{get(hObject,'Value')} returns selected item from TSPlotXLim
+% 
+% 
+% % --- Executes during object creation, after setting all properties.
+% function TSPlotXLim_CreateFcn(hObject, eventdata, handles)
+% % hObject    handle to TSPlotXLim (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    empty - handles not created until after all CreateFcns called
+% 
+% % Hint: popupmenu controls usually have a white background on Windows.
+% %       See ISPC and COMPUTER.
+% if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+%     set(hObject,'BackgroundColor','white');
+% end
 
-function edit1_Callback(hObject, eventdata, handles)
-% hObject    handle to edit1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of edit1 as text
-%        str2double(get(hObject,'String')) returns contents of edit1 as a double
 
 
-% --- Executes during object creation, after setting all properties.
-function edit1_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
+% function edit1_Callback(hObject, eventdata, handles)
+% % hObject    handle to edit1 (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% 
+% % Hints: get(hObject,'String') returns contents of edit1 as text
+% %        str2double(get(hObject,'String')) returns contents of edit1 as a double
+% 
+% 
+% % --- Executes during object creation, after setting all properties.
+% function edit1_CreateFcn(hObject, eventdata, handles)
+% % hObject    handle to edit1 (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    empty - handles not created until after all CreateFcns called
+% 
+% % Hint: edit controls usually have a white background on Windows.
+% %       See ISPC and COMPUTER.
+% if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+%     set(hObject,'BackgroundColor','white');
+% end
+% 
 
 % % --------------------------------------------------------------------
 % function MainMenu_Callback(hObject, eventdata, handles)
@@ -532,22 +544,14 @@ else
     set(handles.MT_BlackWhite,'Checked','on');
 end
 
+
+% +++++++++++++++++++++++++++++++++++++++++++++ Add these callbacks
+
 % --------------------------------------------------------------------
 function MT_ShowNaNs_Callback(hObject, eventdata, handles)
 % hObject    handle to MT_ShowNaNs (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
-
-% --- Executes when user attempts to close figure1.
-function figure1_CloseRequestFcn(hObject, eventdata, handles)
-%
-% Send Close request
-if isequal(get(hObject,'waitstatus'),'waiting')
-    uiresume(hObject);
-else
-    delete(hObject);
-end
 
 
 % --------------------------------------------------------------------
@@ -563,3 +567,23 @@ function MainMenueSave_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+
+% --------------------------------------------------------------------
+function MT_xaxisextent_Callback(hObject, eventdata, handles)
+% hObject    handle to MT_xaxisextent (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function MT_rectification_Callback(hObject, eventdata, handles)
+% hObject    handle to MT_rectification (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function MT_XaxisLength_Callback(hObject, eventdata, handles)
+% hObject    handle to MT_XaxisLength (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
