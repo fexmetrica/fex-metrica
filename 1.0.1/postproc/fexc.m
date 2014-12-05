@@ -349,7 +349,7 @@ classdef fexc < handle
         end
         
         % Start video streamer gui
-        h = fexw_streamerui(self);
+        h = fexw_streamerui(self.clone());
             
         
         
