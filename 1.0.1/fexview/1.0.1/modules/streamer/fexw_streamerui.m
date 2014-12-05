@@ -76,6 +76,8 @@ handles.all_boxes = int32(B);
 B(:,3:4) = B(:,1:2) + B(:,3:4);
 handles.box = [min(B(:,1:2)), max(B(:,3:4)) - min(B(:,1:2))];
  
+nisnan_idx = ~isnan(sum(double(handles.fexc.functional),2));
+
 % Get frame indices -- this is used to stream the video at a frame rate
 % that is comparable to the display framereate. handles.idx is initiated
 % as 1:numframes. Every 100 frames displayed, the average display fps is
@@ -93,13 +95,6 @@ handles.frameCount = 1;
 handles.nframes = length(handles.time);
 handles.dfps = [];
 
-% Get image data
-% [idx,ti,Fdata] = get_DataOut(handles);
-% handles.idx = idx;
-% handles.Fdata = Fdata;
-% handles.time  = ti;
-% handles.dfps  = [1,5];
-
 % Add sentiments information -- Which sentiment is winning, color for each
 % sentiments, idx for sentiments, and data for plotting sentiment
 % timeseries or piechart.
@@ -107,7 +102,7 @@ if isempty(handles.fexc.sentiments)
     handles.fexc.derivesentiments(.25);
 end
 sidx = 3*ones(handles.nframes,1); % note that 4 is for nans
-sidx(~isnan(B(:,1))) = handles.fexc.sentiments.Winner;
+sidx(nisnan_idx) = handles.fexc.sentiments.Winner;
 handles.sentimentcolor = zeros(handles.nframes,3);
 col =  fex_getcolors(3); col(2,:) = [1,1,1]; col = col([3,1,2],:);
 for i = 1:3
@@ -118,7 +113,7 @@ handles.sentimentlabels = {'Positive','Negative','Neutral'};
 
 % Piechart information & diagnostic information
 axes(handles.BarAxis); subplot(1,2,1);
-sidx(isnan(B(:,1))) = 4;
+sidx(nisnan_idx == 0) = 4;
 X = dummyvar([sidx;4]); X = nanmean(X(1:end-1,:));
 L = {'Positive','Negative','Neutral','Missing'};
 [~,~,hl] = fexw_pie(X,'Color',[col;[.2,1,.2]],'text',L,'isLegend',true);
@@ -153,7 +148,7 @@ emocolor = fex_getcolors(7);
 Y = get(handles.fexc,'Emotions');
 emoname = Y.Properties.VarNames;
 Y = double(Y); Y(Y < -1) = -1;
-ind = ~isnan(B(:,1));
+ind = nisnan_idx;
 for i = 1:7
     plot(handles.tsh(i),handles.time(ind),Y(ind,i),'Color',emocolor(i,:),'LineWidth',2);
     ylabel(handles.tsh(i),emoname{i});
@@ -176,12 +171,31 @@ set(handles.drawbox,'CustomFillColor',[1,1,1]);
 
 
 % Video Reader/Player
-handles.VideoFReader = VideoReader(handles.video);
+try 
+    handles.VideoFReader = VideoReader(handles.video);
+catch errorId
+    warning(errorId.message);
+    handles.video = convert2mjpg(handles.video);
+    handles.VideoFReader = VideoReader(handles.video);
+end
+
 img = FormatFrame(handles,1);
 imshow(img,'parent',handles.FrameAxis);
 
 % Set Time Slider Properties
 set(handles.TimeSlider,'Min',0,'Max',handles.time(end),'Value',0);
+
+% Initialize handle axes & set inactive the axis extent that are longer
+% than the video
+handles.extents = [0,5*50,60,30];
+handles.xaxis = 1;
+for i = 1:length(handles.extents);
+    if handles.extents(i) > handles.time(end);
+        hx = findobj(handles.MT_xaxisextent,'Position',i);
+        set(hx,'Enable','off');
+    end
+end
+
 
 
 end
@@ -339,6 +353,7 @@ flag = strcmp(get(handles.PlayButton,'String'),'Pause');
 while flag && handles.frameCount < handles.nframes;
 % main loop for streaming the video
    tic
+   pause(0.001);
    img = FormatFrame(handles);
    strnowtime = fex_strtime(handles.current_time);
    set(handles.TimeSrtingUpdate,'String',strnowtime{1});
@@ -363,6 +378,19 @@ while flag && handles.frameCount < handles.nframes;
 %    set(upts,'XData',xct);
 %    refreshdata;
    
+   
+   % Adjust xlim
+   if  ~isempty(get(findobj(handles.MT_xaxisextent,'Checked','on'),'UserData'));
+       span = get(findobj(handles.MT_xaxisextent,'Checked','on'),'UserData');
+       if handles.current_time < span
+          set(handles.tsh,'xlim',[0,span]);
+       else
+          lim = [max(0,handles.current_time - span/2),min(handles.current_time + span/2,handles.time(end))];
+          set(handles.tsh,'xlim',lim);
+       end 
+   end
+
+
    % Re-evaluate frame cound
    if mod(length(handles.dfps),100) == 0
        dfps = round(1/mean(handles.dfps));
@@ -606,6 +634,54 @@ function MT_XaxisLength_Callback(hObject, eventdata, handles)
 % hObject    handle to MT_XaxisLength (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+hand_sel = get(handles.MT_xaxisextent,'Children');
+set(hand_sel,'Checked','off');
+set(handles.MT_XaxisLength,'Checked','on');
+% update xaxis
+set(handles.tsh,'xlim',[0,handles.time(end)]);
+
+% --------------------------------------------------------------------
+function MTX5_Callback(hObject, eventdata, handles)
+%
+hand_sel = get(handles.MT_xaxisextent,'Children');
+set(hand_sel,'Checked','off');
+set(handles.MTX5,'Checked','on');
+t = handles.current_time;
+if t <= 300
+    set(handles.tsh,'xlim',[0,300]);
+else
+    lim = [max(0,t-150),min(t+150,handles.time(end))];
+    set(handles.tsh,'xlim',lim);
+end
+
+% --------------------------------------------------------------------
+function MTX1_Callback(hObject, eventdata, handles)
+%
+hand_sel = get(handles.MT_xaxisextent,'Children');
+set(hand_sel,'Checked','off');
+set(handles.MTX1,'Checked','on');
+t = handles.current_time;
+if t <= 60
+    set(handles.tsh,'xlim',[0,60]);
+else
+    lim = [max(0,t-60),min(t+60,handles.time(end))];
+    set(handles.tsh,'xlim',lim);
+end
+
+% --------------------------------------------------------------------
+function MTX30s_Callback(hObject, eventdata, handles)
+%
+hand_sel = get(handles.MT_xaxisextent,'Children');
+set(hand_sel,'Checked','off');
+set(handles.MTX30s,'Checked','on');
+t = handles.current_time;
+if t <= 30
+    set(handles.tsh,'xlim',[0,30]);
+else
+    lim = [max(0,t-15),min(t+15,handles.time(end))];
+    set(handles.tsh,'xlim',lim);
+end
 
 
 % --- Executes on slider movement.
