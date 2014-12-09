@@ -1,6 +1,37 @@
 function varargout = fexw_streamerui(varargin)
 %
+% Usage:
+% h = fexw_streamerui();
+% h = fexw_streamerui(fexObj.clone());
+% h = fexObj.viewer()  
+% 
+% This viewer can be called with a fexc object as argument, in which case
+% it is advisiable to use the "clone" method from the fexc object,
+% otherwise the fexc object will be updated as well. 
 %
+% Alternatively this video viewer can be called as a method from a fexc
+% object.
+%
+% fexw_streamerui included three pannels:
+% 
+% 1. A video pannel, where the video associated with the fexc object is
+%    displayed. This pannel also includes the play/pause button, and the
+%    timestamp for the frame currently displayed.
+%
+% 2. A Summary pannel, which shows the proportion of frames that were
+%    recognized as positive, negative or neutral, and the proportion of
+%    frames with missing faces.
+%
+% 3. A time series plot pannel, that shows up to seven timeseries from
+%    emotions and action units.
+%
+% Using the menu you can edit features from the video pannel and from the
+% timeseries pannel. The content of the menu is described below.
+%
+% "File" [not implemented] includes three methods:
+%
+%  + "Open" imports a fexc object when fexw_streamerui is called 
+
 %
 % FexViewer .. needs to be called from a fexObject, using the viewer method
 %
@@ -147,6 +178,7 @@ set(gca,'XTick',x,'XTickLabel',fex_strtime(x,'short'));
 emocolor = fex_getcolors(7);
 Y = get(handles.fexc,'Emotions');
 emoname = Y.Properties.VarNames;
+allnames = handles.fexc.functional.Properties.VarNames;
 Y = double(Y); Y(Y < -1) = -1;
 ind = nisnan_idx;
 for i = 1:7
@@ -154,6 +186,9 @@ for i = 1:7
     ylabel(handles.tsh(i),emoname{i});
     hth = plot(handles.tsh(i),xct,linspace(-1,2,10),'w','LineWidth',1);
     set(hth,'Tag','tslp');
+    % Add context menue
+    set(handles.tsh(i),'uicontextmenu',create_contextmenue(allnames,emoname{i}));
+    
 %     hold off
 %     area(handles.tsh(i),handles.time(ind),Y(ind,i),'basevalue',-1,...
 %          'FaceColor',emocolor(i,:),'LineWidth',2,'EdgeColor',emocolor(i,:));
@@ -232,6 +267,19 @@ function idx = getIdx(handles)
 %
 %
 idx  = dsearchn(handles.time,handles.current_time);
+
+
+%+++++++++++++++++++++++++++++++++++++++++++++++ Context Menue for feature
+function hcmenu = create_contextmenue(features,inuse)
+
+hcmenu = uicontextmenu;
+for i = 1:length(features)
+    item = uimenu(hcmenu,'Label',features{i});
+    if strcmpi(features{i},inuse)
+        set(item,'Checked','on');
+    end
+end
+
 
 
 %+++++++++++++++++++++++++++++++++++++++++++++++ ReadFeaturesFunction
@@ -384,9 +432,12 @@ while flag && handles.frameCount < handles.nframes;
        span = get(findobj(handles.MT_xaxisextent,'Checked','on'),'UserData');
        if handles.current_time < span
           set(handles.tsh,'xlim',[0,span]);
+          % update scroller position
+%           set(handles.TimeSlider,'Value',handles.current_time,'Min',0,'Max',span);
        else
           lim = [max(0,handles.current_time - span/2),min(handles.current_time + span/2,handles.time(end))];
           set(handles.tsh,'xlim',lim);
+%           set(handles.TimeSlider,'Value',handles.current_time,'Min',lim(1),'Max',lim(2));
        end 
    end
 
@@ -641,6 +692,7 @@ set(handles.MT_XaxisLength,'Checked','on');
 % update xaxis
 set(handles.tsh,'xlim',[0,handles.time(end)]);
 
+
 % --------------------------------------------------------------------
 function MTX5_Callback(hObject, eventdata, handles)
 %
@@ -654,6 +706,7 @@ else
     lim = [max(0,t-150),min(t+150,handles.time(end))];
     set(handles.tsh,'xlim',lim);
 end
+
 
 % --------------------------------------------------------------------
 function MTX1_Callback(hObject, eventdata, handles)
@@ -721,3 +774,42 @@ function TimeSlider_CreateFcn(hObject, eventdata, handles)
 if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 end
+
+
+% --------------------------------------------------------------------
+function MT_AddNotes_Callback(hObject, eventdata, handles)
+% hObject    handle to MT_AddNotes (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+current_note = fexwnotebox();
+
+
+
+
+% --------------------------------------------------------------------
+function MenuViewerMode_Callback(hObject, eventdata, handles)
+% hObject    handle to MenuViewerMode (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function VM_video_Callback(hObject, eventdata, handles)
+% hObject    handle to VM_video (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function VM_Rendering_Callback(hObject, eventdata, handles)
+% hObject    handle to VM_Rendering (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function MT_Landmarks_Callback(hObject, eventdata, handles)
+% hObject    handle to MT_Landmarks (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
