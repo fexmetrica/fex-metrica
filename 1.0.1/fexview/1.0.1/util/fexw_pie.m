@@ -85,8 +85,8 @@ end
 % Extract correct handles
 % axes(hand);
 hs = pie(data(ind),args.expand);
-hp = hs(1:2:end);
-ht = hs(2:2:end);
+hp = findobj(hs,'Type','Patch'); %hs(1:2:end);
+ht = findobj(hs,'Type','Text'); %hs(2:2:end);
 
 % Adjust patch properties
 for i = 1:length(hp)
