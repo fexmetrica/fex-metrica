@@ -1,7 +1,7 @@
 function varargout = fexw_streamerui(varargin)
 %
 % Usage:
-% h = fexw_streamerui();
+% h = fexw_streamerui();                        [not implemented]
 % h = fexw_streamerui(fexObj.clone());
 % h = fexObj.viewer()  
 % 
@@ -30,28 +30,64 @@ function varargout = fexw_streamerui(varargin)
 %
 % "File" [not implemented] includes three methods:
 %
-%  + "Open" imports a fexc object when fexw_streamerui is called 
+%  + "Open" imports a fexc object when fexw_streamerui is called; 
+%  + "Save" saves currently displayed frame to a jpeg file;
+%  + "Quit" closes the interface. 
+%
+% "Viewer" [not implemented] selects the type of image will be shown
+% between:
+%
+%  + "Video" shows frames from the video;
+%  + "Rendering" uses fexview to display a model of the face.
+%
+% "Select" [not implemented**] opens a gui that allows to select the
+%    facial expressions to be displayed on each time series plot.
+%
+%  ** NOTE that even if this procedure is not yet implemented, the user can
+%  change the emotions displayed on each timeseries plot by rightclicking
+%  on each plot. This will open a context menue.
+%
+% "Tools" are divided in three groups: Tools for the video pannel, tools
+% for the time series pannel, and tools for adding notes.
+%
+% (1) Video Tools include:
+%
+%  + "Crop Frame" Shows a region of each video frames that contains the
+%     a face. Note that the cropping is done so to encompass all the face
+%     box in the video.
+%  + "Face Box" Drows a box around the face. The box is colorcoded to
+%     indicate sentiments ("positive," "neutral," and "negative").
+%  + "Landmarks" drows face landmarks on each frame.
+%  + "Black & Withe" converts each frame to black and white.
+%
+% (2) Time Series Tools include:
+%  
+%  + "X-axis" lets you select whether to display a timeseries of the full
+%    video, or to zoom in (5 min,1 min, or 30 sec). 
+%  + "Show Nans" [not implemented] allows to select whether to have an
+%    unbroken timeserie, or to brake the timeseries when a face is not
+%    recognized.
+%  + "Rectification" [not implemented**] allows you to select a value used
+%    to rectify the timeseries (i.e. all datapoints whose value is below a
+%    given threshold t are set to t).
+%
+% ** NOTE that all data displayed are rectified using -1 as value. 
+%
+% (3) Notes Tools
+%
+%  + "Add Note" [not implemented] opens a window that allows the user to
+%    make a note about the currently displayed frame. 
+%
+%__________________________________________________________________________
+%
+%
+% Copiright: Filippo Rossi, Institute for Neural Computation, University
+% of California, San Diego.
+%
+% email: frossi@ucsd.edu
+%
+% Version: 12/10/14.
 
-%
-% FexViewer .. needs to be called from a fexObject, using the viewer method
-%
-% Components:
-% -- Load full video (this is a temporary version);
-% -- Set up functional data;
-% -- "perpare frame" object;
-% -- Inititate plots
-% -- (plot selection);
-% -- Initiate bar graph on the bottom.
-% -- start stop button
-% -- Add "jump to" controll bar
-% 
-% -- controller panel:
-%
-%    -- crop
-%    -- face box
-%    -- black and white
-%    -- baseline
-%    -- scale (10,30,60,90,full)
 
 
 gui_Singleton = 1;
@@ -107,16 +143,8 @@ handles.all_boxes = int32(B);
 B(:,3:4) = B(:,1:2) + B(:,3:4);
 handles.box = [min(B(:,1:2)), max(B(:,3:4)) - min(B(:,1:2))];
  
+% List of nans to get an unbroken line
 nisnan_idx = ~isnan(sum(double(handles.fexc.functional),2));
-
-% Get frame indices -- this is used to stream the video at a frame rate
-% that is comparable to the display framereate. handles.idx is initiated
-% as 1:numframes. Every 100 frames displayed, the average display fps is
-% computed, and indices are re-evaluated.
-
-% handles.idx  = 1:size(handles.fexc.functional,1);
-% handles.video_time = handles.fexc.time.TimeStamps - handles.fexc.time.TimeStamps(1);
-% handles.dfps = [];
 
 % Set up a current video time, and use it to locate the position in the
 % video to stream
@@ -152,7 +180,7 @@ set(hl,'Color',[0,0,0],'TextColor',[1,1,1]);
 set(hl,'Position',[0 0.5695 0.1843 0.3343],'Box','off');
 
 
-% Set up timeseries related handles (position handles)
+% Set up timeseries related handles
 handles.tsh = [];
 xct = repmat(handles.time(1),[1,10]);
 axes(handles.TSAxes);
@@ -172,9 +200,6 @@ for i = 1:7
 end
 % Add time at the bottom
 set(gca,'XTick',x,'XTickLabel',fex_strtime(x,'short'));
-% Plot selected timeseries
-% plot_timeseries(handles);
-% This needs to be moved in "update_features" function below < -- CHANGE THIS 
 emocolor = fex_getcolors(7);
 Y = get(handles.fexc,'Emotions');
 emoname = Y.Properties.VarNames;
@@ -182,17 +207,13 @@ allnames = handles.fexc.functional.Properties.VarNames;
 Y = double(Y); Y(Y < -1) = -1;
 ind = nisnan_idx;
 for i = 1:7
-    plot(handles.tsh(i),handles.time(ind),Y(ind,i),'Color',emocolor(i,:),'LineWidth',2);
+    hth2 = plot(handles.tsh(i),handles.time(ind),Y(ind,i),'Color',emocolor(i,:),'LineWidth',2);
+    set(hth2,'Tag','tsplot');
     ylabel(handles.tsh(i),emoname{i});
     hth = plot(handles.tsh(i),xct,linspace(-1,2,10),'w','LineWidth',1);
     set(hth,'Tag','tslp');
     % Add context menue
-    set(handles.tsh(i),'uicontextmenu',create_contextmenue(allnames,emoname{i}));
-    
-%     hold off
-%     area(handles.tsh(i),handles.time(ind),Y(ind,i),'basevalue',-1,...
-%          'FaceColor',emocolor(i,:),'LineWidth',2,'EdgeColor',emocolor(i,:));
-%     plot(handles.tsh(i),linspace(handles.time(1),handles.time(end),100),zeros(1,100),'--w','LineWidth',2);
+    set(handles.tsh(i),'uicontextmenu',create_contextmenue(allnames,emoname{i},handles));
 end
 
 % Add a set of flags for the face box (recognize sentiments for now).
@@ -204,8 +225,13 @@ set(handles.drawbox,'Fill',true,'FillColorSource','Property',...
     'FillColor','Custom','Opacity',.3);
 set(handles.drawbox,'CustomFillColor',[1,1,1]);
 
+% Add Markers for landmarks
+handles.Landmarks = handles.fexc.get('Landmarks','double');
+handles.markers = vision.MarkerInserter('Shape','X-mark','BorderColor',...
+    'Custom','CustomBorderColor',uint8([255 0 0]),'Size',10);
 
-% Video Reader/Player
+
+% Video Reader/Player (make sure you can read the video)
 try 
     handles.VideoFReader = VideoReader(handles.video);
 catch errorId
@@ -214,14 +240,15 @@ catch errorId
     handles.VideoFReader = VideoReader(handles.video);
 end
 
+% Set first frame
 img = FormatFrame(handles,1);
 imshow(img,'parent',handles.FrameAxis);
 
 % Set Time Slider Properties
 set(handles.TimeSlider,'Min',0,'Max',handles.time(end),'Value',0);
 
-% Initialize handle axes & set inactive the axis extent that are longer
-% than the video
+% Initialize handle for x axes & set inactive the axis extent that are
+% longer than the video
 handles.extents = [0,5*50,60,30];
 handles.xaxis = 1;
 for i = 1:length(handles.extents);
@@ -230,8 +257,6 @@ for i = 1:length(handles.extents);
         set(hx,'Enable','off');
     end
 end
-
-
 
 end
 
@@ -246,7 +271,8 @@ uiwait(handles.figure1);
 % --- Outputs from this function are returned to the command line.
 function varargout = fexw_streamerui_OutputFcn(hObject, eventdata, handles) 
 %
-% 
+% NOT IMPLEMENTED YET
+
 varargout{1} = '';
 delete(handles.figure1);
 
@@ -256,6 +282,11 @@ function figure1_CloseRequestFcn(hObject, eventdata, handles)
 %
 % Send Close request
 if isequal(get(hObject,'waitstatus'),'waiting')
+    if strcmp(get(handles.PlayButton,'String'),'Pause')
+    % Safe check for closing when video is playing
+        set(handles.PlayButton,'String','Play');
+        pause(0.001);
+    end
     uiresume(hObject);
 else
     delete(hObject);
@@ -270,41 +301,39 @@ idx  = dsearchn(handles.time,handles.current_time);
 
 
 %+++++++++++++++++++++++++++++++++++++++++++++++ Context Menue for feature
-function hcmenu = create_contextmenue(features,inuse)
-
+function hcmenu = create_contextmenue(features,inuse,handles)
+%
+%
 hcmenu = uicontextmenu;
+set(hcmenu,'UserData',dataset2struct(handles.fexc.functional,'AsScalar',true))
 for i = 1:length(features)
-    item = uimenu(hcmenu,'Label',features{i});
+    item = uimenu(hcmenu,'Label',features{i},'Callback',@feature_select_callback);
     if strcmpi(features{i},inuse)
         set(item,'Checked','on');
     end
 end
 
 
-
-%+++++++++++++++++++++++++++++++++++++++++++++++ ReadFeaturesFunction
-
-function list = update_featurelist(handles)
+function feature_select_callback(hObject,eventdata,handles)
 %
-% Read from the menu the features to use for the timeseries graph; arange
-% them (up to 7), manage substitution -- in order -- and update timeseries
-% data to be displayed.
+% Update the feature displayed here
 
+% Gather the handles for the menue and the 
+label    = get(gcbo,'Label');
+hand_ts  = findobj(get(gco,'Children'),'Tag','tsplot');
+hand_cm  = get(gco,'UIContextMenu');
 
-% Get emotions names
-L = cellfun(@lower,[get(get(handles.MenuSelectAU,'Children'),'Label');...
-     get(get(handles.MenuSelectEmotions,'Children'),'Label')],...
-     'UniformOutput',false);
- 
-% Get "Checked" value names
-S = strcmp([get(get(handles.MenuSelectAU,'Children'),'Checked');...
-     get(get(handles.MenuSelectEmotions,'Children'),'Checked')],'on');
-%  
-%  
-% 
-% hand = [findobj(handles.MenuSelectEmotions,'Checked','on'); ...
-%         findobj(handles.MenuSelectEmotions,'Checked','on')];
+% Uncheck all and re-chek selectde
+set(get(hand_cm,'Children'),'Checked','off');
+set(gcbo,'Checked','on');
 
+% Get timeseries and refresh data
+Y = get(hand_cm,'UserData');
+Y = Y.(label); Y = Y(~isnan(Y));
+set(hand_ts,'YData',Y');
+
+% Update Ylabel
+set(get(get(hand_ts,'Parent'),'Ylabel'),'String',label);
 
 
 %+++++++++++++++++++++++++++++++++++++++++++++++ Frame Formatting function
@@ -312,9 +341,7 @@ function img = FormatFrame(handles,frame_n)
 %
 % Get/format the current frame
 
-% Get size of the image Axes
-% ss = round(get(handles.VideoAxes,'Position'));
-% Get image
+
 if nargin == 1
     frame_n = handles.frameCount;
 end
@@ -323,12 +350,10 @@ img = read(handles.VideoFReader,frame_n);
 
 % Set to black and white
 if strcmp(get(handles.MT_BlackWhite,'Checked'),'on');
-% if get(handles.BWOption,'Value') == 1
     img = repmat(rgb2gray(img),[1,1,3]);
 end
 
 % Draw/Don't Draw an image box
-% if get(handles.FaceBoxOption,'Value') == 1
 if strcmp(get(handles.MT_feelfacebox,'Checked'),'on');
     current_box = handles.all_boxes(frame_n,:);
     col   = uint8(255*handles.sentimentcolor(frame_n,:));
@@ -337,6 +362,12 @@ if strcmp(get(handles.MT_feelfacebox,'Checked'),'on');
     release(handles.drawbox);
     set(handles.drawbox,'CustomFillColor',col);
     img = step(handles.drawbox,img,current_box);
+end
+
+% Add/don't add landmarks
+if strcmp(get(handles.MT_Landmarks,'Checked'),'on')
+    lpoint = reshape(handles.Landmarks(frame_n,:),2,7)';
+    img = step(handles.markers,img,int32(lpoint));
 end
 
 % Crop/Don't Crop The Image
@@ -366,7 +397,7 @@ if exist(new_name,'file')
     return
 end
 
-% I am manually inserting the ffmpeg executable
+% This may not work if I can't find the ffmpeg executable.
 cmd = sprintf('ffmpeg -i %s -vcodec mjpeg -q 5 %s',oldname,new_name);
 [isError,output] = unix(sprintf('source ~/.bashrc && %s',cmd),'-echo');
 
@@ -420,27 +451,21 @@ while flag && handles.frameCount < handles.nframes;
    end
    handles.frameCount = getIdx(handles);
    set(handles.TimeSlider,'Value',handles.current_time);
-%    xct = repmat(handles.current_time,[1,10]);
    set(findobj(handles.tsh,'Tag','tslp'),'XData',repmat(handles.current_time,[1,10]))
-%    upts = findobj(get(handles.TSAxes,'Children'),'Tag','tslp');
-%    set(upts,'XData',xct);
-%    refreshdata;
-   
-   
+
    % Adjust xlim
    if  ~isempty(get(findobj(handles.MT_xaxisextent,'Checked','on'),'UserData'));
        span = get(findobj(handles.MT_xaxisextent,'Checked','on'),'UserData');
        if handles.current_time < span
           set(handles.tsh,'xlim',[0,span]);
           % update scroller position
-%           set(handles.TimeSlider,'Value',handles.current_time,'Min',0,'Max',span);
+          % set(handles.TimeSlider,'Value',handles.current_time,'Min',0,'Max',span);
        else
           lim = [max(0,handles.current_time - span/2),min(handles.current_time + span/2,handles.time(end))];
           set(handles.tsh,'xlim',lim);
-%           set(handles.TimeSlider,'Value',handles.current_time,'Min',lim(1),'Max',lim(2));
+          % set(handles.TimeSlider,'Value',handles.current_time,'Min',lim(1),'Max',lim(2));
        end 
    end
-
 
    % Re-evaluate frame cound
    if mod(length(handles.dfps),100) == 0
@@ -451,7 +476,6 @@ while flag && handles.frameCount < handles.nframes;
    
    % Update flag
    flag = strcmp(get(handles.PlayButton,'String'),'Pause');
-%    handles.frameCount = handles.frameCount + 1;
 end
 
 if handles.frameCount >= handles.nframes
@@ -468,123 +492,33 @@ end
 guidata(hObject,handles);
 
 
-
-
-
-% % --- Executes on button press in CropOption.
-% function CropOption_Callback(hObject, eventdata, handles)
-% % hObject    handle to CropOption (see GCBO)
-% % eventdata  reserved - to be defined in a future version of MATLAB
-% % handles    structure with handles and user data (see GUIDATA)
-% 
-% % Hint: get(hObject,'Value') returns toggle state of CropOption
-
-
-% % --- Executes on button press in BWOption.
-% function BWOption_Callback(hObject, eventdata, handles)
-% % hObject    handle to BWOption (see GCBO)
-% % eventdata  reserved - to be defined in a future version of MATLAB
-% % handles    structure with handles and user data (see GUIDATA)
-% 
-% % Hint: get(hObject,'Value') returns toggle state of BWOption
-
-
-% % --- Executes on button press in FaceBoxOption.
-% function FaceBoxOption_Callback(hObject, eventdata, handles)
-% % hObject    handle to FaceBoxOption (see GCBO)
-% % eventdata  reserved - to be defined in a future version of MATLAB
-% % handles    structure with handles and user data (see GUIDATA)
-% 
-% % Hint: get(hObject,'Value') returns toggle state of FaceBoxOption
-
-
-% % --- Executes on selection change in TSPlotXLim.
-% function TSPlotXLim_Callback(hObject, eventdata, handles)
-% % hObject    handle to TSPlotXLim (see GCBO)
-% % eventdata  reserved - to be defined in a future version of MATLAB
-% % handles    structure with handles and user data (see GUIDATA)
-% 
-% % Hints: contents = cellstr(get(hObject,'String')) returns TSPlotXLim contents as cell array
-% %        contents{get(hObject,'Value')} returns selected item from TSPlotXLim
-% 
-% 
-% % --- Executes during object creation, after setting all properties.
-% function TSPlotXLim_CreateFcn(hObject, eventdata, handles)
-% % hObject    handle to TSPlotXLim (see GCBO)
-% % eventdata  reserved - to be defined in a future version of MATLAB
-% % handles    empty - handles not created until after all CreateFcns called
-% 
-% % Hint: popupmenu controls usually have a white background on Windows.
-% %       See ISPC and COMPUTER.
-% if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-%     set(hObject,'BackgroundColor','white');
-% end
-
-
-
-% function edit1_Callback(hObject, eventdata, handles)
-% % hObject    handle to edit1 (see GCBO)
-% % eventdata  reserved - to be defined in a future version of MATLAB
-% % handles    structure with handles and user data (see GUIDATA)
-% 
-% % Hints: get(hObject,'String') returns contents of edit1 as text
-% %        str2double(get(hObject,'String')) returns contents of edit1 as a double
-% 
-% 
-% % --- Executes during object creation, after setting all properties.
-% function edit1_CreateFcn(hObject, eventdata, handles)
-% % hObject    handle to edit1 (see GCBO)
-% % eventdata  reserved - to be defined in a future version of MATLAB
-% % handles    empty - handles not created until after all CreateFcns called
-% 
-% % Hint: edit controls usually have a white background on Windows.
-% %       See ISPC and COMPUTER.
-% if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-%     set(hObject,'BackgroundColor','white');
-% end
-% 
-
-% % --------------------------------------------------------------------
-% function MainMenu_Callback(hObject, eventdata, handles)
-% % hObject    handle to MainMenu (see GCBO)
-% % eventdata  reserved - to be defined in a future version of MATLAB
-% % handles    structure with handles and user data (see GUIDATA)
-
-
+% +++++++++++++++++++++++++++++++++++++++++++++++++++ Main menu Callbacks
 % --------------------------------------------------------------------
 function MainMenueClose_Callback(hObject, eventdata, handles)
 % hObject    handle to MainMenueClose (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+% --------------------------------------------------------------------
+function MainMenueOpen_Callback(hObject, eventdata, handles)
+% hObject    handle to MainMenueOpen (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
 
+
+% --------------------------------------------------------------------
+function MainMenueSave_Callback(hObject, eventdata, handles)
+% hObject    handle to MainMenueSave (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% +++++++++++++++++++++++++++++++++++++++++++++++++++++ Selection Callback
 % --------------------------------------------------------------------
 function MenuSelection_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuSelection (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
-
-% --------------------------------------------------------------------
-function MenuSelectAU_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuSelectAU (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-% --------------------------------------------------------------------
-function MenuSelectEmotions_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuSelectEmotions (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-% --------------------------------------------------------------------
-function MenuSelectSentiments_Callback(hObject, eventdata, handles)
-% hObject    handle to MenuSelectSentiments (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
 
 % --------------------------------------------------------------------
 function MenuSelectHelp_Callback(hObject, eventdata, handles)
@@ -600,6 +534,7 @@ function MSAU1_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 
+% +++++++++++++++++++++++++++++++++++++++++++++++++++++ Menu Tools Calbacks
 % --------------------------------------------------------------------
 function MenuTools_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuTools (see GCBO)
@@ -642,9 +577,6 @@ else
     set(handles.MT_BlackWhite,'Checked','on');
 end
 
-
-% +++++++++++++++++++++++++++++++++++++++++++++ Add these callbacks
-
 % --------------------------------------------------------------------
 function MT_ShowNaNs_Callback(hObject, eventdata, handles)
 % hObject    handle to MT_ShowNaNs (see GCBO)
@@ -653,29 +585,8 @@ function MT_ShowNaNs_Callback(hObject, eventdata, handles)
 
 
 % --------------------------------------------------------------------
-function MainMenueOpen_Callback(hObject, eventdata, handles)
-% hObject    handle to MainMenueOpen (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-% --------------------------------------------------------------------
-function MainMenueSave_Callback(hObject, eventdata, handles)
-% hObject    handle to MainMenueSave (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-% --------------------------------------------------------------------
 function MT_xaxisextent_Callback(hObject, eventdata, handles)
 % hObject    handle to MT_xaxisextent (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-% --------------------------------------------------------------------
-function MT_rectification_Callback(hObject, eventdata, handles)
-% hObject    handle to MT_rectification (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -691,7 +602,6 @@ set(hand_sel,'Checked','off');
 set(handles.MT_XaxisLength,'Checked','on');
 % update xaxis
 set(handles.tsh,'xlim',[0,handles.time(end)]);
-
 
 % --------------------------------------------------------------------
 function MTX5_Callback(hObject, eventdata, handles)
@@ -736,16 +646,39 @@ else
     set(handles.tsh,'xlim',lim);
 end
 
-
-% --- Executes on slider movement.
-function TimeSlider_Callback(hObject, eventdata, handles)
-% hObject    handle to TimeSlider (see GCBO)
+% --------------------------------------------------------------------
+function MT_rectification_Callback(hObject, eventdata, handles)
+% hObject    handle to MT_rectification (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'Value') returns position of slider
-%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
 
+% --------------------------------------------------------------------
+function MT_AddNotes_Callback(hObject, eventdata, handles)
+% hObject    handle to MT_AddNotes (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+current_note = fexwnotebox();
+
+% --------------------------------------------------------------------
+function MT_Landmarks_Callback(hObject, eventdata, handles)
+% hObject    handle to MT_Landmarks (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+if strcmp(get(handles.MT_Landmarks,'Checked'),'on')
+    set(handles.MT_Landmarks,'Checked','off');
+else
+    set(handles.MT_Landmarks,'Checked','on');
+end
+
+
+% ++++++++++++++++++++++++++++++++++++++++++++++++++++ Time Slider Callback
+% --- Executes on slider movement.
+function TimeSlider_Callback(hObject, eventdata, handles)
+%
+%
 handles.current_time = get(handles.TimeSlider,'Value'); 
 handles.frameCount = getIdx(handles);
 
@@ -757,36 +690,18 @@ if strcmp(get(handles.PlayButton,'String'),'Play')
    imshow(img,'parent',handles.FrameAxis);
 end
 
-
 guidata(hObject,handles);
-
-
-
 
 
 % --- Executes during object creation, after setting all properties.
 function TimeSlider_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to TimeSlider (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: slider controls usually have a light gray background.
+%
+%
 if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 end
 
-
-% --------------------------------------------------------------------
-function MT_AddNotes_Callback(hObject, eventdata, handles)
-% hObject    handle to MT_AddNotes (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-current_note = fexwnotebox();
-
-
-
-
+% ++++++++++++++++++++++++++++++++++++++++++++++ Viewer Selection Callbacks
 % --------------------------------------------------------------------
 function MenuViewerMode_Callback(hObject, eventdata, handles)
 % hObject    handle to MenuViewerMode (see GCBO)
@@ -804,12 +719,5 @@ function VM_video_Callback(hObject, eventdata, handles)
 % --------------------------------------------------------------------
 function VM_Rendering_Callback(hObject, eventdata, handles)
 % hObject    handle to VM_Rendering (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-% --------------------------------------------------------------------
-function MT_Landmarks_Callback(hObject, eventdata, handles)
-% hObject    handle to MT_Landmarks (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
