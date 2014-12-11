@@ -398,7 +398,7 @@ if exist(new_name,'file')
 end
 
 % This may not work if I can't find the ffmpeg executable.
-cmd = sprintf('ffmpeg -i %s -vcodec mjpeg -q 5 %s',oldname,new_name);
+cmd = sprintf('ffmpeg -i %s -vcodec mjpeg -an -q 5 %s',oldname,new_name);
 [isError,output] = unix(sprintf('source ~/.bashrc && %s',cmd),'-echo');
 
 if isError ~= 0 
