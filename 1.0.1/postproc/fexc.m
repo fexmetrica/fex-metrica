@@ -808,7 +808,7 @@ classdef fexc < handle
 %         X = [ones(sum(ind),1),X];
 
         % Excluding roll ... 
-        X = [ones(sum(ind),1), fex_whiteningt(X(ind,2:3))];
+        X = [ones(sum(ind),1), fex_whiteningt(abs(X(ind,1:3)))];
 %         X = [ones(sum(ind),1),abs(X(ind,:))];
 
         %X = [ones(sum(ind),1),abs(X(ind,:))];% - repmat(nanmean(abs(X)),[sum(ind),1])];
@@ -1217,6 +1217,10 @@ classdef fexc < handle
             end
         end
 
+        
+        % THIS NEEDS TO BE CHECKED -- BUT PARAM END SHOULD BE nyquist!!
+        args.param(end) = args.param(end)/2;
+        
         % apply the filter
         [ts,kr] = fex_bandpass(double(self.functional),args.param,...
                                'order',args.order,...
@@ -1439,7 +1443,7 @@ classdef fexc < handle
         %
         % Smoothing providing kernell kk
             
-            temp = convn(self.functional,kk,'same');
+            temp = convn(self.functional,kk(:),'same');
             self.functional = mat2dataset(temp,'VarNames',self.functional.Properties.VarNames); 
             
         end
