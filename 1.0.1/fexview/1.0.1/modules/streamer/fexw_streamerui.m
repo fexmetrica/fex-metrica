@@ -115,6 +115,8 @@ function fexw_streamerui_OpeningFcn(hObject, eventdata, handles, varargin)
 % Initialize the viewer
 
 set(handles.figure1,'Name','FexViewer 1.0.1')
+handles.annotations = [];
+handles.annotation_flag = false;
 if length(varargin) == 1 && isa(varargin{1},'fexc')
 
 % Generate handles argument for for fexc Object
@@ -258,6 +260,15 @@ for i = 1:length(handles.extents);
     end
 end
 
+% Annotation initialize: If the fexc object selected already has a set of
+% annotations, the new annotation will be added to the existing ones.
+if isempty(handles.fexc.annotations)
+    handles.annotations = [];
+else
+    handles.annotations  = handles.fexc.annotations;
+end
+
+
 end
 
 % Update
@@ -271,9 +282,12 @@ uiwait(handles.figure1);
 % --- Outputs from this function are returned to the command line.
 function varargout = fexw_streamerui_OutputFcn(hObject, eventdata, handles) 
 %
-% NOT IMPLEMENTED YET
-
-varargout{1} = '';
+% Return the annotations
+if isfield(handles,'annotations')
+    varargout{1} = handles.annotations;
+else
+    varargout{1} = '';
+end
 delete(handles.figure1);
 
 
@@ -431,8 +445,28 @@ flag = strcmp(get(handles.PlayButton,'String'),'Pause');
 
 while flag && handles.frameCount < handles.nframes;
 % main loop for streaming the video
-   tic
+
+   % Handle annotation here 
    pause(0.001);
+   if strcmp(get(handles.MT_AddNotes,'Checked'),'on')
+      set(handles.PlayButton,'Enable','off');
+      set(handles.TimeSlider,'Enable','off');
+      set(handles.MT_AddNotes,'Enable','off');
+
+      % Run the note handle
+      N = streamernotesui(handles);
+      % Store the note
+      if ~isempty(N)
+         handles.annotations = cat(1,handles.annotations,N);
+      end
+      % Restart the video if "flag" is set to true
+      set(handles.PlayButton,'Enable','on');
+      set(handles.TimeSlider,'Enable','on');
+      set(handles.MT_AddNotes,'Checked','off');
+      set(handles.MT_AddNotes,'Enable','on');
+   end
+   
+   tic
    img = FormatFrame(handles);
    strnowtime = fex_strtime(handles.current_time);
    set(handles.TimeSrtingUpdate,'String',strnowtime{1});
@@ -489,8 +523,7 @@ if handles.frameCount >= handles.nframes
     set(handles.TimeSrtingUpdate,'String','00:00:00.000');
 end
 
-guidata(hObject,handles);
-
+guidata(hObject, handles);
 
 % +++++++++++++++++++++++++++++++++++++++++++++++++++ Main menu Callbacks
 % --------------------------------------------------------------------
@@ -655,11 +688,44 @@ function MT_rectification_Callback(hObject, eventdata, handles)
 
 % --------------------------------------------------------------------
 function MT_AddNotes_Callback(hObject, eventdata, handles)
-% hObject    handle to MT_AddNotes (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+%
+% Start the annotation gui. This uses "streamernotesui.m."
 
-current_note = fexwnotebox();
+% Store flag to decide whether to re-start the video
+if strcmp(get(handles.PlayButton,'String'),'Pause')
+    set(handles.MT_AddNotes,'Checked','on');
+else
+%     set(handles.PlayButton,'String','Play');
+%     pause(0.001);
+
+set(handles.PlayButton,'Enable','off');
+set(handles.TimeSlider,'Enable','off');
+set(handles.MT_AddNotes,'Enable','off');
+
+% Run the note handle
+N = streamernotesui(handles);
+
+% Store the note
+if ~isempty(N)
+    handles.annotations = cat(1,handles.annotations,N);
+end
+
+% Restart the video if "flag" is set to true
+set(handles.PlayButton,'Enable','on');
+set(handles.TimeSlider,'Enable','on');
+set(handles.MT_AddNotes,'Enable','on');
+
+end
+% Update all
+handles.output = hObject;
+guidata(hObject,handles);
+% pause(0.001);
+
+% if flag
+%    PlayButton_Callback(hObject, eventdata, handles);
+% end
+
+
 
 % --------------------------------------------------------------------
 function MT_Landmarks_Callback(hObject, eventdata, handles)
