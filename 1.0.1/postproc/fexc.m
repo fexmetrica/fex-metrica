@@ -130,6 +130,8 @@ classdef fexc < handle
         baseline
         % diagnostic
         diagnostics
+        % annotations
+        annotations
     end
     
     
@@ -329,7 +331,7 @@ classdef fexc < handle
 % *************************************************************************
 % *************************************************************************              
 
-        function h = viewer(self)
+        function self = viewer(self)
         % 
         % Stream the video using fexw_streamerui gui. See docs there for
         % information on the Gui options.
@@ -349,8 +351,12 @@ classdef fexc < handle
         end
         
         % Start video streamer gui
-        h = fexw_streamerui(self.clone());
-            
+        N = fexw_streamerui(self.clone());
+        
+        % Add annotations when provided;
+        if ~isempty(N)
+            self.annotations = N;
+        end    
         
         
         end
