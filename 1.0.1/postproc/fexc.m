@@ -304,7 +304,6 @@ classdef fexc < handle
         self.thrsemo = 0;
 
         end
-
         
 % *************************************************************************
 % *************************************************************************         
@@ -361,7 +360,35 @@ classdef fexc < handle
         
         end
 
+% *************************************************************************
+% *************************************************************************
 
+        function ds = showannotation(self)
+        % 
+        % Converts to dataset and order the notes using each note starting
+        % time. When called without argument, the dataset with annotations
+        % is displayed on the console.
+        
+        if ~isempty(self.annotations)
+        % Transform to dataset
+            ds = struct2dataset(self.annotations);
+            [~,ind] = sort(fex_strtime(ds.Start),'ascend');
+            ds = ds(ind,:);
+        else
+        % You need to have notes
+            warning('No annotation available');
+            return
+        end
+        
+        % Controll output
+        if nargout == 0
+        % when no argument is provided, the notes are displayed on the
+        % command window.
+            display(ds);
+        end 
+
+        end
+        
 % *************************************************************************
 % ************************************************************************* 
 
