@@ -1,9 +1,9 @@
 function varargout = fexw_streamerui(varargin)
 %
 % Usage:
-% h = fexw_streamerui();                        [not implemented]
-% h = fexw_streamerui(fexObj.clone());
-% h = fexObj.viewer()  
+% Notes = fexw_streamerui();                        [not implemented]
+% Notes = fexw_streamerui(fexObj.clone());
+% Notes = fexObj.viewer()  
 % 
 % This viewer can be called with a fexc object as argument, in which case
 % it is advisiable to use the "clone" method from the fexc object,
@@ -75,8 +75,37 @@ function varargout = fexw_streamerui(varargin)
 %
 % (3) Notes Tools
 %
-%  + "Add Note" [not implemented] opens a window that allows the user to
-%    make a note about the currently displayed frame. 
+%  + "Add Notes" opens a window that allows the user to take notes on the
+%     video displayed in the viewer. This option can be selected from the
+%     menu toolbar, or using "Command+N" (or "Ctrl + N" on non-OSX system).
+%
+%     Each annotation is returned by fexw_viewerui.m or it is added to the
+%     fexc object used to call the viewer (i.e. when the viewer is called
+%     with the syntax fexObj.viewer()). Annotations are K dimensional
+%     structure (where K is the number of notes). Each structure contains
+%     the following fields:
+%
+%     "Start":   Starting time to which the note applies (a string).
+%     "End":     Ending time to which the note applies (a string).
+%     "Anomaly": Boolean value, set to 1 when the note applies to an
+%                anomaly.
+%     "Domain":  A string indicating the emotions to which each note
+%                applies. This string can be set to "all," it can be empty,
+%                or it can be a list, such as "anger:disgust:contempt."
+%     "Note":    String containing the actual note.
+%
+%     All options can be set from the "streamernoteui.m" interface. Note
+%     the following: If the streamernoteui is hard closed, or if it is
+%     cancelled using the "Cancel" button, no annotation is stored.
+%     Additionally, even if the button "Submitt" is pressed, no annotation
+%     is stored if both the anomaly box is unchecked AND if no annotation
+%     is entered.
+%
+%     The annotations can be submitted by pressing the "Submitt" button, or
+%     by pressing "enter" on the keyboard.
+%
+%     If the fexc object presented in the viewer already contains
+%     annotation, the new annotations are added to the existing ones.
 %
 %__________________________________________________________________________
 %
@@ -86,7 +115,7 @@ function varargout = fexw_streamerui(varargin)
 %
 % email: frossi@ucsd.edu
 %
-% Version: 12/10/14.
+% Version: 12/11/14.
 
 
 

@@ -1,42 +1,9 @@
 function varargout = streamernotesui(varargin)
 %
-% Usage:
+% Internal use only ...
 %
-% fexObj.viewer()
-% Note = fexw_streamer(fexObj.clone())
+% Docs to come ...
 %
-% This function cannot be called independently, and it is part of the
-% option implemented in fexw_streamerui.m.
-%
-% streamernotesui.m opens a window that allows the user to take notes on
-% the video displayed in the viewer. This UI can be open from the
-% menu toolbar, or using "Command+N" (or "Ctrl + N" on non-OSX system).
-%
-% Each annotation is returned by fexw_viewerui.m or it is added to the fexc
-% object used to call the viewer: i.e. when the viewer is called with the
-% syntax fexObj.viewer(). Annotations are K dimensional structure (where K
-% is the number of notes). Each structure contains the following fields:
-%
-% "Start":   Starting time to which the note applies (a string). "End":
-% Ending time to which the note applies (a string). "Anomaly": Boolean
-% value, set to 1 when the note applies to an
-%            anomaly.
-% "Domain":  A string indicating the emotions to which each note
-%            applies. This string can be set to "all," it can be empty, or
-%            it can be a list, such as "anger:disgust:contempt."
-% "Note":    String containing the actual note.
-%
-%  All options can be set from the "streamernoteui.m" interface. Note the
-%  following: If the streamernoteui is hard closed, or if it is cancelled
-%  using the "Cancel" button, no annotation is stored. Additionally, even
-%  if the button "Submitt" is pressed, no annotation is stored if both the
-%  anomaly box is unchecked AND if no annotation is entered.
-%
-%  The annotations can be submitted by pressing the "Submitt" button, or by
-%  pressing "enter" on the keyboard.
-%
-%  If the fexc object presented in the viewer already contains annotation,
-%  the new annotations are added to the existing ones.
 %
 %__________________________________________________________________________
 %
@@ -46,7 +13,7 @@ function varargout = streamernotesui(varargin)
 %
 % email: frossi@ucsd.edu
 %
-% Version: 12/12/14.
+% Version: 12/10/14.
 
 
 % Begin initialization code - DO NOT EDIT
@@ -85,7 +52,7 @@ if ~isempty(varargin)
     handles.start    = handles.masterUI.current_time;
     handles.end      = handles.start + handles.step;
 else
-% This doesn't make any sense and is only used for testing.
+% This doesn't make any sense.
     handles.step     = 1/15; 
     handles.masterUI = '';
     handles.time     = linspace(0,60,15*60)';
@@ -169,16 +136,6 @@ function SubmittButton_Callback(hObject, eventdata, handles)
 % annotation.
 
 uiresume(handles.figure1);
-
-
-function figure1_KeyPressFcn(hObject, eventdata, handles)
-%
-% Accelerator for exiting the UI. Note, the cursor cannot be within the
-% Note Box.
-
-if strcmp(eventdata.Key,'return')
-    uiresume(handles.figure1);
-end
 
 
 function figure1_CloseRequestFcn(hObject, eventdata, handles)
@@ -334,11 +291,26 @@ function NoteBoxe_KeyPressFcn(hObject, eventdata, handles)
 %	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
 % handles    structure with handles and user data (see GUIDATA)
 
-% 
-% if strcmp(eventdata.Key,'return')
-%     uiresume(handles.figure1);
-% end
+
+if strcmp(eventdata.Key,'return')
+    set(handles.NoteBox,'String',get(handles.NoteBox,'String'));
+    
+    uiresume(handles.figure1);
+end
 
 
 % END ++++++++++++++++++++++++++++++++++++++++++++++++++++++++ BOX CONTROLL
 
+
+
+function figure1_KeyPressFcn(hObject, eventdata, handles)
+% hObject    handle to figure1 (see GCBO)
+% eventdata  structure with the following fields (see FIGURE)
+%	Key: name of the key that was pressed, in lower case
+%	Character: character interpretation of the key(s) that was pressed
+%	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
+% handles    structure with handles and user data (see GUIDATA)
+
+if strcmp(eventdata.Key,'return')
+    uiresume(handles.figure1);
+end
