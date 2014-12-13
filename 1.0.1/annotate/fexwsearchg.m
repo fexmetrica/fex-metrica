@@ -1,6 +1,6 @@
 function varargout = fexwsearchg(varargin)
 %
-% Fex viewer multiple files selector gui.
+% Fex Metrica & Fex Viewer multiple files selector gui.
 %__________________________________________________________________________
 %
 % Copiright: Filippo Rossi, Institute for Neural Computation, University
@@ -37,7 +37,7 @@ function fexwsearchg_OpeningFcn(hObject, eventdata, handles, varargin)
 % Initialization
 
 set(handles.PathStringEdit,'String',pwd);
-handles.file_list = '';
+handles.file_list = ''; 
 handles.output = hObject;
 guidata(hObject, handles);
 uiwait(handles.figure1);

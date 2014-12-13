@@ -351,10 +351,9 @@ classdef fexc < handle
         % set emotions threshold
         self.thrsemo = 0;
         
-        % repo for descriptive statistics
-%         self.descrstats = struct('N',[],'mean',[],'std',[],'median',[],...
-%                                  'q25',[],'q75',[]);
-        
+        % Space for descriptive statistics: this can be access using get.
+        self.descrstats = struct('hdrs',[],'N',[],'mean',[],'std',[],...
+            'median',[],'q25',[],'q75',[],'glob',[],'globp',[]);
 
         end
         
@@ -746,6 +745,7 @@ classdef fexc < handle
         
         % Select variables for output
         switch lower(spec)
+            % Getting Variables
             case 'sentiments'
                 list = {'positive','negative','neutral'};
                 [~,ind]  = ismember(list,self.functional.Properties.VarNames);
@@ -769,6 +769,19 @@ classdef fexc < handle
                 list = {'Roll','Pitch','Yaw'};
                 [~,ind]  = ismember(list,self.structural.Properties.VarNames);
                 X    = self.structural(:,ind);   
+            case fieldnames(self.descrstats)
+                if isempty(self(1).descrstats.(spec))
+                % Compute descriptives if they are missing. Note that the
+                % computation here is applied to self(1), ... , self(K).
+                    self.descriptives();
+                end
+                X = []; N = [];
+                for k = 1:length(self)
+                    N = cat(1,N,self(k).N);
+                    X = cat(1,X,self(k).(spec));
+                end 
+                X = mat2dataset(X,'VarNames',self(1).functional.Properties.VarNames);                
+            % Getting Stats
             otherwise
             % Error message
                 warning('Unrecognized argument %s.',spec);
@@ -776,7 +789,7 @@ classdef fexc < handle
                 return
         end
         
-        % Change output type
+        % Change output type: this applies only to variables request
         if strcmpi(type,'double')
             X = double(X);
         elseif strcmpi(type,'struct')
@@ -792,47 +805,83 @@ classdef fexc < handle
 % *************************************************************************              
 % *************************************************************************
         
-        function Y = descriptives(self,varargin)
+        function [Desc,Prob] = descriptives(self,varargin)
         %
+        % Usage
+        % Y = descriptives(self)
+        % Y = descriptives(self,Stat1,Stat2,...,StatN)
         %
-        % ....
+        % The function computes descriptive statistics on the current fex
+        % objecect(s).
+        %
+        % descriptives can compute mean, standard deviation, median, 25th
+        % and 75th quantile.
+        %
+        % When no optional argument is requested, the function computes all
+        % the statistics. When varargin is requested, the function only
+        % computes the required statistics. 
+        %
+        % Optional argument can be one or more strings between:
+        % 'mean,' 'std,' 'median,' 'q75,' and 'q25.' 
         
         if ~isempty(varargin)
             warning('Sorry ... no arguments yet.');
         end
         
-        % Fix sentiments in case they are needed
-        if isempty(self.sentiments)
-            self.derivesentiments();
+        % Space for globals
+        XX = []; PP = [];
+          
+        % Conpute the actual statistics
+        for k = 1:length(self)
+            % Fix sentiments in case they are needed
+            if isempty(self(k).sentiments)
+                self(k).derivesentiments();
+            end        
+            % Set up info
+            X = [self(k).get('emotions'), self(k).get('au')];
+            % vnames = [X.Properties.VarNames,'Positive','Negative','Neutral'];
+            vnamesX = [X.Properties.VarNames,'Sentiments'];
+            vnamesP = ['Positive','Negative','Neutral',vnamesX(1:7)];
+            X = double(X);
+            X = [X(~isnan(sum(X,2)),:),self(k).sentiments.Combined];
+            
+            % Get General Stats (emotions and action units)
+            self(k).descrstats.hdrs = {{vnamesX},{vnamesP}};
+            self(k).descrstats.N      = size(X,1);
+            self(k).descrstats.mean   = mean(X);
+            self(k).descrstats.std    = std(X);
+            self(k).descrstats.median = median(X);
+            self(k).descrstats.q25    = quantile(X,.25);
+            self(k).descrstats.q75    = quantile(X,.75);
+            
+            % Get Conditional probabilities
+            % NOTE that X(:,1:7) are the 7 basic emotions.
+            self(k).descrstats.perc   = mean(X(self(k).sentiments.Winner < 3,1:7)>self(k).thrsemo); 
+            d = dummyvar([self(k).sentiments.Winner;3]);
+            self(k).descrstats.perc = [mean(d(1:end-1,:)),self(k).descrstats.perc];
+            
+            % Combine data for global statistics
+            XX = cat(1,XX,X);
+            PP = cat(1,PP,d(1:end-1,:));
         end
         
-        % MIND THIS 
-%         Incl = self.sentiments.Winner ~= 3;
-        Incl = self.sentiments.Winner < 4;
+        % Add Global results
+        G1 = [mean(XX);std(XX);median(XX);quantile(XX,.25);quantile(XX,.75)];
+        if sum(PP(:,end)) == 0
+            G2 = [zeros(1,7),mean(PP(:,end-2:end))];
+        else
+            G2 = [mean(PP(:,end-2:end)),mean(XX(PP(:,end) == 0,1:7) > self(1).thrsemo)];
+        end
+        OBnames = {'mean','std','median','q25','q75'};
+        for k = 1:length(self)
+            self(k).descrstats.glob  = mat2dataset(G1,'VarNames',vnamesX,'ObsNames',OBnames);
+            self(k).descrstats.globp = mat2dataset(G2,'VarNames',vnamesP);
+        end
         
-        % Set up info
-        X = self.get('emotions');
-        X = X(Incl,:);
-        vnames = [X.Properties.VarNames,'Positive','Negative','Neutral'];
-        X = double(X);
+        % Output
+        Desc = self(1).descrstats.glob;
+        Prob = self(1).descrstats.globp;
         
-        X = cat(2,X,[self.sentiments.Positive(Incl),self.sentiments.Negative(Incl),self.sentiments.Winner(Incl) == 3]);
-        
-        
-        d = dummyvar([self.sentiments.Winner(~isnan(self.sentiments.Winner));3]);
-        d = d(1:end-1,:);
-        X = X(~isnan(X(:,1)),:);
-        % Compute stats
-        Y = [median(X);quantile(X,.25);quantile(X,.75);mean(X);std(X)];
-        Y = cat(1,Y,Y(end,:)./sqrt(size(X,1)));
-        Y = cat(1,Y,mean(X >self.thrsemo));
-%         Y = cat(2,Y,nan(7,3));
-        Y(end,end-2:end) = mean(d);
-        % Make dataset
-        Y = mat2dataset(Y,'VarNames',vnames,...
-            'ObsNames',{'median','q25','q75','mean','std','st_err',sprintf('Active%.2f',self.thrsemo)});
-        
-    
         end
 
         
