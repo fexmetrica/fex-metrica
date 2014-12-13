@@ -276,7 +276,9 @@ img = FormatFrame(handles,1);
 imshow(img,'parent',handles.FrameAxis);
 
 % Set Time Slider Properties
-set(handles.TimeSlider,'Min',0,'Max',handles.time(end),'Value',0);
+fps = mode(diff(handles.fexc.time.TimeStamps));
+set(handles.TimeSlider,'Min',0,'Max',handles.time(end),'Value',0,'SliderStep',[fps,0.1]);
+
 
 % Initialize handle for x axes & set inactive the axis extent that are
 % longer than the video
@@ -386,7 +388,7 @@ function img = FormatFrame(handles,frame_n)
 
 
 if nargin == 1
-    frame_n = handles.frameCount;
+    frame_n = handles.fexc.time.FrameNumber(handles.frameCount);
 end
 % Read the image
 img = read(handles.VideoFReader,frame_n);
