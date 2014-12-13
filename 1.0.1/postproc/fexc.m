@@ -93,7 +93,7 @@ classdef fexc < handle
 %
 % email: frossi@ucsd.edu
 %
-% Version: 08/01/14.
+% Version: 12/12/14.
 
 %**************************************************************************
 %**************************************************************************
@@ -142,6 +142,9 @@ classdef fexc < handle
         tempkernel
         % threshold for emotions
         thrsemo
+        % collection of descriptive statistics that can be access using the
+        % get function
+        descrstats
     end
 
 
@@ -189,7 +192,12 @@ classdef fexc < handle
                 else
                     self.(list{i}) = '';
                 end
-            end       
+            end
+            % Try to read video information
+            if ~isempty(self.video) && isempty(self.videoInfo)
+                self.getvideoInfo();
+            end
+            
             % Import the dataset                
             try 
                 ind = find(strcmp(varargin,'data'));
@@ -225,8 +233,10 @@ classdef fexc < handle
         end
 
         % Add frames numbers & timestamps if provided (this get's added latter)
-        self.time = [temp.data(:,ismember(thdr,'FrameNumber')),nan(length(temp.data),1)];
-        self.time = mat2dataset(self.time,'VarNames',{'FrameNumber','TimeStamps'});
+        self.time = mat2dataset(nan(size(temp.data,1),2),'VarNames',{'FrameNumber','TimeStamps'});
+        if ismember(thdr,'FrameNumber')
+            self.time.FrameNumber = temp.data(:,ismember(thdr,'FrameNumber'));
+        end        
         indts = find(strcmp(varargin,'TimeStamps'));
         if ~isempty(indts)
             t = varargin{indts+1};
@@ -240,7 +250,7 @@ classdef fexc < handle
         else
             warning('No TimeStamps provided.');
         end
-
+                
         % Add structural image information
         [~,ind] = ismember(hdrs.structural,thdr);
         if ~sum(ind)==0
@@ -254,7 +264,7 @@ classdef fexc < handle
         % Add functional image information
         [~,ind] = ismember(hdrs.functional,thdr);
         if ~sum(ind)==0
-            self.functional = mat2dataset(temp.data(:,ind),'VarNames',thdr(ind));
+            self.functional = mat2dataset(temp.data(:,ind(ind > 0)),'VarNames',thdr(ind(ind > 0)));
         else
             % Set an empty dataset for functional when needed
             self.functional = [];    
@@ -297,11 +307,54 @@ classdef fexc < handle
         % Add baseline information
         % BASELINE ADDED HERE
         
+        % ??????????????????
+        
+        
+        % THIS IS A NEW BIT: IT ACCOUNTS FOR TWO POSSIBLE ISSUES:
+        %
+        % 1. SIZE OF THE FRAME IS NOT INCLUDED IN THE DATASET BUT CAN BE READ
+        % FROM VIDEOINFO:
+        
+        if ~isfield(self.structural,'FrameRows') && ~isempty(self.videoInfo)
+            fsinfo = repmat(self.videoInfo([5,4]),[size(self.structural,1),1]);
+            fsinfo = mat2dataset(fsinfo,'VarNames',{'FrameRows','FrameCols'});
+            self.structural = [fsinfo,self.structural];
+        end
+        
+        % 2. THERE ARE FRAMES THAT CONTAIN MULTIPLE FACES -- THE INPUT DOES
+        % NOT CONTAIN FRAMES NUMBER, BUT TIMESTAMPS WHERE PROVIDED
+        
+        if ~isnan(self.time.TimeStamps(1)) && isnan(self.time.FrameNumber(1))
+        % Find repeated frames (there is gonna be some error in the
+        % timestamp, so I am setting 10e-4 as threshold (... which would
+        % imply 1000 frames per second.
+            indrep  = [diff(self.time.TimeStamps) < 10e-4;0];
+            self.time.FrameNumber(indrep == 0) = (1:sum(indrep == 0))';
+            [bl,bn] = bwlabel(isnan(self.time.FrameNumber));
+            for i = 1:bn
+                nfnind = find(bl == i,1,'first');
+                self.time.FrameNumber(bl == i) = self.time.FrameNumber(nfnind+1);
+            end
+        % If a frames repeats and there are nans in there, I remove them;
+        ind = isnan(sum(double(self.functional),2)) & bl > 0;
+        self.functional = self.functional(ind == 0,:);
+        self.structural = self.structural(ind == 0,:);
+        self.naninfo    = self.naninfo(ind == 0,:);
+        self.diagnostics = self.diagnostics(ind == 0,:);
+        self.time = self.time(ind == 0,:);
+
+        end
+        
         % Initialize history
         self.history.original = [self.time,self.structural,self.functional];  
         
         % set emotions threshold
         self.thrsemo = 0;
+        
+        % repo for descriptive statistics
+%         self.descrstats = struct('N',[],'mean',[],'std',[],'median',[],...
+%                                  'q25',[],'q75',[]);
+        
 
         end
         
@@ -310,19 +363,20 @@ classdef fexc < handle
         
         function newself = clone(self)
         % 
-        % make a copy of the fexObject (new handle)
-        
-        newself = feval(class(self));
-        
+        % make a copy of the fexObject (new handle).
+
+        newself = repmat(feval(class(self)),[length(self),1]);    
+        for k = 1:length(self)
         % Copy all non-hidden properties.
-        p = properties(newself);
+        p = properties(newself(k));
         for i = 1:length(p)
-            newself.(p{i}) = self.(p{i});
+            newself(k).(p{i}) = self(k).(p{i});
         end
 
         % Add hidden properties
-        newself.tempkernel = self.tempkernel;
-        newself.thrsemo    = self.thrsemo;
+        newself(k).tempkernel = self(k).tempkernel;
+        newself(k).thrsemo    = self(k).thrsemo;
+        end
         
         end
         
