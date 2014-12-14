@@ -22,8 +22,6 @@ classdef fexc < handle
 % design - Matrix or dataset with design information.
 %
 % FEXC Methods:
-% 
-% FEXC - FEXC constructor method.
 %
 % CLASS UTILITIES:
 % clone	- Make a copy of FEXC object(s), i.e. new handle.
@@ -46,7 +44,7 @@ classdef fexc < handle
 % rectification	- STACKED
 %
 % TEMPORAL PROCESSING:
-% interpolate - Interpolate timeseries & manages NaNs.  
+% interpolate - Interpolate timeseries & handle NaNs.  
 % downsample - ...
 % smooth - Smooth time series using a kernel.
 % temporalfilt - Apply low/high/bandpass filter to the data.
@@ -136,7 +134,7 @@ end
     
 
 properties (Access = protected)
-    % HISTORY: Originally imputed data and record of the operations.
+    % HISTORY: Originally inputed data and record of the operations.
     history
     % TEMPKERNEL: kernel of temporal filters used internally.
     tempkernel
@@ -1728,13 +1726,12 @@ elseif length(varargin) == 1 && length(varargin{1}) == 1
 elseif length(varargin) == 1 && length(varargin{1}) > 1
     kk = varargin{1}./sum(varargin{1});
 elseif length(varargin) == 2
-    pars = cell2mat(varargin);
-    kk = normpdf(linspace(-2,2,round(max(pars))),0,min(pars));
+    pars = cell2double(varargin);
+    kk = normpdf(linspace(-2,2,max(pars)),0,max(pars));
     kk = kk./sum(kk);
 else
     error('Wrong arguments specification.');
 end
-
 h = waitbar(0, 'Smoothing ... ');
 % Smooth dataset using kernell kk
 for k = 1:length(self)
@@ -1742,13 +1739,8 @@ for k = 1:length(self)
         fps = round(1/mode(diff(self(k).time.TimeStamps)));
         kk  = ones(fps,1)./fps;
     end
-    % Remove/Insert NANS
-    X = double(self(k).functional);
-    T = self(k).time.TimeStamps;
-    I = ~isnan(sum(X,2));
-    X = convn(interp1(T(I),X(I,:),T),kk(:),'same');
-    X(repmat(I,[1,size(X,2)])==0) = nan;
-    self(k).update('functional',X);
+    X = self(k).functional
+    self(k).update('functional',convn(self.functional,kk(:),'same'));
     waitbar(k/length(self),h);
 end
 delete(h);
