@@ -276,8 +276,8 @@ img = FormatFrame(handles,1);
 imshow(img,'parent',handles.FrameAxis);
 
 % Set Time Slider Properties
-fps = mode(diff(handles.fexc.time.TimeStamps));
-set(handles.TimeSlider,'Min',0,'Max',handles.time(end),'Value',0,'SliderStep',[fps,0.1]);
+% fps = mode(diff(handles.fexc.time.TimeStamps));
+set(handles.TimeSlider,'Min',0,'Max',handles.time(end),'Value',0);
 
 
 % Initialize handle for x axes & set inactive the axis extent that are

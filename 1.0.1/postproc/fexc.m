@@ -310,12 +310,14 @@ if ~isnan(self.time.TimeStamps(1)) && isnan(self.time.FrameNumber(1))
         self.time.FrameNumber(bl == i) = self.time.FrameNumber(nfnind+1);
     end
 % If a frames repeats and there are nans in there, remove them.
-ind = isnan(sum(double(self.functional),2)) & bl > 0;
-self.functional = self.functional(ind == 0,:);
-self.structural = self.structural(ind == 0,:);
-self.naninfo    = self.naninfo(ind == 0,:);
-self.diagnostics = self.diagnostics(ind == 0,:);
-self.time = self.time(ind == 0,:);
+    ind = isnan(sum(double(self.functional),2)) & bl > 0;
+    self.functional = self.functional(ind == 0,:);
+    self.structural = self.structural(ind == 0,:);
+    self.naninfo    = self.naninfo(ind == 0,:);
+    if ~isempty(self.diagnostics)
+        self.diagnostics = self.diagnostics(ind == 0,:);
+    end
+    self.time = self.time(ind == 0,:);
 end
 
 % set emotions threshold
@@ -452,8 +454,8 @@ if ~exist('flag','var')
 end
 % Ask for confirmation
 if ~strcmpi(flag,'force')
-result = input('Do you really want to revert to original [y/n]?');
-if ~strcmp(result,'y')
+result = input('Do you really want to revert to original? Y/N [Y]: ');
+if ~isempty(result) % ~strcmp(result,'y')
     fprintf('''Reinitialize'' aborted.\n');
     return
 end
@@ -1011,7 +1013,7 @@ end
     h = waitbar(0,'Motion correction...');
 
     for k = 1:length(self)
-    fptintf('Correcting fexc %d/%d for motion artifacts.\n',k,length(self));
+    fprintf('Correcting fexc %d/%d for motion artifacts.\n',k,length(self));
     % Get Pose info
     X = self(k).get('pose','double');
     ind  = ~isnan(sum(double(self(k).functional),2)) & ~isnan(sum(X,2));
