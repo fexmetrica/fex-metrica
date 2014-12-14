@@ -1,34 +1,33 @@
 function fexObj = fex_imputil(filetype,filepath,moviepath)
 %
-% Usage:
+% FEX_IMPUTIL Import utility function.
 %
-% fexObj = fex_imputil(filetype,filepath);
-% fexObj = fex_imputil(filetype,filepath,moviepath);
+% SYNTAX:
+% fexObj = FEX_IMPUTIL(filetype,filepath);
+% fexObj = FEX_IMPUTIL(filetype,filepath,moviepath);
 %
 % Import utility function. This converts a file to a fexObject. The
 % required arguments are:
 %
 % (1) filetype: a string specifing the format of the original file. For now,
-%           the only version allowed is 'AZFile'**.
+%     the only version allowed is 'AZFile'**.
 % (2) filepath: this can be a string with the path to a file. Alternatively
-%           is a char s.t. size(filepath,1) is the number of files entered.
+%     is a char s.t. size(filepath,1) is the number of files entered.
 %
 % Optionally, you can enter:
 %
 % (3) moviepath: a string with the path to a movie or a char organized in
-%           the same way filepath is. If size(moviepath,1) is the same of
-%           size(filepath,1), we assume that filpath(i,:) and
-%           moviepath(i,:) are associated. Otherwise, the function tries to
-%           identify which movie correspond to which file. In order for
-%           this to work the name of a file and the name of a movie must be
-%           the same:
+%     the same way filepath is. If size(moviepath,1) is the same of
+%     size(filepath,1), we assume that filpath(i,:) and moviepath(i,:) are
+%     associated. Otherwise, the function tries to identify which movie
+%     correspond to which file. In order for this to work the name of a
+%     file and the name of a movie must be the same:
 %
-%               file  = "[path_i]/NAME.csv"; 
-%               movie = "[path_j]/NAME.avi.
+%         file  = "[path_i]/NAME.csv"; 
+%         movie = "[path_j]/NAME.avi".
 %
-% You can use fexwsearchg.m to run a UI that generates "filepath" and
+% You can use FEXWSEARCHG.m to run a UI that generates "filepath" and
 % "moviepath."
-%
 %
 % ** This fornat is specific to the analysis I run for a project. The
 % headers used are stored in util/eviewerhdrs.xlsx.
@@ -39,15 +38,14 @@ function fexObj = fex_imputil(filetype,filepath,moviepath)
 % > movie_list = fexwsearchg();
 % > fexObj = fex_imputil('AZFile',csv_list,movie_list);
 %
-%__________________________________________________________________________
+%
+% See also FEXC, FEXWSEARCHG.
 %
 %
-% Copiright: Filippo Rossi, Institute for Neural Computation, University
-% of California, San Diego.
+% Copyright (c) - 2014 Filippo Rossi, Institute for Neural Computation,
+% University of California, San Diego. email: frossi@ucsd.edu
 %
-% email: frossi@ucsd.edu
-%
-% Version: 12/12/14.
+% VERSION: 1.0.1 12-Dec-2014.
 
 
 if nargin == 0 || nargin > 3
@@ -104,6 +102,15 @@ switch lower(filetype)
             temp = dataset('File',deblank(filepath(i,:)),'Delimiter',',');
             warning('on','MATLAB:codetools:ModifiedVarnames');
             fexObj = cat(1,fexObj,convutilint(temp,deblank(moviepath{i})));
+            fprintf('Created fexObject %d/%d.\n',i,size(filepath,1));
+        end
+    case 'ffile'
+        for i = 1:size(filepath,1)
+            warning('off','MATLAB:codetools:ModifiedVarnames');
+            temp = dataset('File',deblank(filepath(i,:)),'Delimiter','\t');
+            temp.FrameNumber = temp.Frame_N;
+            mov = deblank(moviepath{i});
+            fexObj = cat(1,fexObj,fexc('data',temp,'TimeStamps',temp.Time,'video',mov));
             fprintf('Created fexObject %d/%d.\n',i,size(filepath,1));
         end
     otherwise
