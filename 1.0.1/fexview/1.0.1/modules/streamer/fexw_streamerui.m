@@ -292,12 +292,21 @@ for i = 1:length(handles.extents);
 end
 
 % Annotation initialize: If the fexc object selected already has a set of
-% annotations, the new annotation will be added to the existing ones.
-if isempty(handles.fexc.annotations)
-    handles.annotations = [];
-else
-    handles.annotations  = handles.fexc.annotations;
-end
+% annotations, the new annotation will be added to the existing ones by
+% FEXC after you exited the viewer.
+handles.annotations = [];
+% if isempty(handles.fexc.get('notes'))
+%     handles.annotations = [];
+% else
+%     N = handles.fexc.get('notes');
+%     handles.annotations  = N;
+% end
+
+set(handles.MT_trackobject,'Enable','off');
+% Add track selected object
+% handles.trackobj.object = imrect(handles.FrameAxis);
+% set(handles.trackobj.object,'Visible','off');
+% handles.trackobj.data = [];
 
 
 end
@@ -324,7 +333,7 @@ delete(handles.figure1);
 
 % --- Executes when user attempts to close figure1.
 function figure1_CloseRequestFcn(hObject, eventdata, handles)
-%
+
 % Send Close request
 if isequal(get(hObject,'waitstatus'),'waiting')
     if strcmp(get(handles.PlayButton,'String'),'Pause')
@@ -467,8 +476,10 @@ end
 % Play Pause callback
 if strcmp(get(handles.PlayButton,'String'),'Play')
     set(handles.PlayButton,'String','Pause');
+%     set(handles.MT_trackobject,'Enable','off');
 else
     set(handles.PlayButton,'String','Play');
+%     set(handles.MT_trackobject,'Enable','on');
 end
 
 flag = strcmp(get(handles.PlayButton,'String'),'Pause');
@@ -818,3 +829,29 @@ function VM_Rendering_Callback(hObject, eventdata, handles)
 % hObject    handle to VM_Rendering (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function MT_trackobject_Callback(hObject, eventdata, handles)
+% hObject    handle to MT_trackobject (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% if strcmp(get(handles.trackobj.object,'Visible'),'off');
+%     set(handles.trackobj.object,'Visible','on')
+%     handles.trackobj.position = getPosition(handles.trackobj.object);
+% end
+% set(handles.trackobj.object,'Visible','off')
+
+
+% 
+% if isempty(handles.trackobj.object)
+% % Initialize track object here   
+% %
+% %
+% h = imrect(handles.FrameAxis);
+% Pos = getPosition(h);
+% fprintf('I am here')
+% end
+
+
