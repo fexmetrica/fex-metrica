@@ -47,7 +47,7 @@ classdef fexc < handle
 % interpolate - STACKED  
 % downsample - ...
 % smooth - ...
-% temporalfilt - ...
+% temporalfilt - Apply low/high/bandpass filter to the data.
 % getband - ...
 %
 % STATISTICS & FEATURES:
@@ -65,7 +65,7 @@ classdef fexc < handle
 % Copyright (c) - 2014 Filippo Rossi, Institute for Neural Computation,
 % University of California, San Diego. email: frossi@ucsd.edu
 %
-% VERSION: 1.0.1 12-Dec-2014.
+% VERSION: 1.0.1 14-Dec-2014.
     
 
 properties
@@ -1358,116 +1358,167 @@ end
     end
 
 
-
-
 % *************************************************************************
 % *************************************************************************                  
 
-    function self = temporalfilt(self,param,varargin)
-    %
-    % -----------------------------------------------------------------  
-    % 
-    % .... 
-    % 
-    % -----------------------------------------------------------------
-    %
+function self = temporalfilt(self,param,varargin)
+%
+% TEMPORALFILT performs temporal filter on functional data.
+%
+% SYNTAX:
+%
+% self.TEMPORALFILT(param)
+% self.TEMPORALFILT(param,'VarName1','VarVal1',...)
+% self.TEMPORALFILT(param,'VarName1','VarVal1',...,'-showonly')
+%
+% TEMPORALFILT use FEX_BANDPASS, which wraps FIR1. Some safety check for
+% prameter sopecification are also implemented following guidinglines from:
+% M.X.Cohen, "Analyzing Neural Time Series Data", MIT Press, 2014. Note
+% that use the TEMPORALFILT, your data need to have a constant frame rate.
+% Additionally, NaNs need to be excluded. If the data includes NaNs they
+% will be temorarely interpolated out.
+%
+% self.TEMPORALFILT applies the filter to the functional timeseries, unless
+% you specifie the flag '-show'. In this case a plot summarizing filer
+% information is displayed, but NOT APPLIED. You need to call the function
+% without the '-showonly' option.
+% 
+% REQUIRED ARGUMENT:
+%
+% PARAM is a double or a 2-component vector with boundaries frequency for
+% the filter:
+%
+% - for bandpass: [low_frq,high_frq]; - for highpass: [low_freq]; - for
+% lowpass:  [high_freq].
+%
+% OPTIONAL ARGUMENTS:
+%
+% type: can be 'bandpass' [or 'band', or 'bp'] to implement a bandpass
+% filter. This is the default when length(param) == 2. Use 'lowpass'
+% ['lp','low'] to implement a low pass filter; or it can be Use 'highpass'
+% ['hp','high'] to implement a high pass filter. This is the default when
+% length(param) == 1. Use 'lowpass' ['lp','low'] to implement a low pass
+% filter.
+% 
+% order: is a scalar indicating the length of the filter vector. There is a
+% lower and upper bound. The filter must be long enough to contain one
+% cycle for the lower frequency considered. Also, the filter must be at
+% most long 1/3 of the data. That is:
+% 
+% > round(SamplingRate/LowerFrequency) <= order <= round(N-1)/3).
+% 
+% Generally, 3-5 cycles is a good value. BY default, this argument is set
+% to 1/3rd the length of the functional timeseries.
+% 
+% dc: A string set to true or false. When set to true [DEFAULT], the
+% resulting timeseries are dc-balanced -- i.e. the data is zero mean. When
+% set to false, the filtered timeseries maintain their original mean
+% value.
+%
+%
+% EXAMPLE:
+%
+% self.TEMPORALFILT([.5,4],'order',60,'dc',false)   % bandpass 0.5Hz-4Hz.
+% self.TEMPORALFILT(4,'order',60,'type','lp')       % low pass, 4Hz.
+%
+% self.TEMPORALFILT([.5,4],'order',60,'-showonly')  % display the filter. 
+%
+% See Also FEX_BANDPASS, FIR1.
+    
 
-    % Make sure that parameters of the filter are provided
-    if ~exist('param','var')
-        error('You need to specify the filter shape.');
-    elseif ~ismember(length(param),2:3)
-        error('Filter shape can have eiter 2 or 3 components.');
-    end
-    args.param = param;
+% Set default flags
+flagdc   = true;
+ind = find(strcmpi('dc',varargin));
+if ~isempty(ind)
+    flagdc = varargin{ind+1};
+end
+% Add flags for -showonly
+flagshow = false;
+if find(strcmpi('-showonly',varargin)) > 0
+    flagshow = true;
+end
 
-    % set filter order
-    ind = find(strcmp('order',varargin));
-    if ~isempty(ind)
-        if varargin{ind+1} > floor((size(self.functional,1)-1)/3);
-            warning('The filter order is to high.')
-            args.order = floor((size(self.functional,1)-1)/3);
-        elseif varargin{ind+1} < round(param(end)/param(1));
-            warning('The filter must include at least a cycle of the lower frequency.')
-            args.order = round(param(end)/param(1));
-        else
-           args.order =  varargin{ind+1};
-        end
-    else            
-        args.order = round(4*param(end)/param(1));
-        if args.order > floor((size(self.functional,1)-1)/3);
-           args.order = floor((size(self.functional,1)-1)/3);
-        end
-    end
+% Make sure that param is provided
+if ~exist('param','var')
+    error('You need to specify the filter shape.');
+end
+shared_param = sort(param(1:min(2,length(param))));
+args.param = [];
 
-    % test whether parameters for order and type were provided:
-    ind = find(strcmp('type',varargin));
-    if ~isempty(ind)
-        if strcmp(varargin{ind+1},'lp') && length(param) == 3
-           args.type = 'lp';
-           args.param = param([1,3]);
-        elseif strcmp(varargin{ind+1},'hp') && length(param) == 3
-           args.type = 'hp';
-           args.param = param(2:3);
-        elseif strcmp(varargin{ind+1},'bp') && length(param) == 2
-           args.type = 'bp';
-           args.param = [param(1),param(2)/2,param(2)];
-        else
-           args.type = varargin{ind+1};
-        end
-    else
-        if length(param) == 2
-            args.type = 'hp';
-        else
-            args.type = 'bp';
-        end
-    end
+% Add filter type information
+ind = find(strcmpi('type',varargin));
+if isempty(ind) && length(shared_param) == 1
+    args.type = 'hp';
+elseif isempty(ind) && length(shared_param) == 2
+    args.type = 'bp';
+else
+    args.type = varargin{ind+1};
+end
 
-
-    % THIS NEEDS TO BE CHECKED -- BUT PARAM END SHOULD BE nyquist!!
-    args.param(end) = args.param(end)/2;
-
-    % apply the filter
-    [ts,kr] = fex_bandpass(double(self.functional),args.param,...
-                           'order',args.order,...
-                           'type',args.type);
-    % Determine action
-    ind = find(strcmp('action',varargin));
+% You need to gather length and fps information to assess whether order was
+% properly specified (also adding Sampling frequency as the last element of
+% param.
+aargs = [];
+ind = find(strcmpi('order',varargin));
+for k = 1:length(self)
+    args.param = [shared_param,1/mode(diff(self(k).time.TimeStamps))];
+    k1 = size(self(k).functional,1)/3;
+    k2 = 3*(args.param(end)/args.param(1));
     if isempty(ind)
-         args.action = 'apply';
+        args.order = floor(min(k1,k2));
     else
-        args.action  = varargin{ind+1}; 
+        args.order = max(varargin{ind+1},param(end)/param(1));
+        args.order = min(args.order,k1);
+        if round(varargin{ind+1}) ~= args.order
+        % Send a warning when order was changed 
+            warning('Order was change (%.2d) from: %d to %d.\n',k,varargin{ind+1},args.order);
+        end
     end
+    % stack arguments
+    args.order = round(args.order);
+    aargs = cat(1,aargs,args);
+end
 
-    if strcmp(args.action,'inspect')
-    % plot the filter shape, and the filter amplitude spectrum before
-    % applying it.
-        scrsz = get(0,'ScreenSize');
-        figure('Position',[1 scrsz(4) scrsz(3)/1.5 scrsz(4)/1.5],...
-            'Name','Temporal Filter','NumberTitle','off'); 
-        subplot(2,2,1:2),hold on, box on
-        x = (1:length(kr.kernel))./(1/param(end));
-        x = (x-mean(x))';
-        plot(x,kr.kernel,'--b','LineWidth',2);
-        set(gca,'fontsize',14,'fontname','Helvetica');
-        xlabel('time','fontsize',14,'fontname','Helvetica');
-        title('Filter Shape','fontsize',18,'fontname','Helvetica');
-        xlim([min(x),max(x)]);
-
-        subplot(2,2,3),hold on, box on
-        plot(kr.amplitude(:,1),kr.amplitude(:,2)./max(kr.amplitude(:,2)),'m','LineWidth',2);
-        xlim([0,ceil(param(end)/2)]); ylim([0,1.2]);
-        title('Filter Spectrum','fontsize',18,'fontname','Helvetica');
-        xlabel('Frequency','fontsize',14,'fontname','Helvetica');
-        ylabel('Amplitude','fontsize',14,'fontname','Helvetica');       
-    else
-    % update variables
-        self.functional = mat2dataset(ts.real,'VarNames',self.functional.Properties.VarNames);
-        self.tempkernel = kr;
-    % Updare history
-        self.history.temporal = [self.time,self.naninfo,self.functional];
+% Compute filter from first FEXC
+nyquist = ones(size(aargs(1).param)); nyquist(end) = 0.5;
+X = double(self(1).functional);
+T = self(1).time.TimeStamps;
+I = ~isnan(sum(X,2));
+X = interp1(T(I),X(I,:),T);
+[ts,kr] = fex_bandpass(X,nyquist.*aargs(1).param,'order',aargs(1).order,'type',aargs(1).type);
+if flagshow
+% Run the function in display mode
+    h = fexw_filtplot(kr,aargs(1).param(end));
+    pause(); delete(h);
+    return
+else
+% Apply temporal filtering
+    h = waitbar(0,'Temporal filtering ... ');
+    X = ts.real; X(repmat(I,[1,size(X,2)] == 0)) = nan;
+    if ~flagdc
+        X = X + repmat(nanmean(double(self(k).functional)),[size(X,1),1]);
     end
-
+    self(1).update('functional',X);
+    self(1).tempkernel = kr;
+    for k = 2:length(self)
+    % Proceed to stacked FEXC    
+    X = double(self(k).functional);
+    T = self(k).time.TimeStamps;
+    I = ~isnan(sum(X,2));
+    X = interp1(T(I),X(I,:),T);
+    [ts,kr] = fex_bandpass(X,nyquist.*aargs(k).param,'order',aargs(k).order,'type',aargs(k).type);
+    X = ts.real; X(repmat(I,[1,size(X,2)] == 0)) = nan;
+    if ~flagdc
+        X = X + repmat(nanmean(double(self(k).functional)),[size(X,1),1]);
     end
+    self(k).update('functional',X);
+    self(k).tempkernel = kr;
+    waitbar(k/length(self),h);
+    end
+    delete(h)
+end
+
+end
 
     function M = getband(self,param,varargin)
     %
