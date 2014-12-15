@@ -1738,18 +1738,24 @@ end
 h = waitbar(0, 'Smoothing ... ');
 % Smooth dataset using kernell kk
 for k = 1:length(self)
+    fprintf('Smoothing FEXC %d/%d.\n',k,length(self));
     if isempty(kk)
         fps = round(1/mode(diff(self(k).time.TimeStamps)));
         kk  = ones(fps,1)./fps;
     end
+    
     % Remove/Insert NANS
     X = double(self(k).functional);
     T = self(k).time.TimeStamps;
     I = ~isnan(sum(X,2));
-    X = convn(interp1(T(I),X(I,:),T),kk(:),'same');
-    X(repmat(I,[1,size(X,2)])==0) = nan;
-    self(k).update('functional',X);
-    waitbar(k/length(self),h);
+    if 1-mean(I) < 0.90
+        X = convn(interp1(T(I),X(I,:),T),kk(:),'same');
+        X(repmat(I,[1,size(X,2)])==0) = nan;
+        self(k).update('functional',X);
+        waitbar(k/length(self),h);
+    else
+        warning('Too few datapoints for FEXC %d.',k);
+    end
 end
 delete(h);
 end
