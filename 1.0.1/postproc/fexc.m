@@ -59,6 +59,7 @@ classdef fexc < handle
 % morlet - ...	 
 %
 % GRAPHIC PROPERTIES:
+% show - Generate images of the FEXC data.
 % viewer - 	...
 % drawface - [REMOVE] ...
 % showpreproc - [REMOVE]...
@@ -89,7 +90,7 @@ properties
     % OUTDIR String with the output directory for storing images and output
     % files. This filed can be left empty, in which case, calls that try to
     % write files will prompt a gui asking to specify an output directory.
-    outdir
+    outdir % MAKE PRIVATE
     % FUNCTIONAL: Dataset object with as many rows as frames in the video
     % from FEXC.VIDEO, and 31 columns. The columns comprise seven basic
     % emotions (anger, contempt, joy, disgust, fear, sadness and surprise);
@@ -124,13 +125,13 @@ properties
     %
     % See also FEX_STRTIME.
     time
-    % NANINFO
+    % NANINFO (PRIVATE)
     naninfo
-    % DIAGNOSTICS
+    % DIAGNOSTICS (PRIVATE)
     diagnostics
-    % DESIGN
+    % DESIGN (PRIVATE)
     design
-    % BASELINE
+    % BASELINE (PRIVATE)
     baseline
 end
     
@@ -838,6 +839,78 @@ end
 end
 
 
+
+% *************************************************************************              
+% *************************************************************************
+
+function h = show(self,type,saveflag)
+%
+% self.SHOW generates the image spefified by TYPE.
+%
+% SYNTAX:
+%
+% h = self.SHOW()
+% h = self.SHOW(type)
+% h = self.SHOW(type,saveflag)
+%
+% TYPE is a string, which specifies what you want to plot.
+%
+% SAVEFLAG is a boolean value. When set to true, the image is svaed, when
+% set to false, the image is displayed instead. When the image is
+% displaied, you can press any keyboard value to delete it.
+%
+% When self is a single FEXC object, self.SHOW
+% displays the image on the screen. Otherwise, self.SHOW will save the
+% images in a subfolder in the main directory.
+%
+% NOTE: RIGHT NOW THE ONLY IMPLEMENTED PLOT IS A TIMESERIES OF EMOTIONS, SO
+% TYPE IS IGNORED.
+%
+%
+% See also FEXW_TIMEPLOT, FEX_GETCOLORS, FEX_STRTIME.
+
+
+if ~exist('type','var')
+    type = 'emotions';
+end
+
+if ~exist('saveflag','var')
+    saveflag = false;
+end
+
+
+if ~strcmpi(type,'emotions')
+    warning('Only emotion plots are implemeted.');
+    type = 'emotions';
+end
+
+switch lower(type)
+    case 'emotions'
+        if length(self) > 1
+            hb = waitbar(0,'Printing images ... ');
+            h = cell(length(self),1);
+            for k = 1:length(self)
+                h{k} = fexw_timeplot(self(k),'-save');
+                waitbar(k/length(self),hb);
+            end
+            delete(hb);
+        else
+            h = fexw_timeplot(self);
+            set(h,'Name','Press any key to exit');
+            fprintf('Press any key to exit.\n')
+            pause(); delete(h);
+            if saveflag
+                fexw_timeplot(self,'-save');
+            end
+        end
+    otherwise
+        error('Unrecognized argument: %s.',upper(type));
+end
+    
+end
+
+
+
 % *************************************************************************              
 % *************************************************************************
 
@@ -1153,6 +1226,7 @@ if NofNans < 0.90
     % Update functional and structural data
     self(k).structural = self(k).structural(nfr,:);
     self(k).functional = mat2dataset(ndata,'VarNames',VarNames);
+    
     % Update timestamp information
     self(k).time = self(k).time(nfr,:);
     self(k).time(:,{'OldTime'}) = mat2dataset(self(k).time.TimeStamps);

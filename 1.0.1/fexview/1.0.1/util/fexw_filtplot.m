@@ -58,3 +58,6 @@ ylabel('Amplitude','fontsize',16,'fontname','Helvetica','Color',[1,1,1]);
 set(get(h,'Children'),'fontsize',14,'fontname','Helvetica','LineWidth',2,'Color',[0,0,0]);
 set(get(h,'Children'),'XColor',[1,1,1],'YColor',[1,1,1],'LineWidth',3)
 set(h,'ToolBar','none','MenuBar','none','Color',[0,0,0]);
+
+
+
