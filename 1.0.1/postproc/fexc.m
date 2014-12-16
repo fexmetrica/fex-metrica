@@ -1176,44 +1176,67 @@ end
 % *************************************************************************              
 % *************************************************************************   
 
-    function self = falsepositive(self,varargin)
-    %
-    % ---------------------------------------------------------------------  
-    % 
-    % .... 
-    % 
-    % --------------------------------------------------------------------- 
-    %
-    args = struct('method','size','threshold',3.5,'param',[]);
-    for i = 1:2:length(varargin)
-        if isfield(args,varargin{i});
-            args.(varargin{i}) = varargin{i+1};
-        end
-    end
-    if ~ismember(args.method,{'coreg','size','pca','kalman'});
-        warning('Wrong method specified.')
-        args.method = 'size';
-    elseif ismember(args.method,{'pca','kalman'});
-        warning('Method %s is not implemented yet.',args.method);
-        args.method = 'size';
-    end
+function self = falsepositive(self,varargin)
+%
+% FALSEPOSITIVE identifies patch of pixels mislead for a face.
+%
+% SYNTAX:
+% FALSEPOSITIVE ... 
+%
+%
+% See also COREGISTER.
 
-    idx = zeros(length(self.structural.FaceBoxW),1);
+% Read arguments
+args = struct('method','size','threshold',3.5,'param',[]);
+for i = 1:2:length(varargin)
+    if isfield(args,varargin{i});
+        args.(varargin{i}) = varargin{i+1};
+    end
+end
+
+% Not all methods are implemented
+if ~ismember(args.method,{'coreg','size','pca','kalman','position'});
+    warning('Wrong method specified.')
+    return
+elseif ismember(args.method,{'pca','kalman'});
+    warning('Method %s is not implemented yet.',args.method);
+    return
+end
+
+for k = 1:length(self)
+	% Initialize index
+    idx = zeros(length(self(k).structural.FaceBoxW),1);
+    I = ~isnan(self(k).structural.FaceBoxW);
     switch args.method
         case 'size'
-            z = zscore(self.structural.FaceBoxW(~isnan(self.structural.FaceBoxW)).^2);
-            idx(~isnan(self.structural.FaceBoxW)) = abs(z)>=args.threshold;                    
+            z = zscore(self(k).structural.FaceBoxW(I).^2);
+            idx(I) = abs(z)>=args.threshold;        
+        case 'position'
+            F = get(self(k),'Face','double');
+            FF = repmat(mean(F(I,:)),[sum(I),1]);
+            F = zscore(sum((F(I,:)-FF).^2,2));
+            idx(I) = abs(F)>=args.threshold;        
         case 'coreg'
-            if isempty(self.coregparam)
-                self.coregister();
+            if isempty(self(k).coregparam)
+                self(k).coregister();
             end
-            idx = self.coregparam.ER >= args.threshold; 
+            idx = self(k).coregparam.ER >= args.threshold; 
     end
-    self.naninfo.falsepositive = idx;
-    X = double(self.functional);
-    X(repmat(idx,[1,size(X,2)])==1) = nan;
-    self.functional = replacedata(self.functional,X);
-    end
+    self(k).naninfo.falsepositive = (self(k).naninfo.falsepositive + idx) >= 1;
+    % Update functional
+    X = double(self(k).functional);
+    BIDX = repmat(self(k).naninfo.falsepositive,[1,size(X,2)])==1;
+    X(BIDX) = nan;
+    self(k).update('functional',X);
+    % update structural
+    X = double(self(k).structural);
+    BIDX = repmat(self(k).naninfo.falsepositive,[1,size(X,2)])==1;
+    X(BIDX) = nan;
+    self(k).update('structural',X);
+end
+
+self.derivesentiments();
+end
 
 % *************************************************************************              
 % *************************************************************************   
