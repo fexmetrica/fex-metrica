@@ -62,8 +62,6 @@ classdef fexc < handle
 % GRAPHIC PROPERTIES:
 % show - Generate images for the FEXC data.
 % viewer - 	...
-% drawface - [REMOVE] ...
-% showpreproc - [REMOVE]...
 %
 %
 % Copyright (c) - 2014 Filippo Rossi, Institute for Neural Computation,
@@ -156,7 +154,7 @@ properties (Access = protected)
     % DESCRSTATS: space to store descriptive statistics. Descriptive
     % statistics can be access using GET.
     %
-    % See also DESCRIPTIVES, GET, FEXPORT.
+    % See also DESCRIPTIVES, GET.
     descrstats
     % ANNOTATIONS: annotations from VIEWER. ANNOTATIONS can be access using
     % GET, and can be saved using FEXPORT method.
@@ -649,14 +647,14 @@ end
 
 function flist = fexport(self,Spec)
 %
-% self.EXPORT saves selected data to CSV file.
+% self.FEXPORT saves selected data to CSV file.
 %
 % SYNTAX:
 %
-% self.EXPORT(Spec)
-% self.EXPORT(Spec,'ArgName1',ArgVal1, ... )
+% self.FEXPORT(Spec)
+% self.FEXPORT(Spec,'ArgName1',ArgVal1, ... )
 %
-% EXPORT saves the requested data to a csv file. If an self.OUTDIRE was
+% FEXPORT saves the requested data to a csv file. If an self.OUTDIRE was
 % provided at the time of FEXC creation, the data is saved to that
 % directory. Otherwise, the data file is saved in the current directory.
 %
@@ -1929,167 +1927,6 @@ end
 
 
 % *************************************************************************  
-
-    function [self,h] = showpreproc(self,varargin)
-    % Make an image of the preprocessing steps.    
-
-    % Handle opptional arguments
-    args.Visible = 'on';
-    args.feature = 'anger';
-    args.name    = '';
-    args.sample  = 1;  % sampling in seconds
-    names  = fieldnames(args);
-    for i = 1:length(names)
-        ind = find(strcmp(names{i},varargin));
-        if ~isempty(ind)
-            args.(names{i}) = varargin{ind+1};
-        end
-    end
-    sr    = round(1/mode(diff(self.time.TimeStamps)));
-    smp   = args.sample;
-    steps = fieldnames(self.history);
-    scrsz = get(0,'ScreenSize');
-
-    titlefig = sprintf('Preprocessing (%s%s)',upper(args.feature(1)),args.feature(2:end));
-    h = figure('Position',[1 scrsz(4)/2 scrsz(3)/1.5 scrsz(4)],...
-    'Name',titlefig,'NumberTitle','off', 'Visible',args.Visible);
-
-    % Original image and false positive
-    temp = [self.history.original.TimeStamps,...
-            self.history.original.(args.feature)];
-    temp(:,1) = temp(:,1) - temp(1,1);
-
-    subplot(3,4,1:3), hold on, box on
-    set(gca,'fontsize',12,'LineWidth',2);
-    plot(temp(1:smp:end,1),temp(1:smp:end,2),'k','LineWidth',1)
-    title('Original Signal','fontname','Helvetica','fontsize',16);
-    xlim([0,temp(end,1)]);
-    [~,fp] = unique(self.time.FrameNumber);
-    fp = self.naninfo.falsepositive(fp);
-    temp(repmat(fp ~= 1,[1,2])) = nan;
-    plot(temp(1:smp:end,1),temp(1:smp:end,2),'m','LineWidth',2)
-    ylabel(sprintf('Signal: %s',args.feature),'fontname','Helvetica','fontsize',14)
-%         legend({args.feature,'FalsePositive'},'fontname','Helvetica','fontsize',12);
-
-    if ismember('interpolate',steps);
-        temp = [self.history.interpolate.TimeStamps,...
-            self.history.interpolate.(args.feature)];
-        nanind = self.naninfo.count;
-        temp(:,1) = temp(:,1) - temp(1,1);
-
-        % Interpolated Signal Plot
-        subplot(3,4,5:7), hold on, box on
-        set(gca,'fontsize',12,'LineWidth',2);
-        temp1 = temp; temp1(repmat(nanind > 0,[1,2])) = nan;
-        temp2 = temp; temp2(repmat(nanind < 1,[1,2])) = nan;
-        plot(temp1(1:smp:end,1),temp1(1:smp:end,2),'k','LineWidth',1);
-        plot(temp2(1:smp:end,1),temp2(1:smp:end,2),'m','LineWidth',2);
-        title('Intepolated Signal','fontname','Helvetica','fontsize',16);
-        ylabel(sprintf('Signal: %s',args.feature),'fontname','Helvetica','fontsize',14)
-        xlim([0,temp(end,1)]);
-
-        % Signal Frequency
-        subplot(3,4,8),hold on, box on
-        set(gca,'fontsize',12,'LineWidth',2);
-        f  = fft(temp(:,2))./length(temp);
-        hz = linspace(0,sr/2,1+floor(length(f)/2)+mod(length(f),2));
-        f = abs(f(1:length(hz)))'*2.*hz;
-        f = f./max(f);
-        bar(hz,f,'k')
-        xlim([0,sr/2])
-        title('Amp.Spectrum','fontname','Helvetica','fontsize',14);
-        xlabel('Frequency (Hz.)','fontname','Helvetica','fontsize',14);
-    end
-
-    if ismember('temporal',steps);   
-        temp = [self.history.temporal.TimeStamps,...
-            self.history.temporal.(args.feature)];
-        nanind = self.naninfo.count;
-        temp(:,1) = temp(:,1) - temp(1,1);
-
-        % Plot signal filtered
-        subplot(3,4,9:11), hold on, box on
-        set(gca,'fontsize',12,'LineWidth',2);
-        temp1 = temp; temp1(repmat(nanind > 0,[1,2])) = nan;
-        temp2 = temp; temp2(repmat(nanind < 1,[1,2])) = nan;           
-        plot(temp1(1:smp:end,1),temp1(1:smp:end,2),'k','LineWidth',1);
-        plot(temp2(1:smp:end,1),temp2(1:smp:end,2),'m','LineWidth',2);
-        title('Filtered Signal','fontname','Helvetica','fontsize',16);
-        ylabel(sprintf('Signal: %s',args.feature),'fontname','Helvetica','fontsize',14)
-        xlabel('Time (s)','fontname','Helvetica','fontsize',14);
-        xlim([0,temp(end,1)]);
-
-        % Filter kernel
-        subplot(3,4,12),hold on, box on
-        set(gca,'fontsize',12,'LineWidth',2);
-        kr = self.tempkernel.amplitude;
-        plot(kr(:,1),kr(:,2)./max(kr(:,2)),'m','LineWidth',2);
-        xlim([-.1,sr/2]); ylim([0,1.1]);
-        title('Filter Spectrum','fontsize',14,'fontname','Helvetica');
-        xlabel('Frequency','fontsize',14,'fontname','Helvetica');
-        ylabel('Amplitude','fontsize',14,'fontname','Helvetica'); 
-    end
-    end        
-
-% *************************************************************************
-% *************************************************************************  
-
-    function drawface(self,varargin)
-        % save image with facebox draw on it
-        % test whether you have a video            
-        if isempty(self.video)
-            [FileName,PathName] = uigetfile('*','DialogTitle','FexSelect');
-            self.video = sprintf('%s%s',PathName,FileName);
-        end
-        try
-            vidObj = VideoReader(self.video);
-        catch errorID
-            warning(errorID.message);
-            return
-        end
-        % Select the frame to display
-        ind = find(strcmp(varargin,'frames'));
-        if isempty(ind)
-            frames = 'all';
-        else
-            frames = varargin{ind+1};
-        end
-        % Select the destination directory
-        ind = find(strcmp(varargin,'folder'));
-        if isempty(ind)
-            folder = sprintf('%s/temp_%s',pwd,datestr(now,'HHMMSSFFF'));
-        else
-            folder = varargin{ind+1};
-        end
-
-        % create folder
-        if ~exist(folder,'dir')
-            mkdir(folder);
-        end
-
-        % Change variable frame in a usable way
-        if strcmp(frames,'all')
-            frames = find(~isnan(self.structural.FaceBoxW));
-        elseif strcmp(frames,'first')
-            frames = find(~isnan(self.functional.anger),1,'first');
-        end
-
-        % Get selected frames
-        [~,namef] = fileparts(self.video);
-        for f = frames(:)'
-           clc
-           fprintf('Printing frame %d (%d of %d).\n',...
-               f,find(frames==f),length(frames));
-           FF = read(vidObj,f);
-           % set as black and white
-           if size(FF,3) > 1
-               FF = rgb2gray(FF);
-           end
-           [~,out] = fex_box2linidx(self.structural(f,:));
-           FF(out) = nan;
-           imwrite(FF,sprintf('%s/%s_%.8d.jpg',folder,namef,f),'jpg');
-        end
-    end
 
 end % <<<-------------- END OF PUBLIC METHODS ------------------------| 
 
