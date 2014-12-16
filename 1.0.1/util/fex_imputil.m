@@ -108,7 +108,9 @@ switch lower(filetype)
         for i = 1:size(filepath,1)
             warning('off','MATLAB:codetools:ModifiedVarnames');
             temp = dataset('File',deblank(filepath(i,:)),'Delimiter','\t');
-            temp.FrameNumber = temp.Frame_N;
+            if ismember('Frame_N',temp.Properties.VarNames);
+                temp.FrameNumber = temp(:,{'Frame_N'});
+            end 
             mov = deblank(moviepath{i});
             fexObj = cat(1,fexObj,fexc('data',temp,'TimeStamps',temp.Time,'video',mov));
             fprintf('Created fexObject %d/%d.\n',i,size(filepath,1));
