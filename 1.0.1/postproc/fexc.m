@@ -753,10 +753,6 @@ end
     % -----------------------------------------------------------------
     %
 
-
-    if ~exist('m','var')
-        m = 0;
-    end
     % Set some shared information
     pos_names = {'joy','surprise'};
     neg_names = {'anger','disgust','sadness','fear','contempt'};
@@ -764,10 +760,13 @@ end
     [~,indP] = ismember(pos_names,VarNames);
     [~,indN] = ismember(neg_names,VarNames);        
 
-
     for k = 1:length(self)
-    % Set margin
-    self(k).thrsemo = m;
+    % Set margin/adjust if not called
+    if exist('m','var') 
+        self(k).thrsemo = m;
+    else
+        m = self(k).thrsemo;
+    end
     % Get within Maximum value
     ValS = [max(double(self(k).functional(:,indP)),[],2),...
             max(double(self(k).functional(:,indN)),[],2)];   
@@ -960,7 +959,7 @@ if strcmpi(StatSource,'-local')
         NormVal = double(self(k).get(lower(StatName)));
         self(k).baseline = NormVal;
         NormVal = repmat(NormVal,[size(Y,1),1]);
-        self(k).update('functional',Y -NormVal)
+        self(k).update('functional',Y -NormVal);
         self(k).baseline = NormVal;
         waitbar(k/length(self),h);
     end
@@ -979,6 +978,7 @@ else
     error('Not recognized source: %s.',StatSource);
 end
 
+self.derivesentiments();
 delete(h);
 
 end
@@ -1025,12 +1025,12 @@ for k = 1:length(self)
         self(k).derivesentiments();
     end        
     % Set up info
-    X = [self(k).get('emotions'), self(k).get('au')];
-    vnamesX = [X.Properties.VarNames,'Sentiments'];
-    vnamesP = ['Positive','Negative','Neutral',vnamesX(1:7)];
-    X = double(X);
-    X = [X(~isnan(sum(X,2)),:),self(k).sentiments.Combined];
-
+    emonames = {'anger','contempt','disgust','joy','fear','sadness','surprise'};
+    vnamesX = [self(k).functional.Properties.VarNames];
+    vnamesP = ['Positive','Negative','Neutral',emonames];
+    X = double(self(k).functional);
+    I = ~isnan(sum(X,2)); X = X(I,:);
+    
     % Get General Stats (emotions and action units)
     self(k).descrstats.hdrs = {{vnamesX},{vnamesP}};
     self(k).descrstats.N      = size(X,1);
@@ -1042,7 +1042,8 @@ for k = 1:length(self)
 
     % Get Conditional probabilities
     % NOTE that X(:,1:7) are the 7 basic emotions.
-    self(k).descrstats.perc   = mean(X(self(k).sentiments.Winner < 3,1:7)>self(k).thrsemo); 
+    [~,emoidx] = ismember(emonames,vnamesX);
+    self(k).descrstats.perc   = mean(X(self(k).sentiments.Winner < 3,emoidx)>self(k).thrsemo); 
     d = dummyvar([self(k).sentiments.Winner;3]);
     self(k).descrstats.perc = [mean(d(1:end-1,:)),self(k).descrstats.perc];
 
@@ -1056,7 +1057,7 @@ G1 = [mean(XX);std(XX);median(XX);quantile(XX,.25);quantile(XX,.75)];
 if sum(PP(:,end)) == 0
     G2 = [zeros(1,7),mean(PP(:,end-2:end))];
 else
-    G2 = [mean(PP(:,end-2:end)),mean(XX(PP(:,end) == 0,1:7) > self(1).thrsemo)];
+    G2 = [mean(PP(:,end-2:end)),mean(XX(PP(:,end) == 0,emoidx) > self(1).thrsemo)];
 end
 OBnames = {'mean','std','median','q25','q75'};
 for k = 1:length(self)
@@ -1105,6 +1106,7 @@ end
         idx = nan(sum(R>=args.threshold),length(VarNames));
         self(k).functional(R>=args.threshold,:) = mat2dataset(idx,'VarNames',VarNames);
         self(k).naninfo.falsepositive = (R>=args.threshold);
+        self(k).derivesentiments();
     end
     self(k).coregparam = [R,P];
     if size(P,2) == 7;
@@ -1335,6 +1337,9 @@ for k = 1:length(self)
     temp(temp < thrs) = thrs;
     update(self(k),'functional',temp);            
 end
+% Derive sentiments from new data.
+self.derivesentiments();
+
 
 end
 
@@ -1798,6 +1803,8 @@ for k = 1:length(self)
         warning('Too few datapoints for FEXC %d.',k);
     end
 end
+
+self.derivesentiments();
 delete(h);
 end
 
