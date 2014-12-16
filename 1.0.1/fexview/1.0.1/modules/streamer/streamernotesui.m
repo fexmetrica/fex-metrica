@@ -341,4 +341,3 @@ function NoteBoxe_KeyPressFcn(hObject, eventdata, handles)
 
 
 % END ++++++++++++++++++++++++++++++++++++++++++++++++++++++++ BOX CONTROLL
-

@@ -853,5 +853,3 @@ function MT_trackobject_Callback(hObject, eventdata, handles)
 % Pos = getPosition(h);
 % fprintf('I am here')
 % end
-
-
