@@ -1,4 +1,4 @@
-function h = fexw_filtplot(kr,sr)
+  function h = fexw_filtplot(kr,sr)
 %
 % FEXW_FILTPLOT displays.
 %
