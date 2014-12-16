@@ -88,9 +88,16 @@ lims = max(2,max(abs(S.Combined)));
 subplot(7,2,1:4),hold on, box on    
 set(gca,'OuterPosition',[.001,.69,.994,.315],'Color',[0,0,0]);
 set(gca,'XColor',[1,1,1],'YColor',[1,1,1],'LineWidth',2,'fontsize',12);
-hh1 = area(T,S.Positive,'FaceColor','w','LineWidth',2,'EdgeColor','w');
-hh2 = area(T,-1*S.Negative,'FaceColor','r','LineWidth',2,'EdgeColor','r');
-alpha(.4); ylim([-lims,lims]); xlim([T(1),T(end)]);    
+if size(T,1) < 1e4
+    hh1 = area(T,S.Positive,'FaceColor','w','LineWidth',2,'EdgeColor','w');
+    hh2 = area(T,-1*S.Negative,'FaceColor','r','LineWidth',2,'EdgeColor','r');
+    alpha(.4);
+else
+    hh1 = plot(T,S.Positive,'w','LineWidth',2);
+    hh2 = plot(T,-1*S.Negative,'r','LineWidth',2);
+end
+
+ylim([-lims,lims]); xlim([T(1),T(end)]);    
 set(gca,'XTickLabel',fex_strtime(get(gca,'XTick'),'short'));
 ylabel('Sentiments','fontsize',12,'Color','white');
 legend([hh1,hh2],{'Positive','Negative'},'TextColor',[1,1,1],'Box','off',...
@@ -103,8 +110,12 @@ lims(1) = min(lims(1),0);
 for n = 1:size(Y,2)
     subplot(7,2,n+4), hold on
     set(gca,'Tag','EmoAx','box','on')
-    area(T,Y(:,n),'basevalue',lims(1),'FaceColor',CLR(n,:),'LineWidth',2,'EdgeColor',CLR(n,:));
-    alpha(.4)
+    if size(T,1) < 1e4
+        area(T,Y(:,n),'basevalue',lims(1),'FaceColor',CLR(n,:),'LineWidth',2,'EdgeColor',CLR(n,:));
+        alpha(.4)
+    else
+        plot(T,Y(:,n),'LineWidth',2,'Color',CLR(n,:));
+    end
     ylim([lims(1),max(lims(2),2)]); xlim([T(1),T(end)]); 
     plot(T,zeros(size(T)),'--w','LineWidth',2);
     ylabel(YHDR{n},'fontsize',12,'Color','w')
