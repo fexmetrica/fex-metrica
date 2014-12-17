@@ -486,22 +486,32 @@ function self = reinitialize(self,flag)
 % ask for confirmation only once. After that, REINITIALIZE will reset
 % all FEXC objects in the current stack.
 %
-% See also CLONE.
+% Note that ANNOTATIONS are NOT reinitialized. 
+%
+% See also CLONE, GET, ANNOTATIONS.
 
 if ~exist('flag','var')
     flag = 'coward';
 end
 % Ask for confirmation
 if ~strcmpi(flag,'force')
-result = input('Do you really want to revert to original? Y/N [Y]: ');
-if ~isempty(result) % ~strcmp(result,'y')
+result = input('Do you really want to revert to original? y/n [y]: ','s');
+if isempty(result) || ~strcmpi(result,'y')
     fprintf('''Reinitialize'' aborted.\n');
     return
 end
-end 
+end
+
 % Reinitialization loop
 for k = 1:length(self)
-    self(k) = self(k).history.original;
+    % Overwrite public properies
+    for p = [properties(self(k))','descrstats'];
+        self(k).(p{1}) = self(k).history.original.(p{1});
+    end
+    % Overwrite private properties
+    self(k).tempkernel  = [];
+    self(k).thrsemo     = 0;
+    self(k).coregparam  = [];
 end
 
 end
@@ -845,7 +855,8 @@ end
     % NOTE: Sentiments do not include nans
     self(k).sentiments = mat2dataset(ValS(:,[1:3,5]),'VarNames',{'Winner','Positive','Negative','Combined'});
     self(k).sentiments.TimeStamps = self(k).time.TimeStamps;
-    self(k).sentiments = self(k).sentiments(~isnan(self(k).sentiments.Winner),:);
+    I = ~isnan(sum(double(self(k).functional,2)));
+    self(k).sentiments = self(k).sentiments(I,:);
 
     if exist('emotrect','var')
     % Clean up emotions dataset
@@ -1092,7 +1103,6 @@ for k = 1:length(self)
     self(k).descrstats.q75    = quantile(X,.75);
 
     % Get Conditional probabilities
-    % NOTE that X(:,1:7) are the 7 basic emotions.
     [~,emoidx] = ismember(emonames,vnamesX);
     self(k).descrstats.perc   = mean(X(self(k).sentiments.Winner < 3,emoidx)>self(k).thrsemo); 
     d = dummyvar([self(k).sentiments.Winner;3]);
@@ -1725,6 +1735,7 @@ else
     self(k).tempkernel = kr;
     waitbar(k/length(self),h);
     end
+    self.derivesentiments();
     delete(h)
 end
 
