@@ -2,9 +2,9 @@ classdef fexc < handle
 %
 % FEXC - FexMetrica 1.0.1 main analytics class.
 %
-% Creates a FEXC object for the analysis of facial expressions
-% timeseries generated using Emotient Inc. facial expressions recognition
-% system.
+% Creates a FEXC object for the analysis of facial expressions timeseries
+% generated using Emotient Inc. (http://www.emotient.com) facial
+% expressions recognition system.
 %
 % FEXC Properties:
 %
@@ -25,49 +25,48 @@ classdef fexc < handle
 % 
 % FEXC - FEXC constructor method.
 %
-% CLASS UTILITIES:
+% UTILITIES:
 % clone	- Make a copy of FEXC object(s), i.e. new handle.
 % reinitialize - Reinitialize the FEXC object to construction stage. 
 % update - Changes FEXC functional and structural datasets.
 % nanset - Reset NaNs after INTERPOLATE or DOWNSAMPLE are used.
 % getvideoInfo - Read general information about a video file. 
-% get - Shortcut to get subset of variables or properties. 
-% fexport - Export data or notes to .CSV file.
-%
-% getmatrix	- ...
+% get - Shortcut to get subset of FEXC variables or properties [... ...].
+% fexport - Export FEXC data or notes to .CSV file.
+% getmatrix	- [... ...]
 %
 % SPATIAL PROCESSING: 
-% coregister - STACKED
-% falsepositive	- ...
-% motioncorrect	- STACKED
+% coregister - Register face boxes to average face video location.
+% falsepositive	- Detect false alarms in FEXC.functional.
+% motioncorrect	- [STACKED][... ...]
 %
 % TEMPORAL PROCESSING:
 % interpolate - Interpolate timeseries & manages NaNs.  
-% downsample - ...
-% smooth - Smooth time series using a kernel.
-% temporalfilt - Apply low/high/bandpass filter to the data.
-% getband - ...
+% downsample - [... ...]
+% smooth - Smooth time series using standard or costume kernel.
+% temporalfilt - Apply low, high, or bandpass filter to FEXC.functional.
+% getband - [... ...]
 %
 % NORMALIZATION:
-% rectification	- Set a lower value for functional time series.
+% rectification	- Set a lower value for FEXC.functional time series.
 % setbaseline - Set the BASELINE property (private), and normalize data.
-% normalize	- STACKED
+% normalize	- [STACKED][... ...]
 %
 % STATISTICS & FEATURES:
-% derivesentiments - STACKED
-% descriptives - STACKED
-% kernel - ...	 
-% morlet - ...	 
+% derivesentiments - [STACKED][... ...]
+% descriptives - [STACKED][... ...]
+% kernel - [... ...][INTEGRATE]	 
+% morlet - [... ...][INTEGRATE]	 
 %
 % GRAPHIC PROPERTIES:
 % show - Generate images for the FEXC data.
-% viewer - 	...
+% viewer - Interactive display of FEXC video and associated data.
 %
 %
 % Copyright (c) - 2014 Filippo Rossi, Institute for Neural Computation,
 % University of California, San Diego. email: frossi@ucsd.edu
 %
-% VERSION: 1.0.1 14-Dec-2014.
+% VERSION: 1.0.1 16-Dec-2014.
     
 
 properties
@@ -86,10 +85,6 @@ properties
     %
     % See also GETVIDEOINFO.
     videoInfo
-    % OUTDIR String with the output directory for storing images and output
-    % files. This filed can be left empty, in which case, calls that try to
-    % write files will prompt a gui asking to specify an output directory.
-    outdir % MAKE PRIVATE
     % FUNCTIONAL: Dataset object with as many rows as frames in the video
     % from FEXC.VIDEO, and 31 columns. The columns comprise seven basic
     % emotions (anger, contempt, joy, disgust, fear, sadness and surprise);
@@ -135,6 +130,10 @@ end
     
 
 properties (Access = protected)
+    % OUTDIR String with the output directory for storing images and output
+    % files. This filed can be left empty, in which case, calls that try to
+    % write files will prompt a gui asking to specify an output directory.
+    outdir
     % HISTORY: Originally imputed data and record of the operations. This
     % property is not accessible, but the original FEXC status can be
     % obtain using REINITIALIZE.
@@ -566,9 +565,8 @@ function X = get(self,ReqArg,Spec)
 %    statistics across all FEXC objects in self.
 % C. SPEC is used as in A.
 %
-% NOTE: for 
 %
-% See also: DESCRIPTIVES.
+% See also: DESCRIPTIVES, VIEWER.
 
 % Read arguments: ReqArg
 if ~exist('ReqArg','var')
@@ -632,7 +630,6 @@ switch lower(ReqArg)
             end
         end
         % FIX HEADER OF THIS
-        % X = mat2dataset(X,'VarNames',self(1).functional.Properties.VarNames);                
     % Getting Stats
     case {'notes','annotations'}
         for k = 1:length(self)
@@ -653,9 +650,7 @@ elseif strcmpi(Spec,'struct')
     X = dataset2struct(X,'AsScalar',true);
 end
 
-
 end
-
 
 % *************************************************************************
 
@@ -1127,57 +1122,7 @@ Prob = self(1).descrstats.globp;
 
 end
 
-% *************************************************************************              
-              
-% *************************************************************************              
-
-    function self = coregister(self,varargin)
-    %
-    % -----------------------------------------------------------------
-    % 
-    % Coregistration to the average face structural image. 
-    %
-    % Type > help fex_reallign for more information.
-    % 
-    % -----------------------------------------------------------------
-    %
-
-    % Handle optional arguments
-    args = struct('steps',1,'scaling',true,...
-                  'reflection',false,...
-                  'threshold',3.5,'fp',false);            
-
-    for i = 1:2:length(varargin)
-        args.(varargin{i}) = varargin{i+1};
-    end
-    VarNames = self(1).functional.Properties.VarNames;
-    h = waitbar(0,'Coregistration...');
-
-    % Run reallignment
-    for k = 1:length(self)
-    fprintf('Coregistering fexc object %d/%d.\n',k,length(self));
-    [~,P,~,R] = fex_reallign(self(k).structural,args);
-    if args.fp
-        % Exclude false positives
-        idx = nan(sum(R>=args.threshold),length(VarNames));
-        self(k).functional(R>=args.threshold,:) = mat2dataset(idx,'VarNames',VarNames);
-        self(k).naninfo.falsepositive = (R>=args.threshold);
-        self(k).derivesentiments();
-    end
-    self(k).coregparam = [R,P];
-    if size(P,2) == 7;
-       vname = {'ER','B','T1','T2','T3','T4','C1','C2'};
-    else
-       vname = {'ER','B','T1','T2','T3','T4',...
-                'T5','T6','T7','T8','T9','C1','C2','C3'};
-    end
-    self(k).coregparam = mat2dataset([R,P],'VarNames',vname);
-    waitbar(k/length(self),h);
-    end
-    delete(h);
-    end
-
-% *************************************************************************              
+% *************************************************************************                          
 % *************************************************************************   
 
     function self = motioncorrect(self)
@@ -1237,13 +1182,44 @@ function self = falsepositive(self,varargin)
 % FALSEPOSITIVE identifies patch of pixels mislead for a face.
 %
 % SYNTAX:
-% FALSEPOSITIVE ... 
+% self.FALSEPOSITIVE(method) 
+% self.FALSEPOSITIVE('method',MethodName) 
+% self.FALSEPOSITIVE(method,'Arg1Name','Arg1Val',...) 
+%
+% FALSEPOSITIVE identifies false alarm for face boxes in a video. Three
+% methods (string) are currently implemented, which have to be spefidfied
+% using the first argument, 'method.'
+%
+% METHOD:
+%
+% - 'size' uses the area of the face box as a indirect way of identifing
+%    false alarm -- i.e. face areas thar are more than Z standartd
+%    deviation away from the average face area will be discarded.
+% - 'position' uses the average location of the face box to assess how
+%    likely a face will appear in a certain location. Face boxes identified
+%    in patches of pixels associated with low probability will be
+%    discarded.
+% - 'coreg' uses the output of the coregistration procedure. COREGISTRATION
+%    uses procrustes analysis to register faces from each frame to the
+%    average of the face boxes and landmarks position. Frames with a
+%    coregistration error larger than Z are discarded. The 'coreg' method
+%    can be called directly with COREGISTETR.
+% 
+% OPTIONAL ARGUMENT:
+%
+% - 'threshold': the criterion use to identify outliers, expressed in
+%    standard deviations. Default: 2.50.
 %
 %
-% See also COREGISTER.
+%
+% See also COREGISTER, PROCRUSTES.
 
 % Read arguments
-args = struct('method','size','threshold',3.5,'param',[]);
+args = struct('method','size','threshold',2.50,'param',[]);
+if ~strcmpi(varargin{1},'method')
+    varargin = ['method',varargin];
+end
+% Assign custome args.
 for i = 1:2:length(varargin)
     if isfield(args,varargin{i});
         args.(varargin{i}) = varargin{i+1};
@@ -1259,6 +1235,8 @@ elseif ismember(args.method,{'pca','kalman'});
     return
 end
 
+% Run FALSEPOSITIVE identification
+h = waitbar(0,'False alarm identification ... ');
 for k = 1:length(self)
 	% Initialize index
     idx = zeros(length(self(k).structural.FaceBoxW),1);
@@ -1289,12 +1267,98 @@ for k = 1:length(self)
     BIDX = repmat(self(k).naninfo.falsepositive,[1,size(X,2)])==1;
     X(BIDX) = nan;
     self(k).update('structural',X);
+    waitbar(k/length(self),h);
 end
 
+% Update sentiments
 self.derivesentiments();
+delete(h);
 end
 
-% *************************************************************************              
+% *************************************************************************
+
+function self = coregister(self,varargin)
+%
+% COREGISTER register face boxes to average face video location
+%
+% SYNTAX:
+%
+% self.COREGISTER()
+% self.COREGISTER('ArgName1',ArgVale1, ... )
+%
+% COREGISTER uses procrustes analysis to register a face box and the
+% associated face landmarks to a standardized face in the current video.
+%
+% OPTIONAL ARGUMENTS:
+%
+% 'steps' - a scalar value of 1 or 2 (default is 1). When it is set to 2,
+%  coregistration is done once for all data, then the error in the
+%  coregistration is used to infer false positives, and coregistration is
+%  done a second time using the average position of non false positives.
+%
+% 'scaling' - true or false (default: true). Determines whether 'scaling'
+%  is used for coregistration.
+%
+% 'reflection' - true or false (default: false). Determine whether
+%  argument 'reflection' is used for coregistration.
+%
+% 'fp' - a truth value (default: false), which determine whether the error
+%  from coregistration will be used to identify false positive. This false
+%  alarm identification method can also be called using FALSEPOSITIVE.
+%
+% 'threshold' - a scalar between 0 and Inf (default is 2.50). It indicates
+%  the number or standard deviation above the mean of the residual sum of
+%  square error of the coregistration. When threshold is set to a number
+%  larger than 0, this is used to identify false positive.
+%
+%  NOTE that the 'threshold' option has an effect only when the number of
+%  steps is set to 2, or when 'fp' is set to true.
+%
+%
+% COREGISTER does not produce any output. Coregistration parameter can be
+% used using self.GET('coreg').
+%
+%
+% See also FEX_REALLIGN, GET, PROCRUSTES, FALSEPOSITIVE.
+
+
+
+% Handle optional arguments
+args = struct('steps',1,'scaling',true,...
+              'reflection',false,...
+              'threshold',2.5,'fp',false);            
+
+for i = 1:2:length(varargin)
+    args.(varargin{i}) = varargin{i+1};
+end
+VarNames = self(1).functional.Properties.VarNames;
+h = waitbar(0,'Coregistration...');
+
+% Run reallignment
+for k = 1:length(self)
+fprintf('Coregistering fexc object %d/%d.\n',k,length(self));
+[~,P,~,R] = fex_reallign(self(k).structural,args);
+if args.fp
+    % Exclude false positives
+    idx = nan(sum(R>=args.threshold),length(VarNames));
+    self(k).functional(R>=args.threshold,:) = mat2dataset(idx,'VarNames',VarNames);
+    self(k).naninfo.falsepositive = (R>=args.threshold);
+    self(k).derivesentiments();
+end
+self(k).coregparam = [R,P];
+if size(P,2) == 7;
+   vname = {'ER','B','T1','T2','T3','T4','C1','C2'};
+else
+   vname = {'ER','B','T1','T2','T3','T4',...
+            'T5','T6','T7','T8','T9','C1','C2','C3'};
+end
+self(k).coregparam = mat2dataset([R,P],'VarNames',vname);
+waitbar(k/length(self),h);
+end
+delete(h);
+end
+
+
 % *************************************************************************   
 
 function self = interpolate(self,varargin)
@@ -1905,36 +1969,69 @@ end
 % ---------------********************************************************** 
 
 
-    function self = viewer(self)
-    % 
-    % Stream the video using fexw_streamerui gui. See docs there for
-    % information on the Gui options.
+function self = viewer(self)
+% 
+% VIEWER display the video and related statistics.
+%
+% SYNTAX:
+%
+% self.VIEWER()
+%
+%
+% The VIEWER open a user interface generated by FEXW_STREAMERUI to display
+% the video with related timeseries. It also displys summary statistics on
+% the proportion of sentiments displayed in the video.
+%
+% For information on VIEWER UI see FEXW_STREAMERUI and related docs:
+% 
+% >> help FEXW_STREAMERUI
+%
+% NOTE that the method VIEWER cannot be called on a stacked FEXC directly.
+% That is, if length(SELF) > 1, the call self.VIEWER will return an error.
+% Use self(k).VIEWER instead -- for 1 >= k <= length(SELF).
+%
+% Not all video formats are readable in MATLAB. Moreover, efficient
+% compressions are slow to unwrap from MATLAB. Therefore, videos that are
+% difficult to read using VIDEOREADER are converted to motion jpeg files
+% using ffmpeg (http://ffmpeg.org)**. The new videofile are saved in a
+% subdirectory named 'fexwstreamermedia' in the current directory.
+%
+% OUTPUT:
+%
+% NOTE that self.VIEWER does not return any output. However, annotations
+% taken within VIEWER are stored in the current FEXC object, they can be
+% accessed using GET method, and they can be saved to a csv file using the
+% FEXPORT method.
+%
+%
+% **You can install ffmpeg using HOMEBREW (http://brew.sh) on OSX or using
+% apt-get on Ubuntu.
+%
+%
+% See also FEXW_STREAMERUI, GET, FEXPORT, VIDEOREADER.
 
-    % Check that (1) you have the video, and that (2) the video has the
-    % correct estension:
-    if ~exist(self.video,'file')
-        error('No video provided for streaming.');
-    else
-    % check video formats
-        format = VideoReader.getFileFormats();
-        format = get(format, 'Extension');
-        [~,~,cew] = fileparts(self.video);
-        if ~ismember(cew(2:end),format)
-            error('Unsupported format. Use "VideoReader.getFileFormats" to see supported formats.');
-        end
+
+% Check that (1) you have the video, and that (2) the video has the
+% correct estension:
+if ~exist(self.video,'file')
+    error('No video provided for streaming.');
+else
+% check video formats
+    format = VideoReader.getFileFormats();
+    format = get(format, 'Extension');
+    [~,~,cew] = fileparts(self.video);
+    if ~ismember(cew(2:end),format)
+        error('Unsupported format. Use "VideoReader.getFileFormats" to see supported formats.');
     end
+end
 
-    % Start video streamer gui
-    N = fexw_streamerui(self.clone());
-    % Add annotations when provided;
-    self.annotations = cat(1,self.annotations,N);
-%     if ~isempty(N)
-%         self.annotations = cat(1,self.annotations,N);
-%         self.annotations = N;
-%     end    
+% Start video streamer gui
+N = fexw_streamerui(self.clone());
+% Add annotations when provided;
+self.annotations = cat(1,self.annotations,N);
 
 
-    end
+end
 
     
 % *************************************************************************  

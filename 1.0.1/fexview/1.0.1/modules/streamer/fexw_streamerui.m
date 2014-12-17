@@ -1,31 +1,33 @@
 function varargout = fexw_streamerui(varargin)
 %
-% Usage:
-% Notes = fexw_streamerui();                        [not implemented]
-% Notes = fexw_streamerui(fexObj.clone());
+%
+% FEXW_STREAMERUI interactively displays current video from FEXC object.
+%
+% SYNTAX:
+%
+% Notes = fexw_streamerui()                  [not implemented]
+% Notes = fexw_streamerui(fexObj.clone())
 % Notes = fexObj.viewer()  
 % 
-% This viewer can be called with a fexc object as argument, in which case
-% it is advisiable to use the "clone" method from the fexc object,
-% otherwise the fexc object will be updated as well. 
+% FEXW_STREAMERUI can be called with a FEXC object as argument, in which
+% case it is advisiable to use the "clone" method from the fexc object,
+% otherwise the FEXC object will be updated as well. Alternatively, the
+% video VIEWER can be called as a method from a FEXC object.
 %
-% Alternatively this video viewer can be called as a method from a fexc
-% object.
-%
-% fexw_streamerui included three pannels:
+% FEXW_STREAMERUI included three pannels:
 % 
-% 1. A video pannel, where the video associated with the fexc object is
+% 1. A video pannel, where the video associated with the FEXC object is
 %    displayed. This pannel also includes the play/pause button, and the
 %    timestamp for the frame currently displayed.
 %
 % 2. A Summary pannel, which shows the proportion of frames that were
-%    recognized as positive, negative or neutral, and the proportion of
-%    frames with missing faces.
+%    recognized as positive, negative or neutral (SENTIMENTS), and the
+%    proportion of frames with missing faces.
 %
-% 3. A time series plot pannel, that shows up to seven timeseries from
+% 3. A time series plots pannel, that shows up to seven time series between
 %    emotions and action units.
 %
-% Using the menu you can edit features from the video pannel and from the
+% Using the MENU you can edit features of the video pannel and of the
 % timeseries pannel. The content of the menu is described below.
 %
 % "File" [not implemented] includes three methods:
@@ -38,14 +40,14 @@ function varargout = fexw_streamerui(varargin)
 % between:
 %
 %  + "Video" shows frames from the video;
-%  + "Rendering" uses fexview to display a model of the face.
+%  + "Rendering" uses FEXWOVERLAY to display a model of the face.
 %
 % "Select" [not implemented**] opens a gui that allows to select the
 %    facial expressions to be displayed on each time series plot.
 %
 %  ** NOTE that even if this procedure is not yet implemented, the user can
-%  change the emotions displayed on each timeseries plot by rightclicking
-%  on each plot. This will open a context menue.
+%  change the emotions displayed on each time series plot by right clicking
+%  on each plot. This will open a CONTEXT MENU.
 %
 % "Tools" are divided in three groups: Tools for the video pannel, tools
 % for the time series pannel, and tools for adding notes.
@@ -107,16 +109,14 @@ function varargout = fexw_streamerui(varargin)
 %     If the fexc object presented in the viewer already contains
 %     annotation, the new annotations are added to the existing ones.
 %
-%__________________________________________________________________________
+%
+% See also STREAMERNOTESUI, FEXC, FEXC.VIEWER, FEXC.GET, FEXWOVERLAY. 
 %
 %
-% Copiright: Filippo Rossi, Institute for Neural Computation, University
-% of California, San Diego.
+% Copyright (c) - 2014 Filippo Rossi, Institute for Neural Computation,
+% University of California, San Diego. email: frossi@ucsd.edu
 %
-% email: frossi@ucsd.edu
-%
-% Version: 12/11/14.
-
+% VERSION: 1.0.1 11-Dec-2014.
 
 
 gui_Singleton = 1;

@@ -1,14 +1,17 @@
 function [Y,P,M,R] = fex_reallign(XX,varargin)
 %
-% Y = fex_reallign(XX)
-% Y = fex_reallign(XX,'ArgName1',ArgVal1)
-% [Y,T,M,R] = fex_reallign(...)
+% FEX_REALIGN Reallignment of frame-wise faces to mean/
+%
+% Y = FEX_REALIGN(XX)
+% Y = FEX_REALIGN(XX,'ArgName1',ArgVal1)
+% [Y,T,M,R] = FEX_REALIGN(...)
 %
 %
-% Reallignment of image to mean using procrustes analysis of face landmarks.
+% FEX_REALIGN reallign images to their mean using procrustes analysis of
+% face landmarks.
 %
-% XX: a dataset of landmarks with variable names consistent with fexfacet
-%     standards.
+% XX: a dataset of landmarks with variable names consistent with
+%   convenction from FEXC.structural.
 %
 % 'steps': 1 or 2 (default is 1). When it is set to 2, coregistration is
 %       done once for all data, then the error in the coregistration is
@@ -31,12 +34,10 @@ function [Y,P,M,R] = fex_reallign(XX,varargin)
 %_______________________________________________________________________
 %
 %
-% Copiright: Filippo Rossi, Institute for Neural Computation, University
-% of California, San Diego.
+% Copyright (c) - 2014 Filippo Rossi, Institute for Neural Computation,
+% University of California, San Diego. email: frossi@ucsd.edu
 %
-% email: frossi@ucsd.edu
-%
-% Version: 07/23/14.
+% VERSION: 1.0.1 23-July-2014.
 
 
 % Handle optional arguments
