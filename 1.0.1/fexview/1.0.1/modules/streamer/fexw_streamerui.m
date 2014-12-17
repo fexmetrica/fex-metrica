@@ -278,6 +278,7 @@ imshow(img,'parent',handles.FrameAxis);
 % Set Time Slider Properties
 % fps = mode(diff(handles.fexc.time.TimeStamps));
 set(handles.TimeSlider,'Min',0,'Max',handles.time(end),'Value',0);
+set(handles.TimeSlider,'SliderStep',[1/length(handles.time),0.1]);
 
 
 % Initialize handle for x axes & set inactive the axis extent that are
@@ -488,8 +489,9 @@ flag = strcmp(get(handles.PlayButton,'String'),'Pause');
 while flag && handles.frameCount < handles.nframes;
 % main loop for streaming the video
 
-   % Handle annotation here 
+   tic
    pause(0.001);
+   % Handle annotation here    
    if strcmp(get(handles.MT_AddNotes,'Checked'),'on')
       set(handles.PlayButton,'Enable','off');
       set(handles.TimeSlider,'Enable','off');
@@ -508,7 +510,7 @@ while flag && handles.frameCount < handles.nframes;
       set(handles.MT_AddNotes,'Enable','on');
    end
    
-   tic
+   
    img = FormatFrame(handles);
    strnowtime = fex_strtime(handles.current_time);
    set(handles.TimeSrtingUpdate,'String',strnowtime{1});
