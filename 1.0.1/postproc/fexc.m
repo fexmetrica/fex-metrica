@@ -543,21 +543,30 @@ function X = get(self,ReqArg,Spec)
 % GET extract properties values or subset of variables from FEXC.
 %
 % SYNTAX X = self.get('ReqArg','OutputType',...)
+% SYNTAX X = self.get(STATNAME)
+% SYNTAX X = self.get(STATNAME,'-global')
 % 
 % GET extract relevant features from the FEXC datasets and formats them as
 % requested. GET also provide access to descriptive statistics.
 % 
 % REQARG: a string which can be:
 %
-% -  One of the datasets ('emotions,''sentiments,' 'aus,' 'landmarks,' and
+% A  One of the datasets ('emotions,''sentiments,' 'aus,' 'landmarks,' and
 %   'face.')
-% -  One of the descriptive statistics ('mean','std','median','q25','q75').
-% -  The annotations -- 'Annotations.'
+% B  One of the descriptive statistics ('mean','std','median','q25','q75').
+% C  The annotations -- 'Annotations.'
 %
-% SPEC: a string which indicates the format of the data outputed. SPEC can
-% be 'dataset,' in which case a dataset is outputed; it can be 'struct.'
-% Alternatively, 'type' can be set to 'double,' in which case the output is
-% a matrix without column names. Default: 'dataset.'
+% SPEC options depend on the value of REGARG.
+%
+% A. SPEC is a string which indicates the format of the data outputed. SPEC
+%    can be 'dataset,' in which case a dataset is outputed; it can be
+%    'struct.' Alternatively, 'type' can be set to 'double,' in which case
+%    the output is a matrix without column names. Default: 'dataset.'
+% B. SPEC is a string set to '-global' when you want to compute a
+%    statistics across all FEXC objects in self.
+% C. SPEC is used as in A.
+%
+% NOTE: for 
 %
 % See also: DESCRIPTIVES.
 
@@ -613,10 +622,15 @@ switch lower(ReqArg)
         % computation here is applied to self(1), ... , self(K).
             self.descriptives();
         end
-
-        for k = 1:length(self)
-            X = cat(1,X,self(k).descrstats.(ReqArg));
-        end 
+        % look for global or local varibles.
+        if strcmpi(Spec,'-global')
+            k = strcmpi(ReqArg,self(1).descrstats.glob.Properties.ObsNames);
+            X = double(self(1).descrstats.glob(k,:));
+        else        
+            for k = 1:length(self)
+                X = cat(1,X,self(k).descrstats.(ReqArg));
+            end
+        end
         % FIX HEADER OF THIS
         % X = mat2dataset(X,'VarNames',self(1).functional.Properties.VarNames);                
     % Getting Stats
@@ -663,10 +677,15 @@ function flist = fexport(self,Spec)
 % SPEC: a string, indicating what to save. This argument is required.
 % Recognized string for SPEC are:
 %
-% - 'Data': saves all the data (functional, structural, time and
+% - 'Data1': saves all the data (functional, structural, time and
 %   diagnostics). This format can be read back as a FEXC object using
-%   FEX_INPUTIL. This format is meant to be read by Emotient Inc. online
-%   viewer (http://www.emotient.com).
+%   FEX_INPUTIL with AZDATA flag. This format is meant to be read by
+%   Emotient Inc. online viewer (http://www.emotient.com).
+%
+% - 'Data2': same as 'Data2' but with a different naming convection, and
+%   without few variables (Advertized csv file from Emotient Inc.). This
+%   format can be read back as a FEXC object using FEX_INPUTIL with FFDATA
+%   flag.
 %
 % - 'Annotations': saves the annotations to a csv file.
 %
@@ -680,8 +699,8 @@ function flist = fexport(self,Spec)
 
 % Controll Spec argument
 if ~exist('Spec','var')
-    error('SPEC input needed. Options: ''Data'',''Annotations''.');
-elseif sum(strcmpi(Spec,{'Data','Annotations','Notes'})) == 0;
+    error('SPEC input needed. Options: ''Data1'',''Data2'',''Annotations''.');
+elseif sum(strcmpi(Spec,{'Data','Data1','Data2','Annotations','Notes'})) == 0;
     error('SPEC options: ''Data'',''Annotations''.');
 end
 
@@ -711,10 +730,47 @@ for k = 1:length(self)
     
     % Save the data
     switch lower(Spec)
-        case 'data'
+        case {'data','data1'}
         % Export all the datasets
             flist{k} = sprintf('%s/%s.csv',SAVE_TO,bname);
             self(k).export2viewer(flist{k});
+        case {'data2'}
+        % Cleaner csv file following Emotient Inc. 
+            flist{k} = sprintf('%s/%s.csv',SAVE_TO,bname);
+            X = mat2dataset(nan(size(self(k).functional,1),1),'VarNames','Id');
+            n = size(X,1);
+            % Add Id
+            if ~isempty(self(k).name)
+                X.Id = cellstr(repmat(self(k).name,[n,1]));
+            end
+            % Add file name
+            if ~isempty(self(k).video)
+                [~,s1,s2] = fileparts(deblank(self(k).video));
+                sval = sprintf('%s%s',s1,s2);
+                X.Filename = cellstr(repmat(sval,[n,1]));
+            else
+                X.Filename = nan(n,1);
+            end
+            X.Duration = repmat(fex_strtime(self(k).time.TimeStamps(end),'short'),[n,1]);
+            X.Frames = repmat(n,[n,1]);
+            X.FrameId = self(k).time.FrameNumber;
+            % Add track id
+            try
+                X.track_id = self(k).diagnostics.track_id;
+            catch
+                X.track_id = zeros(n,1);
+            end
+            X.Timestamp = self(k).time.TimeStamps;
+            % GENDER NEEDS TO BE IMPLEMENTED
+            X.Is_male = ones(n,1);
+            % Face X,Y coordinates
+            X.location_x = self(k).structural.FaceBoxX;
+            X.location_y = self(k).structural.FaceBoxY;
+            % Add pose
+            X = cat(2,X,self(k).get('Pose'), self(k).functional(:,{'positive','negative','neutral'}));
+            X = cat(2,X,self(k).get('Emotions'),self(k).get('AUs'));
+            X = X(~isnan(X.anger),:);
+            export(X,'file',flist{k},'delimiter',',');
         case {'annotations','notes'}
         % Export annotations when present
             flist{k} = sprintf('%s/notes_%s.csv',SAVE_TO,bname);
@@ -966,7 +1022,7 @@ if strcmpi(StatSource,'-local')
 elseif strcmpi(StatSource,'-global')
 % Global baseline computed on all FEXC object from self.
     h = waitbar(0,'Set Baseline ...');
-    NormVal = self.get(StatSource);
+    NormVal = self(1).get(StatName,'-global');
     for k = 1:length(self)
        self(k).baseline = NormVal;
        Y = double(self(k).functional);
