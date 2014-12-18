@@ -115,13 +115,13 @@ function varargout = fexw_streamerui(varargin)
 %
 % ACCELLERATORS & SHORTCUTS:
 %
-%
 % - 'ESC': Closes the FEXW_STREAMERUI;
-% - 'COMMAND+P' and 'CTRL+P': Pauses and Plays the video;
-% - 'COMMAND+B': changes the span of the x-axis on the plots [this is
-%       CTRL+N on non-OSX systems];
-% - 'COMMAND+N': Starts a new note [this is CTRL+N on non-OSX systems].
-%
+% - 'COMMAND+P' and ""
+% - 'COMMAND+B': changes the span of the x-axis on the plots;
+% - 'COMMAND+N': Starts a new note (this is CTRL+N on non-OSX systems);
+
+
+
 %
 % See also STREAMERNOTESUI, FEXC, FEXC.VIEWER, FEXC.GET, FEXWOVERLAY. 
 %
