@@ -855,7 +855,7 @@ end
     % NOTE: Sentiments do not include nans
     self(k).sentiments = mat2dataset(ValS(:,[1:3,5]),'VarNames',{'Winner','Positive','Negative','Combined'});
     self(k).sentiments.TimeStamps = self(k).time.TimeStamps;
-    I = ~isnan(sum(double(self(k).functional,2)));
+    I = ~isnan(sum(double(self(k).functional),2));
     self(k).sentiments = self(k).sentiments(I,:);
 
     if exist('emotrect','var')
