@@ -804,79 +804,113 @@ end
 % *************************************************************************
 % ************************************************************************* 
 
-    function self = derivesentiments(self,m,emotrect)
-    %
-    % -----------------------------------------------------------------
-    %
-    % Max-pooling for derivation of sentiments from primary emotion
-    % scores.
-    %
-    % -----------------------------------------------------------------
-    %
+function self = derivesentiments(self,m,emotrect)
+%
+% DERIVESENTIMENTS computes sentiments using max poopling.
+%
+% SYNTAX:
+%
+% self.DERIVESENTIMENTS()
+% self.DERIVESENTIMENTS(margin)
+% self.DERIVESENTIMENTS(margin,correction)
+%
+% 
+% For each frame, DERIVESENTIMENTS sets a negative score N* to the maximum
+% between the negative evidence scores (anger, contempt, disgust, sadness
+% and fear). Additionally, it also computes a positive score P* as the
+% frame-wise maximum between joy and surprise. Each frame is then tagged as
+% positive, negative or neutral based on the following procedure:
+% 
+% S_{f} = argmax(P_{f}*,N_{f}*,m)
+%
+% The variable "m" is a margin used to define neutral frames. A
+% frame is considered neutral if: max(P_{f}*,N_{f}*) <= m.
+%
+% Scores for positive and negative frames are set, respectively, to P*,N*
+% or m, based on which sentiments is more expressed.
+%
+% ARGUMENTS:
+%
+% M: a double indicating the margin that defines "neutral" sentiment.
+%    Default value: 0. NOTE THAT if you used DERIVESENTIMENTS with the
+%    argument M, the default value of M is set to whatever value you
+%    specifeid before, whithout need to enter it again.
+%
+% EMOCORRECT: upper bound use for emotion timeseries correction**.
+%
+%
+% ** EMOTIONS CORRECTION: This step is conducted only when the argument
+% EMOCORRECT is provided. Whenever a frame is labeled Positive (or
+% Negative), all Negative (or Positive) emotion scores larger than
+% EMOCORRECT are set to EMOCORRECT (Note that EMOCORRECT <= M).
+%
+%
+% See also SENTIMENTS. 
+ 
 
-    % Set some shared information
-    pos_names = {'joy','surprise'};
-    neg_names = {'anger','disgust','sadness','fear','contempt'};
-    VarNames = self(1).functional.Properties.VarNames;
-    [~,indP] = ismember(pos_names,VarNames);
-    [~,indN] = ismember(neg_names,VarNames);        
 
-    for k = 1:length(self)
-    % Set margin/adjust if not called
-    if exist('m','var') 
-        self(k).thrsemo = m;
-    else
-        m = self(k).thrsemo;
+% Set some shared information
+pos_names = {'joy','surprise'};
+neg_names = {'anger','disgust','sadness','fear','contempt'};
+VarNames = self(1).functional.Properties.VarNames;
+[~,indP] = ismember(pos_names,VarNames);
+[~,indN] = ismember(neg_names,VarNames);        
+
+for k = 1:length(self)
+% Set margin/adjust if not called
+if exist('m','var') 
+    self(k).thrsemo = m;
+else
+    m = self(k).thrsemo;
+end
+% Get within Maximum value
+ValS = [max(double(self(k).functional(:,indP)),[],2),...
+        max(double(self(k).functional(:,indN)),[],2)];   
+% Neutral is defined as all features <= m (default is 0)
+ValS = cat(2,ValS,max(ValS,[],2) <= m);
+
+% Set to zero N/P for Neutal frames
+ValS(:,1:2) = ValS(:,1:2).*repmat(1-ValS(:,3),[1,2]);
+
+% Set to zero N/P loosing frames
+[mv,ind] = max(ValS(:,1:2),[],2);
+ValS(ind == 2,1) = 0;
+ValS(ind == 1,2) = 0;
+
+% Get Class (P,Ng,Nu);
+[~,idxW] = max(ValS,[],2);
+idxW(isnan(self(k).functional.anger)) = nan;
+ValS = cat(2,idxW,ValS);
+
+% Get (P/N Feature)
+ValS(:,5) = mv;
+ValS(ValS(:,1) == 2,5) = -ValS(ValS(:,1) == 2,5);
+ValS(ValS(:,1) == 3,5) = 0;
+
+% NOTE: Sentiments do not include nans
+self(k).sentiments = mat2dataset(ValS(:,[1:3,5]),'VarNames',{'Winner','Positive','Negative','Combined'});
+self(k).sentiments.TimeStamps = self(k).time.TimeStamps;
+I = ~isnan(sum(double(self(k).functional),2));
+
+if exist('emotrect','var')
+% Clean up emotions dataset
+    % Positive
+    for i = pos_names
+        temp = self(k).functional.(i{1});
+        temp(self(k).sentiments.Winner ~= 1 & temp > emotrect) = emotrect;
+        self(k).functional.(i{1}) = temp;
     end
-    % Get within Maximum value
-    ValS = [max(double(self(k).functional(:,indP)),[],2),...
-            max(double(self(k).functional(:,indN)),[],2)];   
-    % Neutral is defined as all features <= m (default is 0)
-    ValS = cat(2,ValS,max(ValS,[],2) <= m);
-
-    % Set to zero N/P for Neutal frames
-    ValS(:,1:2) = ValS(:,1:2).*repmat(1-ValS(:,3),[1,2]);
-
-    % Set to zero N/P loosing frames
-    [mv,ind] = max(ValS(:,1:2),[],2);
-    ValS(ind == 2,1) = 0;
-    ValS(ind == 1,2) = 0;
-
-    % Get Class (P,Ng,Nu);
-    [~,idxW] = max(ValS,[],2);
-    idxW(isnan(self(k).functional.anger)) = nan;
-    ValS = cat(2,idxW,ValS);
-
-    % Get (P/N Feature)
-    ValS(:,5) = mv;
-    ValS(ValS(:,1) == 2,5) = -ValS(ValS(:,1) == 2,5);
-    ValS(ValS(:,1) == 3,5) = 0;
-
-    % NOTE: Sentiments do not include nans
-    self(k).sentiments = mat2dataset(ValS(:,[1:3,5]),'VarNames',{'Winner','Positive','Negative','Combined'});
-    self(k).sentiments.TimeStamps = self(k).time.TimeStamps;
-    I = ~isnan(sum(double(self(k).functional),2));
-    self(k).sentiments = self(k).sentiments(I,:);
-
-    if exist('emotrect','var')
-    % Clean up emotions dataset
-        % Positive
-        for i = pos_names
-            temp = self(k).functional.(i{1});
-            temp(self(k).sentiments.Winner ~= 1 & temp > emotrect) = emotrect;
-            self(k).functional.(i{1}) = temp;
-        end
-        % Negative
-        for i = [neg_names,'confusion','frustration']
-            temp = self(k).functional.(i{1});
-            temp(self(k).sentiments.Winner ~=2 & temp > emotrect) = emotrect;
-            self(k).functional.(i{1}) = temp;
-        end
+    % Negative
+    for i = [neg_names,'confusion','frustration']
+        temp = self(k).functional.(i{1});
+        temp(self(k).sentiments.Winner ~=2 & temp > emotrect) = emotrect;
+        self(k).functional.(i{1}) = temp;
     end
+end
+self(k).sentiments = self(k).sentiments(I,:);
 
-    end
-
-    end
+end
+end
 
 % *************************************************************************
 % ************************************************************************* 
