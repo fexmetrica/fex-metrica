@@ -331,7 +331,7 @@ if ~isempty(ind)
 end
 
 % Add frame size when it is not included in the data file
-if ~isfield(self.structural,'FrameRows') && ~isempty(self.videoInfo)
+if ~ismember('FrameRows',self.structural.Properties.VarNames) && ~isempty(self.videoInfo)
     fsinfo = repmat(self.videoInfo([5,4]),[size(self.structural,1),1]);
     fsinfo = mat2dataset(fsinfo,'VarNames',{'FrameRows','FrameCols'});
     self.structural = [fsinfo,self.structural];
