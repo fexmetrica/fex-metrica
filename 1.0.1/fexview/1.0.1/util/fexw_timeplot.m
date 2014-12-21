@@ -68,7 +68,7 @@ CLR = fex_getcolors(size(Y,2));
 
 % Get name for the image
 if isempty(fexObj(k).video)
-    if isempty(isempty(fexObj(k).name))
+    if isempty(fexObj(k).name)
         name = sprintf('plot %s',datestr(now,'HHMMSS'));
     else
         name  = fexObj(k).name;
