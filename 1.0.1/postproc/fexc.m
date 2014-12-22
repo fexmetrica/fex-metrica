@@ -847,7 +847,6 @@ function self = derivesentiments(self,m,emotrect)
 %
 %
 % See also SENTIMENTS. 
- 
 
 
 % Set some shared information
@@ -909,8 +908,9 @@ if exist('emotrect','var')
     end
 end
 self(k).sentiments = self(k).sentiments(I,:);
-
 end
+% Update descriptive statistics
+self.descriptive();
 end
 
 % *************************************************************************
