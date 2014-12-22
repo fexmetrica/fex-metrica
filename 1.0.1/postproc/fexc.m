@@ -38,7 +38,7 @@ classdef fexc < handle
 % SPATIAL PROCESSING: 
 % coregister - Register face boxes to average face video location.
 % falsepositive	- Detect false alarms in FEXC.functional.
-% motioncorrect	- [STACKED][... ...]
+% motioncorrect	- Remove motion related artifact using regression.
 %
 % TEMPORAL PROCESSING:
 % interpolate - Interpolate timeseries & manages NaNs.  
@@ -1169,54 +1169,103 @@ end
 % *************************************************************************                          
 % *************************************************************************   
 
-    function self = motioncorrect(self)
-    %
-    % -----------------------------------------------------------------
-    % 
-    % Correction for artifacts due to motion.
-    % 
-    % -----------------------------------------------------------------
-    %
+function self = motioncorrect(self,varargin)
+%
+% MOTIONCORRECT identifies and removes pose related artifacts.
+%
+% SYNTAX:
+%
+% self.MOTIONCORRECT()
+% self.MOTIONCORRECT(thrs,'-whiten')
+%
+% MOTIONCORRECT uses regression to remove artifacts due to motion. The
+% absolute value from the three POSE variables (roll, pitch, and yaw) and a
+% constant term are used as independent variables in the regression. A set
+% of coefficients is estimated for each emotion and action unit
+% independently. The residuals from the regression are used as new emotion
+% variables.
+%
+% OPTIONAL ARGUMENTS:
+%
+% -  THRS: a scalar, indicating the absolute Pearson correlation
+%    coefficient used to select the independent variables to use in the
+%    regression. No pose feature with absolute PCC smaller than the
+%    provided threshold is included**. Default |r| = 0.25.
+%
+% - '-WHITHEN': a string indicating whether the POSE features are
+%   gonna be pre-whitened before running the regression. Default: '-none'.
+%   Option for whithening is '-whithen'.
+%
+%
+% [**] Regardless of the magnitude, no variable is included if it does not
+% correlates significantly with the emotion/au in processed.
+%
+%
+% See also FEX_WHITENING, UPDATE, DERIVESENTIMENTS.
+%
+% NOTE: this method is underconstruction, and a motion correction object is
+% under development.
 
-    h = waitbar(0,'Motion correction...');
 
-    for k = 1:length(self)
-    fprintf('Correcting fexc %d/%d for motion artifacts.\n',k,length(self));
-    % Get Pose info
-    X = self(k).get('pose','double');
-    ind  = ~isnan(sum(double(self(k).functional),2)) & ~isnan(sum(X,2));
-    Y = double(self(k).functional(ind,:));
-
-    % Add constant, use pose absolute values, and make pose components
-    % indepependent.
-    X = [ones(sum(ind),1), fex_whiteningt(abs(X(ind,1:3)))];
-
-    % Set space for new data
-    R = nan(length(ind),size(Y,2));
-
-    % Residual method
-    for i = 1:size(Y,2);
-    % Include only features significantly correlated
-        [rind,pind] = corr(X(:,2:end),Y(:,i));
-        idxpose  = [true,pind'<= 0.05 & abs(rind') >= 0.5];
-        [b,~,r] = regress(Y(:,i),X(:,idxpose));
-        % Add constant back
-        R(ind == 1,i) = r + b(1);
+args = struct('thrs',0.25,'normalize','-none');
+if ~isempty(varargin)
+    ind1 = cellfun(@isnumeric,varargin);
+    ind2 = cellfun(@ischar,varargin);
+    % Pearcon correlation threshold
+    if sum(ind1) == 1
+        args.thrs = abs(varargin{ind1});
     end
-
-    % Update functional field and re-derive sentiments from new data in
-    % case you had a sentiment field.
-    R(ind == 0,:) = nan;
-    self(k).update('functional',R);
-    if ~isempty(self(k).sentiments)
-        self(k).derivesentiments();
+    % Whitening the data ?
+    if sum(ind2) == 1
+        args.normalize = varargin{ind2};
     end
+end
+        
+   
+h = waitbar(0,'Motion correction...');
 
-    waitbar(k/length(self),h);
-    end
+for k = 1:length(self)
+fprintf('Correcting fexc %d/%d for motion artifacts.\n',k,length(self));
+% Get Pose info
+X = self(k).get('pose','double');
+ind  = ~isnan(sum(double(self(k).functional),2)) & ~isnan(sum(X,2));
+Y = double(self(k).functional(ind,:));
 
-    delete(h);
-    end
+% Add constant, use pose absolute values, and make pose components
+% indepependent if required.
+switch lower(args.normalize)
+    case {'-whiten','whiten'}
+        X = [ones(sum(ind),1), fex_whiteningt(abs(X(ind,1:3)))];
+    otherwise
+        X = [ones(sum(ind),1), abs(X(ind,1:3))];
+end
+
+% Set space for new data
+R = nan(length(ind),size(Y,2));
+
+% Residual method
+for i = 1:size(Y,2);
+% Include only features significantly correlated
+    [rind,pind] = corr(X(:,2:end),Y(:,i));
+    idxpose  = [true,pind'<= 0.05 & abs(rind') >= args.thrs];
+    [b,~,r] = regress(Y(:,i),X(:,idxpose));
+    % Add constant back
+    R(ind == 1,i) = r + b(1);
+end
+
+% Update functional field and re-derive sentiments from new data in
+% case you had a sentiment field.
+R(ind == 0,:) = nan;
+self(k).update('functional',R);
+if ~isempty(self(k).sentiments)
+    self(k).derivesentiments();
+end
+
+waitbar(k/length(self),h);
+end
+
+delete(h);
+end
 
 % *************************************************************************              
 % *************************************************************************   
