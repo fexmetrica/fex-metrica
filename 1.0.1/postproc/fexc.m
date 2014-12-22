@@ -468,6 +468,7 @@ X   = double(self(k).functional);
 X(repmat(self(k).naninfo.count >= rule,[1,size(X,2)])) = nan;
 self(k).functional = mat2dataset(X,'VarNames',hdr);
 end
+self.derivesentiments();
 end
 
 % *************************************************************************
@@ -922,7 +923,13 @@ end
     % average ... );        
 
     % Get mode fps, set kernel, and set indices
-    mfps = round(1/mode(diff(self.time.TimeStamps)));
+    
+    h = waitbar(0,'Downsampling ...');
+    
+    for k = 1:length(self)
+        waitbar(k/length(self),h);
+        fprintf('Downsampling FEXC: %d of %d.\n',k,length(self));
+    mfps = round(1/mode(diff(self(k).time.TimeStamps)));
     nfps = round(mfps/fps);
     nfps = nfps + 1-mod(nfps,2);
     if nfps < 2
@@ -932,7 +939,7 @@ end
     kk2 = ones(nfps,1)./nfps;
 
     % Interpolate data first to mfps & Convolve
-    [ndata,ntsp,nfr,nan_info] = fex_interpolate(self.functional,self.time.TimeStamps,mfps,Inf);
+    [ndata,ntsp,nfr,nan_info] = fex_interpolate(self(k).functional,self(k).time.TimeStamps,mfps,Inf);
     idx = ceil(nfps/2):ceil(nfps/2):size(ndata,1);
     % ndata  = convn(ndata,kk1,'same');
     ndata    = convn(ndata,kk2,'same');
@@ -944,8 +951,8 @@ end
     nan_info = nan_info(idx,:);
 
     % Interpolate structural data <-- Pose
-    Pose = self.get('pose');
-    [nsd,~,~] = fex_interpolate(Pose,self.time.TimeStamps,mfps,Inf);
+    Pose = self(k).get('pose');
+    [nsd,~,~] = fex_interpolate(Pose,self(k).time.TimeStamps,mfps,Inf);
     Pose = mat2dataset(nsd,'VarNames',Pose.Properties.VarNames);
 %         % nsd    = convn(nsd,kk1,'same');
 %         nsd     = convn(nsd,kk2,'same');
@@ -953,39 +960,40 @@ end
 
 
     % Update functional and structural data
-    self.structural = self.structural(nfr,:);
+    self(k).structural = self(k).structural(nfr,:);
     for i = Pose.Properties.VarNames
-        self.structural.(i{1}) = Pose.(i{1})(idx);
+        self(k).structural.(i{1}) = Pose.(i{1})(idx);
     end
 %         self.structural = mat2dataset(nsd(idx,:),'VarNames',...
 %             self.structural.Properties.VarNames);
-    self.functional = mat2dataset(ndata,'VarNames',...
-        self.functional.Properties.VarNames);
+    self(k).functional = mat2dataset(ndata,'VarNames',...
+        self(k).functional.Properties.VarNames);
 
     % Update timestamp information
-    self.time = self.time(nfr,:);
-    self.time(:,{'OldTime'}) = mat2dataset(self.time.TimeStamps);
-    self.time.TimeStamps = ntsp;
-    self.time.StrTime = fex_strtime(self.time.TimeStamps);
+    self(k).time = self(k).time(nfr,:);
+    self(k).time(:,{'OldTime'}) = mat2dataset(self(k).time.TimeStamps);
+    self(k).time.TimeStamps = ntsp;
+    self(k).time.StrTime = fex_strtime(self(k).time.TimeStamps);
 
     % Update naninformation
-    self.naninfo = mat2dataset(...
-        [nan_info,self.naninfo.falsepositive(nfr)],...
+    self(k).naninfo = mat2dataset(...
+        [nan_info,self(k).naninfo.falsepositive(nfr)],...
         'VarNames',{'count','tag','falsepositive'});
 
     % Update coregparam if they exists
-    if ~isempty(self.coregparam)
-        self.coregparam = self.coregparam(nfr,:);
+    if ~isempty(self(k).coregparam)
+        self(k).coregparam = self(k).coregparam(nfr,:);
     end
 
     % Update design if it exists
-    if ~isempty(self.design)
-        self.design = self.design(nfr,:);
+    if ~isempty(self(k).design)
+        self(k).design = self(k).design(nfr,:);
     end 
 
     % Update Sentiments
-    self.derivesentiments();
-
+    self(k).derivesentiments();
+    end
+    delete(h);
     end
 
 % *************************************************************************
@@ -1804,6 +1812,7 @@ else
     self(1).update('functional',X);
     self(1).tempkernel = kr;
     for k = 2:length(self)
+    fprintf('Temporal filtering FEXC: %d/%d.\n',k,length(self));
     % Proceed to stacked FEXC    
     X = double(self(k).functional);
     T = self(k).time.TimeStamps;
