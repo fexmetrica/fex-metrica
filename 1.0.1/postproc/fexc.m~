@@ -1027,7 +1027,7 @@ for k = 1:length(self)
     tempnaninfo = cat(2,tempnaninfo,fp(idx));
     self(k).naninfo = mat2dataset(tempnaninfo,'VarNames',{'count','tag','falsepositive'});
     % Apply new nans based on argument RULE
-    self(k).nanset(max(round(nfps*(1-rule)),1));
+    self(k).nanset(round(nfps*(1-rule)));
 end
 self(k).derivesentiments();
 self(k).descriptives();
