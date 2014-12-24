@@ -506,7 +506,7 @@ end
 % Reinitialization loop
 for k = 1:length(self)
     % Overwrite public properies
-    for p = [properties(self(k))','descrstats'];
+    for p = [properties(self(k))','descrstats','naninfo'];
         self(k).(p{1}) = self(k).history.original.(p{1});
     end
     % Overwrite private properties
@@ -633,11 +633,12 @@ switch lower(ReqArg)
             X  = cat(1,X,self(k).structural(:,{'Roll','Pitch','Yaw'})); 
         end
     case fieldnames(self(1).descrstats)
-        if isempty(self(1).descrstats.(ReqArg))
-        % Compute descriptives if they are missing. Note that the
-        % computation here is applied to self(1), ... , self(K).
-            self.descriptives();
-        end
+%         if isempty(self(1).descrstats.(ReqArg))
+%         % Compute descriptives if they are missing. Note that the
+%         % computation here is applied to self(1), ... , self(K).
+%             self.descriptives();
+%         end
+        self.descriptives();
         % look for global or local varibles.
         if strcmpi(Spec,'-global')
             k = strcmpi(ReqArg,self(1).descrstats.glob.Properties.ObsNames);
@@ -926,8 +927,7 @@ if exist('emotrect','var')
 end
 self(k).sentiments = self(k).sentiments(I,:);
 end
-% Update descriptive statistics
-self.descriptives();
+
 end
 
 % *************************************************************************
@@ -983,51 +983,54 @@ end
 h = waitbar(0,'Downsampling ...');
 
 for k = 1:length(self)
-    waitbar(k/length(self),h);
-    fprintf('Downsampling fexc onject: %d of %d.\n',k,length(self));
     % set up parameters: modal frame rate
     mfps = round(1/mode(diff(self(k).time.TimeStamps)));
     % size of the box used for convolution (Note: this is forced to be odd
     % I NEED TO UPDATE THE CODE).
     nfps = round(mfps/fps);
     nfps = nfps + 1-mod(nfps,2);
+    waitbar(k/length(self),h);
+    fprintf('Downsampling fexc onject: %d of %d.\n',k,length(self));
     if nfps < 2
-        error('Downsampling from %.2f to %.2f',mfps,fps);
-    end
+    % Switch to INTERPOLATE (RULE is transformed in number of acceptable
+    % NaN-frames per second).
+        warning('Actual (%.2f fps) <= Required (%.2f fps). Using method INTERPOLATE.',mfps,fps);
+        self(k).interpolate('fps',fps,'rule',max(round(nfps*(1-rule)),1));
+    else
     % Set up the kernel (box kernel).
-    kk2 = ones(nfps,1)./nfps;
+        kk2 = ones(nfps,1)./nfps;
+        % Interpolate data first to mfps & Convolve
+        self(k).interpolate('fps',mfps,'rule',inf);
+        % Set up a set of indices for nans
+        I = conv(double(self(k).naninfo.count > 0),kk2,'same');
+        % Grab indices for the center of the convolution (CHECK THIS);
+        idx = ceil(nfps/2):nfps-1:size(I,1);
+        % Convolve functional data and Pose -- YOU NEED TO FIX THE POSE
+        % ARGUMENT.
+        self(k).update('functional',convn(double(self(k).functional),kk2,'same'));
+        Pose  = self(k).get('pose');
+        PoseName = Pose.Properties.VarNames;
+        self(k).structural(:,PoseName) = mat2dataset(convn(double(Pose),kk2,'same'),'VarNames',PoseName);
 
-    % Interpolate data first to mfps & Convolve
-    self(k).interpolate('fps',mfps,'rule',inf);
-    % Set up a set of indices for nans
-    I = conv(double(self(k).naninfo.count > 0),kk2,'same');
-    % Grab indices for the center of the convolution (CHECK THIS);
-    idx = ceil(nfps/2):ceil(nfps/2):size(I,1);
-    % Convolve functional data and Pose -- YOU NEED TO FIX THE POSE
-    % ARGUMENT.
-    self(k).update('functional',convn(double(self(k).functional),kk2,'same'));
-    Pose  = self(k).get('pose');
-    PoseName = Pose.Properties.VarNames;
-    self(k).structural(:,PoseName) = mat2dataset(convn(double(Pose),kk2,'same'),'VarNames',PoseName);
-
-    % Update matrix shapes (I DON'T WANT TO CHANGE STRUCTURAL and
-    % COREGPARAM).
-    PropNames = {'functional','time','structural','coregparam','design'};
-    for j = PropNames
-    % Check that the fields exist.
-        if ~isempty(self(k).(j{1}))
-            self(k).(j{1}) = self(k).(j{1})(idx,:);
+        % Update matrix shapes (I DON'T WANT TO CHANGE STRUCTURAL and
+        % COREGPARAM).
+        PropNames = {'functional','time','structural','coregparam','design'};
+        for j = PropNames
+        % Check that the fields exist.
+            if ~isempty(self(k).(j{1}))
+                self(k).(j{1}) = self(k).(j{1})(idx,:);
+            end
         end
+        self(k).time.StrTime = fex_strtime(self(k).time.TimeStamps);
+        % Update naninfo and apply naninfo rule [TO BE TESTED]
+        tempnaninfo = round(nfps*I(idx));
+        tempnaninfo = cat(2,tempnaninfo,bwlabel(tempnaninfo));
+        fp = conv(self(k).naninfo.falsepositive,(kk2*nfps));
+        tempnaninfo = cat(2,tempnaninfo,fp(idx));
+        self(k).naninfo = mat2dataset(tempnaninfo,'VarNames',{'count','tag','falsepositive'});
+        % Apply new nans based on argument RULE
+        self(k).nanset(max(round(nfps*(1-rule)),1));
     end
-    self(k).time.StrTime = fex_strtime(self(k).time.TimeStamps);
-    % Update naninfo and apply naninfo rule [TO BE TESTED]
-    tempnaninfo = round(nfps*I(idx));
-    tempnaninfo = cat(2,tempnaninfo,bwlabel(tempnaninfo));
-    fp = conv(self(k).naninfo.falsepositive,(kk2*nfps));
-    tempnaninfo = cat(2,tempnaninfo,fp(idx));
-    self(k).naninfo = mat2dataset(tempnaninfo,'VarNames',{'count','tag','falsepositive'});
-    % Apply new nans based on argument RULE
-    self(k).nanset(max(round(nfps*(1-rule)),1));
 end
 self(k).derivesentiments();
 self(k).descriptives();
