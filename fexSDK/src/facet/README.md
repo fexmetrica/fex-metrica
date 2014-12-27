@@ -16,7 +16,8 @@ This module comprises two subdirectories:
  * matlab;
  * cppdir.
  
- The "matlab" directories comprises functions and objects which allow to call some of FACET functionalities from matlab. Instead, "cppdir" contains two version of .cpp files, which call FACET SDK directly. Currently there are two versions:
+
+The "matlab" directory comprises functions and objects which allow to call some of FACET functionalities from matlab. Instead, "cppdir" contains two version of .cpp files, which call FACET SDK directly. Currently there are two versions:
  
  
  * linux - [obsolete] developed for FACET SDK v2.3 (January 2014) on Ubuntu;
@@ -26,9 +27,8 @@ This module comprises two subdirectories:
 
 Installation
 ===========
- 
-'''
+
+From a terminal, go in the src/facet directory and type:
 
 >> chmod +x install.ss && sh install.sh
 
-''' 
