@@ -27,7 +27,8 @@ Installation
 From a terminal, go in the src/facet directory and type:
 
 ```
-chmod +x install.ss && sh install.sh
+
+> chmod +x install.ss && sh install.sh
 
 ```
 
