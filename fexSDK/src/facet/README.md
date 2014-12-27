@@ -11,3 +11,24 @@ Requirements
 
 In order to run FexFacetUtil you need to have Matlab installed on your computer. Additionally, the Emotient SDK needs to be already installed alongside OpenCV (as indicated in the Emotient SDK manual).
 
+This module comprises two subdirectories:
+
+ * matlab;
+ * cppdir.
+ 
+ The "matlab" directories comprises functions and objects which allow to call some of FACET functionalities from matlab. Instead, "cppdir" contains two version of .cpp files, which call FACET SDK directly. Currently there are two versions:
+ 
+ 
+ * linux - [obsolete] developed for FACET SDK v2.3 (January 2014) on Ubuntu;
+ * osx - developed for FACET SDK v4.0 (December 2014) on OS X.
+ 
+===========
+
+Installation
+===========
+ 
+'''
+
+>> chmod +x install.ss && sh install.sh
+
+''' 
