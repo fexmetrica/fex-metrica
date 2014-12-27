@@ -28,7 +28,7 @@ From a terminal, go in the src/facet directory and type:
 
 ```
 
-> chmod +x install.ss && sh install.sh
+>> chmod +x install.sh && sh install.sh
 
 ```
 
@@ -37,3 +37,9 @@ Example
 ===========
 
 ...
+
+===========
+Comments
+===========
+
+The Linux version of the code .cpp code is outdated. The OS X version is under development. 
