@@ -5,7 +5,6 @@ FexMetrica FACET wrapper
 This code is a Matlab (www.mathworks.com) toolbox that wraps some of the functionalities of the FACET SDK (http://www.emotient.com), and it is included in “FexMetrica” (Filippo Rossi, www.github.com).
 
 ===========
-
 Requirements
 ===========
 
@@ -15,20 +14,25 @@ This module comprises two subdirectories:
 
  * matlab;
  * cppdir.
- 
 
-The "matlab" directory comprises functions and objects which allow to call some of FACET functionalities from matlab. Instead, "cppdir" contains two version of .cpp files, which call FACET SDK directly. Currently there are two versions:
- 
- 
+The "matlab" directory comprises functions and objects which allow to call some of FACET functionalities from matlab. "cppdir" contains .cpp files, which call FACET SDK directly. Currently there are two versions, one for Ubuntu (obsolete), and one for OS X:
+
  * linux - [obsolete] developed for FACET SDK v2.3 (January 2014) on Ubuntu;
  * osx - developed for FACET SDK v4.0 (December 2014) on OS X.
- 
-===========
 
+===========
 Installation
 ===========
 
 From a terminal, go in the src/facet directory and type:
 
->> chmod +x install.ss && sh install.sh
+```
+chmod +x install.ss && sh install.sh
 
+```
+
+===========
+Example
+===========
+
+...
