@@ -24,11 +24,11 @@ The "matlab" directory comprises functions and objects which allow to call some 
 Installation
 ===========
 
-From a terminal, go in the src/facet directory and type:
+From a terminal, go in the src/facet/osx directory and type:
 
 ```
 
-chmod +x install.sh && sh install.sh
+cmake -G "Unix Makefiles" && make
 
 ```
 
