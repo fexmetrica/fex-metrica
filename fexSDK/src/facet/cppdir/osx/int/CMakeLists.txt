@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0)
 cmake_policy(SET CMP0015 NEW)
 find_package(OpenCV)
 
-set(FACETMAIN "/Users/filippo/src/emotient/Dec2014/FACET/FacetSDK")
+set(FACETMAIN "/Users/filippo/Documents/Emotient/Emotient/FACET/FacetSDK")
 
 if (OpenCV_FOUND)
 

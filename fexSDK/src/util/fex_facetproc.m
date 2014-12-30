@@ -1,4 +1,4 @@
-function Y = fex_facetproc(list,varargin)
+function [Y,h] = fex_facetproc(list,varargin)
 %
 % FEX_FACETPROC calls FACET SDK executable file to process videos
 %
@@ -35,7 +35,7 @@ if nargin == 0
 end
 
 % Locate executable file
-FACET_EXEC = which('video_2_json.cpp');
+FACET_EXEC = which('fexfacetexec.cpp');
 if isempty(FACET_EXEC)
     error('FACET executable not found.');
 else
@@ -81,8 +81,9 @@ end
 % Select videos and run preprocessing
 nlist = nlist(ind > 0,:);
 Y = nlist(:,2);
+h = cell(size(nlist,1),1);
 parfor k = 1:size(nlist,1)
-    h = system(sprintf('%s && %s -f %s -o %s',str,FACET_EXEC,nlist{k,1},Y{k}));
+    h{k} = system(sprintf('%s -f %s -o %s',FACET_EXEC,nlist{k,1},Y{k}));
 end
 
 
