@@ -11,14 +11,10 @@ classdef fexc < handle
 % name - String with the name of the participant;
 % video - Path to a video file;
 % videoInfo - Vector with information about a video;
-% outdir - Path to output directory;
 % functional - Dataset with facial expressions time series;
 % structural - Dataset with face morphology information;
 % sentiments - Inferred measures of positive or negative emotions;
-% baseline - Vector with baseline for the functional time series;
 % time - Dataset with frame by frame timestamps;
-% naninfo - Dataset with diagnostic information about the video;
-% diagnostics - Dataset diagnostic information about the video;
 % design - Matrix or dataset with design information.
 %
 % FEXC Methods:
