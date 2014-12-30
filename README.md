@@ -59,11 +59,11 @@ This guide applies to OS X only, and to Homebrew users (http://brew.sh). If you 
 If Homebrew is not already set up, install Homebrew from a terminal with the following command:
 
 
-'''
+```
 
 ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 
-'''
+```
 
 IMPORTANT: if you already use mac-ports (https://www.macports.org), don't use the command above, because it could cause conflicts. If you are willing to switch from mac-port to Homebrew, uninstall mac-ports with these commands: http://guide.macports.org/chunked/installing.macports.uninstalling.html.
 
@@ -71,63 +71,59 @@ IMPORTANT: if you already use mac-ports (https://www.macports.org), don't use th
 After Homebrew is set up, do the following:
 
 
-'''
+```
 
 brew update
 brew tap homebrew/science
 brew install cmake, jsoncpp
 sudo ln -s /usr/local/include/jsoncpp/json /usr/local/include/json
 
-'''
+```
 
 Now you need to install ffmpeg and opencv. If you haven't installed OpenCv when you installed the Emotient SDK, you need to do it now. You need to change the .rb file. In a terminal, run the following command:
 
 
-'''
+```
 
 brew edit opencv
 
-'''
+```
 
 This will open the opencv.rb file. Find the following lines in this file:
 
-'''
 
-jpeg = Formula["jpeg"]
-py_prefix = %x(python-config --prefix).chomp
-py_version = %x(python -c "import sys; print(sys.version)")[0..2]
+>> jpeg = Formula["jpeg"]
+>> py_prefix = %x(python-config --prefix).chomp
+>> py_version = %x(python -c "import sys; print(sys.version)")[0..2]
 
-'''
 
 After the "py_version ... " line, add the following lines:
 
-'''
 
-ENV.append "CXXFLAGS", "-stdlib=libstdc++"
-ENV.append "CFLAGS", "-stdlib=libstdc++"
-ENV.append "LDFLAGS", "-stdlib=libstdc++ -lstdc++"
-ENV["CXX"] = "/usr/bin/clang++ -stdlib=libstdc++"
+>> ENV.append "CXXFLAGS", "-stdlib=libstdc++"
+>> ENV.append "CFLAGS", "-stdlib=libstdc++"
+>> ENV.append "LDFLAGS", "-stdlib=libstdc++ -lstdc++"
+>> ENV["CXX"] = "/usr/bin/clang++ -stdlib=libstdc++"
 
-'''
 
 Now you need to install OpenCv. You can use the following command (which will also install several dependencies, including ffmpeg):
 
 
-'''
+```
 
 brew install --with-ffmpeg --build-from-source --fresh -vd homebrew/science/opencv
 
-'''
+```
 
 
 Now that all the dependencies are set up, you can install Fex-Metrica. Open Matlab, and navigate to the main Fex-Metrica directory. On the Matlab prompt type the following:
 
 
-'''
+```
 
 >> fexinstall
 
-'''
+```
 
 A UI will pop up, which will ask you to indicate the path for the FacetSDK directory -- this is the directory, which contains "facets", "include," "samples", and so on. Afterwords, the .cpp code from Fex-Metrica will be compiled and tested. "fexinstall.m" compiles the .cpp code from Fex-Metrica using the following command:
 
