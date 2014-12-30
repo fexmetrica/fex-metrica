@@ -17,7 +17,7 @@ FexMetrica includes three main modules:
 * FexViewer: This code can be used for visualization, and it displays statistics or raw data on images of faces. A manual is provided in the "FexView" folder.
 
 
-![alt text](http://filipporss.github.com/fex-metrica/master/manual/images/FexView-pic.tiff "Fex-Viewer")
+![alt text](http://filipporss.github.com/fex-metrica/master/manual/images/FexView-pic.jpg "Fex-Viewer")
 
 ===========
 INSTALLATION
