@@ -115,6 +115,13 @@ switch lower(filetype)
             fexObj = cat(1,fexObj,fexc('data',temp,'TimeStamps',temp.Time,'video',mov));
             fprintf('Created fexObject %d/%d.\n',i,size(filepath,1));
         end
+    case 'json'
+        for i = 1:size(filepath)
+            data = fex_jsonparser(deblank(filepath(i,:))); 
+            ds = struct2dataset(data);
+            [~,ind] = sort(ds.timestamp);
+            fexObj = cat(1,fexObj,fexc('data',ds(ind,:),'video',eblank(moviepath{i}),'TimeStamps',ds.timestamp));
+        end
     otherwise
     % Right now, only AZFile is supported
         error('File type not supported.');     
