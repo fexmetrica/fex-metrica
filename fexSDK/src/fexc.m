@@ -25,6 +25,7 @@ classdef fexc < handle
 % clone	- Make a copy of FEXC object(s), i.e. new handle.
 % reinitialize - Reinitialize the FEXC object to construction stage. 
 % update - Changes FEXC functional and structural datasets.
+% undo - retvert FEXC to previou state.
 % nanset - Reset NaNs after INTERPOLATE or DOWNSAMPLE are used.
 % getvideoInfo - Read general information about a video file. 
 % get - Shortcut to get subset of FEXC variables or properties [... ...].
@@ -198,28 +199,59 @@ function self = fexc(varargin)
 %
 % USAGE:
 %
-% fexObj = fexc('data', datafile);
-% fexObj = fexc('data', datafile, 'ArgNam1',ArgVal1,...);
-% fexObj = fexc(PpObj,'ArgNam1',ArgVal1,...)
+% fexObj = FEXC()
+% fexObj = FEXC('-interactive')                         [NOT IMPL.]
+% fexObj = FEXC(FEX_PPOC)                               [OBSOLETE] 
+% fexObj = FEXC('data', datafile)
+% fexObj = FEXC('data', datafile,'ArgNam1',ArgVal1,...)
+% fexObj = FEXC('video',videolist)
+% fexObj = FEXC('video',videolist,'ArgNam1',ArgVal1,...)
 %
-% See also FEX_IMPUTIL, FEXWSEARCHG.
+% Creates a FEXC object. There are three main methods to create a FEXC
+% object using this constructor:
 %
-% NOTE: THIS IS WORK IN PROGRESS.
+% (1) FEXC() creates an empty FEXC object, tow which you can add data and
+%     information using the method UPDATE.
+% (2) FEXC('-interactive') [NOT INTEGRATED YET] opens a UI that asks for
+%     the various arguments.
+% (3) FEXC('data', datafile) or FEXC('data',datafile,'ArNam',ArVal,..)
+%     creates a FEXC object that was already processed with the FACET SDK.
+% (4) FEXC('video',videolist) or FEXC('video',videolist,'ArNam',ArVal,...),
+%     creates the FEXC object when you have th videos, but you don't have
+%     them processed with FACET SDK yet. This method is only triggered when
+%     you enter 'video', but you don't enter 'data.'
+%    
+%
+% ARGUMENTS:
+%
+% data         - dataset used to specify FUNCTIONAL and STRUCTURAL
+%                properties.
+% video        - Path to a video file.
+% TimeStamps   - Vector of time stamps. This argument is not required. When
+%                it is not specified and it is not included in 'data,' it
+%                is left empty. Alternative, TimeStamps can be a scalar,
+%                which indicates the number of frames per second.
+% design       - Dataset with design information.
+% diagnostics  - Track_id variable from FACET SDK.
+% outdir       - Output directory for the results.
+%
+%
+% See also UPDATE, FEX_FACETPROC, FEX_IMPUTIL, FEXWSEARCHG.
 
-% Create empty fex object
-if isempty(varargin)
-   return 
-end
-% function to handle "varargin"
+
+% handle function to read "varargin"
 readarg = @(arg)find(strcmp(varargin,arg));
-% Test whether the first argument is fexppoc object and import
-% accordingly:
-if isa(varargin{1},'fexppoc')
-    % Add file information and fexfacet history
+
+% NO ARGUMENT PROVIDED
+if isempty(varargin)
+    return 
+% FIRST ARGUMENT IS A FEXPPOC OBJECT
+elseif isa(varargin{1},'fexppoc')
     self.video = varargin{1}.video;
     self.videoInfo = varargin{1}.videoInfo;
     temp = importdata(varargin{1}.facetfile);
-else
+% DATA ARE PROVIVED
+elseif ismember('data',varargin(1:2:end))
     % Grab information from varargin
     list = {'video','videoInfo'};
     ind = cellfun(readarg,list,'UniformOutput',false);
@@ -234,7 +266,6 @@ else
     if ~isempty(self.video) && isempty(self.videoInfo)
         self.getvideoInfo();
     end
-
     % Import the dataset                
     try 
         ind = find(strcmp(varargin,'data'));
@@ -248,12 +279,15 @@ else
             error('Dataset must contain a column header.');
         end
     catch errorId
-        % You didn't provide a dataset
-        warning('No fexfacet file provided: %s.\n',errorId.message);
-        temp.textdata = {'FrameNumber'};
-        temp.data     = nan;
+        % data input argument not recognized
+        warning('"data" argument not recognized: %s.\n',errorId.message);
     end
+else
+% ADD VIDEO ONLY CASE + JSON CONVERSION
+    return
 end
+
+
 % Add file data: Note that the heaeder needs to have the name
 % given by the fexfacet code (load a structure named 'hdrs')
 load('fexheaders.mat');
@@ -266,30 +300,47 @@ if isfield(temp,'textdata');
 else
   thdr = temp.colheaders(1,:);
 end
+
 % Add frames numbers & timestamps if provided (this get's added latter)
-self.time = mat2dataset(nan(size(temp.data,1),2),'VarNames',{'FrameNumber','TimeStamps'});
+% self.time = mat2dataset(nan(size(temp.data,1),2),'VarNames',{'FrameNumber','TimeStamps'});
+self.time = struct('FrameNumber',[],'TimeStamps',[],'StrTime',[]);
 if ismember(thdr,'FrameNumber')
     self.time.FrameNumber = temp.data(:,ismember(thdr,'FrameNumber'));
-end        
-indts = find(strcmp(varargin,'TimeStamps'));
+else
+    self.time.FrameNumber = nan;
+end
+
+% Add timestamps -- this can be part of data, or specified using
+% timestamps. If there is a timestamp-like field in data, but you specify
+% the 'TimeStamps' argument, the latter is used.
+indts = find(strcmpi(varargin,'TimeStamps'));
 if ~isempty(indts)
     t = varargin{indts+1};
     if length(t) == 1
+    % Assuming equally spaced timestamps
         n = length(self.time.TimeStamps);
         t = linspace(1/t,n/t,n)';
     end
     self.time.TimeStamps = t;
-    self.time(:,{'StrTime'}) = ...
-        mat2dataset(fex_strtime(self.time.TimeStamps));
+    % self.time(:,{'StrTime'}) = ...
+    % mat2dataset(fex_strtime(self.time.TimeStamps));
 else
-    warning('No TimeStamps provided.');
-end                
+    [~,indts] = ismember({'timestamp','timestamps','time'},lower(thdr));
+    if isempty(indts)
+        warning('No TimeStamps provided.');
+        self.time.TimeStamps = nan;
+    else
+        self.time.TimeStamps = temp.data(indts(1));
+    end
+end    
+
 % Add structural image information
 [~,ind] = ismember(hdrs.structural,thdr);
 if ~sum(ind)==0
     ind = ind(ind > 0);
     self.structural = mat2dataset(temp.data(:,ind),'VarNames',thdr(ind));
 end
+
 % Add functional image information
 [~,ind] = ismember(hdrs.functional,thdr);
 if ~sum(ind)==0
@@ -298,7 +349,7 @@ end
 
 % THIS NEEDS TO BE Updated ========================================
 % Add design information when provided as dataset
-ind = find(strcmp(varargin,'design'));
+ind = find(strcmpi(varargin,'design'));
 if ~isempty(ind) && isa(varargin{ind+1},'dataset')
     self.design = varargin{ind+1};
 elseif ~isempty(ind) && ~isa(varargin{ind+1},'dataset')
@@ -313,7 +364,7 @@ else
 end
 
 % Add diagnostic information
-ind = find(strcmp(varargin,'diagnostics'));
+ind = find(strcmpi(varargin,'diagnostics'));
 if ~isempty(ind)
     self.diagnostics = varargin{ind+1};
 end
@@ -357,16 +408,16 @@ if ~isnan(self.time.TimeStamps(1)) && isnan(self.time.FrameNumber(1))
     self.time = self.time(ind == 0,:);
 end
 
-% set emotions threshold
+% Convert time
+self.time.StrTime = fex_strtime(self.time.TimeStamps);
+self.time = dataset2struct(self.time);
+
+% Set some more properties
 self.thrsemo = 0;
-% Space for descriptive statistics: this can be access using get.
 self.descriptives();
-% self.descrstats = struct('hdrs',[],'N',[],'mean',[],'std',[],...
-%     'median',[],'q25',[],'q75',[],'glob',[],'globp',[]);
-
-
-% Initialize history
 self.history.original = self.clone();  
+self.history.prev = []; % Filed for "undu clone"  
+
 
 end
 
@@ -402,6 +453,41 @@ newself(k).coregparam  = self(k).coregparam;
 end
 
 end
+
+% *************************************************************************
+
+function self = undo(self)
+%    
+% UNDO revert to previous version of FEXC.
+% 
+% SYNTAX
+% self.UNDO()
+%
+% DESCRIPTION
+% UNDO can be use to revert to the version of FEXC before the last
+% operation.
+%
+% Note that ANNOTATIONS can NOT be undone. 
+%
+% See also CLONE, GET, ANNOTATIONS, REINITIALIZE.
+
+for k = 1:length(self)
+    if ~isempty(self(k).history.prev)
+    % Overwrite public properies
+    for p = [properties(self(k))','descrstats','naninfo'];
+        self(k).(p{1}) = self(k).history.prev.(p{1});
+    end
+    % Overwrite private properties
+    self(k).tempkernel  = self(k).history.prev.tempkernel;
+    self(k).thrsemo     = self(k).history.prev.thrsemo;
+    self(k).coregparam  = self(k).history.prev.coregparam;
+    else
+    warning('Nothing to undo ... ');
+    end
+end
+
+end
+
 
 % *************************************************************************
 
