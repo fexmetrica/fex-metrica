@@ -1,45 +1,54 @@
 function [N,scale] = fex_normalize(data,varargin)
 %
-% Usage:
-% N = fex_normalize(data)
-% N = fex_normalize(data,ArgName,ArgVal,...)
-% [N,scale] = = fex_normalize(...)
 %
-% input a datamatrix data, and fex_normalize output the matrix N normalized
-% along the 1st dimension. the structure 'scale,' contains information
-% about the scaling operation.
-%
-% Optional arguments:
-%
-%  'method': a string, between 'zscore' (default), 'center', '0:1', and
-%       '-1:1'. The functon either zscore the data, center them, or it
-%       scales them between the 0 and 1, or between -1 and 1.
-%
-%  'folds': A vector of the same length of data, with index marking
-%       different folds. Data will be scaled independently for each fold.
-%
-%  'outliers': a string that can be set to 'off' (default), or 'on'. When
-%       set to 'on', fex_normalize zscores the data, and identifies
-%       outliers. The values for the outliers is set to the maximum (or
-%       minimum) value of the remaining data. In case of zscore, maximum
-%       and minimum are set to the maximum (minimum) stand. deviations in
-%       the remamining data.
-%
-%  'threshold': a (positive) integer used as criterion to define outliers.
-%       Default is 2.5 standard deviations above/below the mean.
+% FEX_NORMALIZE normalizes time data using multiple approaches.
 %
 %
-% Note that scale.outliers contains indices for the outliers.
+% SYNTAX:
 %
-% _________________________________________________________________________
+% N = FEX_NORMALIZE(DATA)
+% N = FEX_NORMALIZE(DATA,ArgName1,ArgVal1,...)
+% [N,scale] = FEX_NORMALIZE(...)
 %
 %
-% Copiright: Filippo Rossi, Institute for Neural Computation, University
-% of California, San Diego.
+% When you input a matrix DATA, the output of FEX_NORMALIZE is a matrix N
+% normalized along the 1st dimension. the structure SCALE, contains
+% information about the scaling operation.
 %
-% email: frossi@ucsd.edu
+% OPTIONAL ARGUMENTS:
 %
-% Version: 04/14/14.
+% 'method' -  a string, which specifies the normalization procedure.
+%    Options include:
+%
+%    'zscore' - [default]: zscore the data;
+%    'center' - set the mean of the data to 0;
+%    '0:1' - scale the data between 0 and 1;
+%    '-1:1' - scales the data between -1 and 1.
+%
+% 'folds' - A vector of the same length of data, with index marking
+%    different folds. Data will be scaled independently for each fold.
+%
+% 'outliers' - a string that can be set to 'off' (default), or 'on'. When
+%    set to 'on', FEX_NORMALIZE zscores the data, and identifies outliers.
+%    The values for the outliers is set to the maximum (or minimum) value
+%    of the remaining data. In case of zscore, maximum and minimum are set
+%    to the maximum (minimum) stand. deviations in the remamining data. The
+%    required method is then applied.
+%
+% 'threshold' - a (positive) integer used as criterion to define outliers.
+%    Default is 2.5 standard deviations above/below the mean. When OUTLIERS
+%    is set to 'off', this argument is ignored.
+%
+%
+% NOTE: scale.outliers contains indices for the outliers.
+%
+%
+%
+% Copyright (c) - 2014 Filippo Rossi, Institute for Neural Computation,
+% University of California, San Diego. email: frossi@ucsd.edu
+%
+% VERSION: 1.0.1 14-Apr-2014.
+
 
 
 % Handle parameters

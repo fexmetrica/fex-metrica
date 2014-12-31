@@ -1,22 +1,28 @@
 function str = fex_strtime(sec,formatt)
 %
-% str = fex_strtime(sec)
 %
-% Transforms a double "sec", into a string "hh:mm:ss.msc." Alternatively,
-% transforms a string of the form "hh:mm:ss.msc" into a double. 
+% FEX_STRTIME converts double to string for time and viceversa.
 %
-% "sec" can be a char, a cell, a double, or a vector.
+% SYNTAX:
 %
-%
-%_______________________________________________________________________
+% str = FEX_STRTIME(SEC)
+% str = FEX_STRTIME(SEC,FORMATT)
 %
 %
-% Copiright: Filippo Rossi, Institute for Neural Computation, University
-% of California, San Diego.
+% SEC - If SEC is a double, FEX_STRTIME transforms the double SEC into a
+%   string "hh:mm:ss.msc." Alternatively, if SEC is a string, FEX_STRTIME
+%   converts the string "hh:mm:ss.msc" to a double.  SEC can be of class
+%   char, a cell, a double, or a vector.
 %
-% email: frossi@ucsd.edu
+% FORMAT - a string set to 'long' (default), or 'short.' When FORMAT is set
+%   to 'short,' the resulting output STR do not include hours or
+%   milliseconds -- i.e. str has the form "mm:ss."
 %
-% Version: 06/14/14.
+%
+% Copyright (c) - 2014 Filippo Rossi, Institute for Neural Computation,
+% University of California, San Diego. email: frossi@ucsd.edu
+%
+% VERSION: 1.0.1 14-Jun-2014.
 
 
 if nargin == 1

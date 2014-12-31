@@ -1,44 +1,49 @@
 function [data,cmd] = fex_robustimport(file,ExtraName)
 %
-% cmd = fex_robustimport(file)
 %
-% fex_robustimport.m tries to import "file" as a dataset using multiple
-% strategy. If the operation succeed, cmd is an handle to an anonimous
-% function that import as dataset files such as 'file.' Otherwise, a gui is
-% prompted for the user to write the syntax of the anonymous function to
+% FEX_ROBUSTIMPORT develops procedures to import datasets.
+%
+% SYNTAX:
+%
+% cmd = FEX_ROBUSTIMPORT(FILE)
+% cmd = FEX_ROBUSTIMPORT(FILE,EXTRANAME)
+%
+% FEX_ROBUSTIMPORT tries to import FILE as a Matlab dataset using multiple
+% strategies. If the operation succeeds, CMD is an handle to an anonimous
+% function that import files such as 'file' as datasets. Otherwise, a gui
+% is prompted for the user to write the syntax of the anonymous function to
 % use to import the data.
 %
-% The function handles:
+% FEX_ROBUSTIMPORT is meant to import three groups of files:
 %
 %       (1) .txt,.cvs,.xlm(s) files;
 %       (2) .mat files;
-%       (3) .jason files.
+%       (3) .jason files [NOT IMPLEMENTED YET].
 %
-% *************************************************************************
 %
-% Input:
+% ARGUMENTS:
 %
-%   "file" is the path to a file containing the desired data.
-%   "ExtraName" [OPTIONAL], the name of the variable in a .mat file with
-%           multiple variables, or the name of the sheet in an Excel
-%           (.xls,.xlsx) file.
+% FILE - a string with the path to a file containing the desired data.
+% ExtraName - [OPTIONAL], the name of the variable in a .mat file with
+%        multiple variables, or the name of the sheet in an Excel
+%        (.xls,.xlsx) file.
 %
-% Output:
+% OUTPUT:
 %
-%   "data" is the imported dataset;
-%   "cmd" is an anonymous function, s.t.:
+% DATA - is the imported dataset;
+% CMD -  is an anonymous function, s.t.:
 %
-%   >> data = cmd(file);
+%        >> data = cmd(file);
 %
-%__________________________________________________________________________
-% 
 %
-% Copiright: Filippo Rossi, Institute for Neural Computation, University
-% of California, San Diego.
+% See also FEX_JSONPARSER, FEXIMPORTDG.
 %
-% email: frossi@ucsd.edu
 %
-% Version: 08/07/14.
+%
+% Copyright (c) - 2014 Filippo Rossi, Institute for Neural Computation,
+% University of California, San Diego. email: frossi@ucsd.edu
+%
+% VERSION: 1.0.1 7-Aug-2014.
 
 
 % Get file when not provided

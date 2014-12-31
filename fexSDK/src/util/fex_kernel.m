@@ -1,76 +1,79 @@
 function [kk,tvrg,Q] = fex_kernel(type,window_size,varargin)
 %
-% Usage:
-%   kk = fex_kernel(type,window_size)
-%   kk = fex_kernel(type,window_size,varargin_name, vargin_val,...)
-%   [kk,tvrg] = fex_kernel(...)
-%   [kk,tvrg,Q] = fex_kernel(...)
 %
-% This function computes kernel specified in "type," of length specified in
-% "window_size."
+% FEX_KERNEL generates commonly used kernel vector.
 %
-% Input:
-% (1) type: a string that specify the shape of the kernel. Implemented
-%     shapes are: Box, hrf (double-gamma), e-decay (exponential decay),
-%     Gamma, Gaussian, Linear, Sigmoid and U-shaped.
 %
-% (2) window_size: a scalar which indicates the size of the kernel in
+% SYNTAX:
+%
+%   kk = FEX_KERNEL(TYPE,WINDOW_SIZE)
+%   kk = FEX_KERNEL(...,'ArgName1',ArgVal1,...)
+%   [kk,tvrg] = FEX_KERNEL(...)
+%   [kk,tvrg,Q] = FEX_KERNEL(...)
+%
+%
+% FEX_KERNEL computes kernel specified by the string TYPE with length
+% specified by WINDOW_SIZE.
+%
+%
+% ARGUMENTS:
+%
+% TYPE - a string that specify the shape of the kernel. Implemented
+%     shapes are: box, hrf (double-gamma), e-decay (exponential decay),
+%     gamma, gaussian, linear, sigmoid and u-shaped.
+%
+% WINDOW_SIZE - a scalar which indicates the size of the kernel in
 %     datapooints. Alternative window_size is a vector with components
 %     [sampling_rate,sec], and that the number of points in the kernel is
-%     set to sampling_rate*sec. NOTE: for some function, the parameters
+%     set to sampling_rate*sec.
+%     
+%     NOTE: for some function, the parameters
 %     will affect winodw size, so window_size is accomodated to adjust the
 %     required shape.
 %
-% Optional Arguments:
-%   -- param: this is a vector specifing optional parameters for the shape.
+% OPTIONAL ARGUMENTS:
+%
+% param -  this is a vector specifing optional parameters for the shape.
 %      Note that different shapes have different parameterization. A list
 %      is giveb below:
 %
-%      Box: No extra parameters besides the size of the box.
-%      Hrf: This is a double gamma, analogous to the hemodimanimc response
-%           function used in fMRI. Not properly parameterized.
-%      e-decay: Exponential decay. Not properly parameterized.
-%      Gamma: gamma pdf function. Not properly parameterized.
-%      Gaussian: one parameter for standard deviation (default is 1).
-%      Linear: one patameter for the slope (default is 1). Note that if the
-%              parameter is different from +-1, the size of the window is
-%              modify accordingly: namely window_size =
-%              round(window_size/abs(param))
-%      Sigmoid: sigmoid function. Not properly parameterized.
-%      U-shaped: 1 parameter (default set to 1) for the curvature of teh
-%              kernel. window_size is affected.
+%    - Gaussian: one parameter for standard deviation (default is 1).
+%    - Linear: one patameter for the slope (default is 1). Note that if the
+%      parameter is different from +-1, the size of the window is modify
+%      accordingly: namely window_size = round(window_size/abs(param))
+%    - Sigmoid: sigmoid function. Not properly parameterized.
+%    - U-shaped: 1 parameter (default set to 1) for the curvature of the
+%      kernel. window_size is affected.
 %
-%   -- center: 0 or 1. If 1 the kernel is centered. Namely, after computing
+% center - 0 or 1. If 1 the kernel is centered. Namely, after computing
 %      kk, the function output is kk - mean(kk). By default center = 0, and
 %      the kernel are constructded so that sum(kk) = 1, which makes the
 %      kernel suitable for computnig running means.
 %
-%   -- expand: 0 or N. If expand is set to N, fex_kernel compiles the
-%      output Q. Q is a (N + length(kk)-1) *  N matrix, compiled in such a way
+% expand - 0 or N. If expand is set to N, FEX_KERNEL compiles the output Q.
+%      Q is a (N + length(kk)-1) *  N matrix, constructed in such a way
 %      that each column contains zeros and a copy of kk. Furthermore the
 %      position of kk is shifted down of one place in each column. So
 %      Q(:,1) = [kk; 0; ...] and Q(:,2) = [0; kk; 0; ...], where dots
 %      indicate more zeros. If you set N to be the length of your signal
 %      timeseries S (N*1), then the full convolution (in matlab:
-%      conv(S,kk,'full')) is given by: 
+%      conv(S,kk,'full')) is given by:
 %   
-%      conv_signal = Q*S;
+%      >> conv_signal = Q*S;
 %
-% Output:
-%   kk: the kernel;
-%   tvrg: parameters used to construct the kernel.
-%   Q:  the (N + length(kk)-1) *  N matrix, s.t. Q*S returns the full
-%       convolution of the signal S and the kernel kk.
-% _________________________________________________________________________
+% OUTPUT:
+%
+% KK -  a vector with the kernel;
+% TVRG - parameters used to construct the kernel;
+% Q - the (N + length(kk)-1) *  N matrix, s.t. Q*S returns the full
+%     convolution of the signal S and the kernel KK.
 %
 %
-% Copiright: Filippo Rossi, Institute for Neural Computation, University
-% of California, San Diego.
 %
-% email: frossi@ucsd.edu
+% Copyright (c) - 2014 Filippo Rossi, Institute for Neural Computation,
+% University of California, San Diego. email: frossi@ucsd.edu
 %
-% Version: 03/15/14.
-
+% VERSION: 1.0.1 15-Mar-2014.
 
 tvrg = {'param',[],'center',0,'expand',0};
 for i = 1:2:length(varargin)

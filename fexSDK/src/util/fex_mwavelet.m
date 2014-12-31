@@ -1,12 +1,17 @@
 function filt = fex_mwavelet(varargin)
 %
 %
-% filt = fex_mwavelet('ArgName',argVal,...,'data',data)
-% filt = fex_mwavelet('ArgName',argVal,...)
-% filt = fex_mwavelet(filt,'data',data)
+% FEX_MWAVELET generates a set of complex Morelet wavelets and uses them to
+% convolve data.
 %
-% This function constructs a bank of complex Morelet wavelets and it applies
-% it to a dataset, if a dataset is provided. You can use the function in
+% SYNTAX:
+%
+% filt = FEX_MWAVELET('ArgName1',argVal1,...)
+% filt = FEX_MWAVELET('ArgName1',ArgVal1,...,'data',data)
+% filt = FEX_MWAVELET(filt,'data',data)
+%
+% FEX_MWAVELET constructs a bank of complex Morelet wavelets and it applies
+% them to a dataset, if a dataset is provided. You can use the function in
 % three ways:
 %
 % 1) To create Morelet wavelets and filter the data, in which case you
@@ -15,76 +20,72 @@ function filt = fex_mwavelet(varargin)
 % 2) To crete the Morelet wavelets only -- in this case you don't need to
 %    provide data, but you still need to specify the wavelets properties.
 % 3) To apply a the Morelet wavelet to a dataset when you have already
-%    constructed the wavelet -- i.e. you run fex_mwavelet as in option 2).
-%    In this case the first argument needs to be the structure filt, and
-%    the second argument is: 'data',data, as in:
+%    constructed the wavelet. In this case the first argument needs to be
+%    the structure filt, and the second argument is: 'data',data, as in:
 %
 %    >> filt = fex_mwavelet(filt,'data',data)
 %
-% Input (prop.name/prop.value pairs):
+% ARGUMENTS ('ArgName1',argVal1)
 %   
-%   'time': time is a vector with the support for the wavelets. It is
-%       important that: time is set to the same sampling rate of the data; and
-%       time is long enough for the wavelet to taper to zero.
+% time - a vector with the support for the wavelets. It is important that:
+%       time is set to the same sampling rate of the data; and time is long
+%       enough for the wavelet to taper to zero.
 %
-%    'frequencies': a vector with the frequencies in Hz that you want to
-%       explore.
+% frequencies - a vector with the frequencies in Hz that you want to be
+%       explored.
 %
-%    'bandwidth': a vector with the number of cycles for the Gaussian
-%       envelope.
+% bandwidth - a vector with the number of cycles for the Gaussian envelope.
 %
-%    'constant': a string, set to either 'off' or 'on' (default). When it
-%       is set to 'on', the function constructs a wavelet for each
-%       combination of frequency and bandwidth. When it is set to 'off',
-%       the vectors 'bandwidth' and 'frequency' need to have the same length,
-%       and the function constructs a wavelet for each pair <bandwidth(i),
-%       frequencies(i)>. Note that if the length of 'bandwith' is different
-%       from the length of 'frequency', bandwidth is set to 
+% constant - a string, set to 'off' or 'on' (default). When it is set to
+%       'on', FEX_MWAVELET constructs a wavelet for each combination of
+%       frequency and bandwidth. When CONSTANT is set to 'off.' The vectors
+%       'bandwidth' and 'frequency' need to have the same length, and the
+%       function constructs a wavelet for each pair {bandwidth(i),
+%       frequencies(i)}. Note that if the length of 'bandwith' is different
+%       from the length of 'frequency', bandwidth is set to
 %
 %       >> linspace(min(bandwidth),max(bandwidth),length(frequencies)).
 %
-%    'hann': a string, set to either 'off' (default) or 'on'. If it is
-%       set to on, the data are hann-tepered. NOT IMPLEMENTED YET.
+% hann - [NOT IMPLEMENTED] a string, set to either 'off' (default) or 'on'.
+%       If it is set to on, the data are tepered.
 %
-%    'data': a N*K matrix, where N is time and K is the number of features
+% data - a N*K matrix, where N is time and K is the number of features
 %       collected (i.e. each column of data is a separate variable).
 %
-% The output 'filt' is a structure which contains the argument you
-% specified to generate the filter, namely time, frequency, bandwidth, hann
-% and constant. If you also enter the data, filt contains a field with the data.
+% 
+% OUTPUT:
 %
-% Additionally, filt contains a field labeled 'wavelets'. Wavelets is a
+% The output FILT is a structure which contains the arguments you specified
+% to generate the filter, namely time, frequency, bandwidth, hann and
+% constant. If you also enter the data, FILT includes a field with the
+% data.
+%
+% Additionally, FILT contains a field labeled 'wavelets'. Wavelets is a
 % structure which contains:
 %   
-%      filt.wavelets.W: Matrix with the wavelets. It's dimension is:
-%        time*frequency*cycles.
-%      filt.wavelets.A: Matrix with wavelets amplitude spectrum; it's
-%        dimension is: Hz*frequency*cycles.
-%      filt.wavelets.Hz: A vector with the Hz corrispinding to each row of
-%        filt.wavelets.A.
+% W  -  Matrix with the wavelets. It's dimension is time*frequency*cycles.
+% A  -  Matrix with wavelets amplitude spectrum; it's dimension is
+%       Hz*frequency*cycles.
+% Hz -  A vector with the Hz corrispinding to each row of A.
 %
-% When you include the data, the function convolves the data with the
-% wavelets, and filt wil contain a field labeled 'analytics':
+% When the argument 'data' is specified, the FEX_MWAVELET convolves the
+% data with the wavelets, and the output FILT will also contain a field
+% labeled 'analytics.' ANALYTICS is a structure with fields:
 %
-%   filt.analytics.C: is a N*F*K matrix with the data filtered with the wavelets.
-%       N is the length of the data timeseries, F is the number of features
-%       generated for each variable. If constant is set to 'on', F equals
+% C - a N*F*K matrix with the data filtered with the wavelets. N is the
+%       length of the data timeseries, F is the number of features
+%       generated for each variable. If CONSTANT is set to 'on', F equals
 %       length(bandwidth) times length(frequencies); otherwise, when
 %       constant is set to 'off', F is equal to length(frequencies). K is
 %       the number of variables (the number of columns in data).
-%
-%   filt.analytics.hdr: the header for the column in filt.analytics.C.
-%
-% _________________________________________________________________________
+% hdr - the header for the column in filt.analytics.C.
 %
 %
-% Copiright: Filippo Rossi, Institute for Neural Computation, University
-% of California, San Diego.
 %
-% email: frossi@ucsd.edu
+% Copyright (c) - 2014 Filippo Rossi, Institute for Neural Computation,
+% University of California, San Diego. email: frossi@ucsd.edu
 %
-% Version: 04/10/14.
-
+% VERSION: 1.0.1 10-Apr-2014.
 
 
 % Handle optional arguments when the function is used to generate filters
