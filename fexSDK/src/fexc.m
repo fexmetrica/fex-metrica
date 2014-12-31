@@ -24,11 +24,11 @@ classdef fexc < handle
 % UTILITIES:
 % clone	- Make a copy of FEXC object(s), i.e. new handle.
 % reinitialize - Reinitialize the FEXC object to construction stage. 
-% update - Changes FEXC functional and structural datasets.
+% update - Changes FEXC fields.
 % undo - retvert FEXC to previou state.
 % nanset - Reset NaNs after INTERPOLATE or DOWNSAMPLE are used.
 % getvideoInfo - Read general information about a video file. 
-% get - Shortcut to get subset of FEXC variables or properties [... ...].
+% get - Shortcut to get subset of FEXC variables or properties.
 % fexport - Export FEXC data or notes to .CSV file.
 % getmatrix	- [... ...]
 %
@@ -47,7 +47,7 @@ classdef fexc < handle
 % NORMALIZATION:
 % rectification	- Set a lower value for FEXC.functional time series.
 % setbaseline - Set the BASELINE property (private), and normalize data.
-% normalize	- [STACKED][... ...]
+% normalize	- normalizes the dataset.
 %
 % STATISTICS & FEATURES:
 % derivesentiments - [STACKED][... ...]
@@ -416,7 +416,8 @@ self.time = dataset2struct(self.time);
 self.thrsemo = 0;
 self.descriptives();
 self.history.original = self.clone();  
-self.history.prev = []; % Filed for "undu clone"  
+% Filed for "undu clone"  
+self.history.prev = [];
 
 
 end
@@ -493,32 +494,86 @@ end
 
 function self = update(self,arg,val)
 %
-% UPDATE changes FEXC functional and structural datasets.
+% UPDATE changes FEXC fields.
 % 
 % SYNTAX:
 % self(k).UPDATE('functional',X)
 % self(k).UPDATE('structural',X)
+% self(k).UPDATE('outdir',X)
+% self(k).UPDATE('name',X)
+% self(k).UPDATE('video',X)
 %
 % X must have the same size of the matrix from the dataset it replaces.
 % Otherwise, UPDATE won't make the substitution.
 %
-% NOTE that UPDATE don't work on stacks of FEXC. So, if length(FEXC) > 1,
-% UPDATE needs to be called several times.
+% NOTE that UPDATE for 'functional' and 'structural' don't work on stacks
+% of FEXC. So, if length(FEXC) > 1, UPDATE needs to be called several
+% times.
+%
+%
+% See also FUNCTIONAL, STRUCTURAL, OUTDIR, NAME, VIDEO, DESIGN.
 
-% UPDATE only operates on functional and structural properties.
-if ~ismember(arg,{'functional','structural'})
+
+% Add backup for undo
+self.beckupfex();
+
+arg = lower(arg);
+if ~ismember(arg,{'functional','structural','outdir','name','video','design'})
     error('Unknown field to update');
 end
-% UPDATE does not operate on stacks.
-if length(self) > 1
-    warning('UPDATE does not operate on stacked FEXC.');
-    return
-end
-% Check the provided value, and update the field
-if size(val,2) == size(self.(arg),2)
-    self.(arg) = replacedata(self.(arg),val);
-else
-    error('Size mismatch.')
+
+switch arg
+    case {'functional','structural'}
+        if length(self) > 1
+            warning('UPDATE does not operate on stacked FEXC for this field.');
+            return
+        elseif size(val,2) == size(self.(arg),2)
+            self.(arg) = replacedata(self.(arg),val);
+        else
+            error('Size mismatch.')
+        end
+    case {'name','video'}
+        if length(self) ~= size(val,1)
+            error('Not enough "%s" provided.',arg);
+        else
+            for k = 1:length(self)
+                try
+                    self(k).(arg) = val(k,:);
+                catch
+                    self(k).(arg) = val{k};
+                end
+            end
+        end
+    case 'outdir'
+        if isa(val,'char')
+            val = cellstr(val);
+        end
+        if length(self) == size(val,1)
+            for k = 1:length(self)
+                self(k).outdir = val{k};
+            end
+        elseif size(val,1) == 1
+            for k = 1:length(self)
+                self(k).outdir = val{1};
+            end
+        end
+    case 'design'
+        if isa(val,'char')
+            val = cellstr(val);
+            for k = 1:length(self)
+                try
+                    self(k).design = dataset('File',val{k});
+                catch errormsg
+                    warning(errormsg.message);
+                end
+            end
+        elseif ~isa(val,'char') && length(self) == 1
+            self.design = val;
+        else
+            error('Mispecified design argument.');                
+        end     
+    otherwise
+        error('Unrecognized field "%s".',arg);
 end
 
 end
@@ -538,6 +593,9 @@ function self = nanset(self,rule)
 % consecutie NaN which will be considered reset to NaN.
 % 
 % See also INTERPOLATE, DOWNSAMPLE.
+
+% Add backup for undo
+self.beckupfex();
 
 if ~exist('rule','var')
     rule = 15;
@@ -572,6 +630,10 @@ function self = reinitialize(self,flag)
 % Note that ANNOTATIONS are NOT reinitialized. 
 %
 % See also CLONE, GET, ANNOTATIONS.
+
+
+% Add backup for undo
+self.beckupfex();
 
 if ~exist('flag','var')
     flag = 'coward';
@@ -949,6 +1011,9 @@ function self = derivesentiments(self,m,emotrect)
 % See also SENTIMENTS. 
 
 
+% Add backup for undo
+self.beckupfex();
+
 % Set some shared information
 pos_names = {'joy','surprise'};
 neg_names = {'anger','disgust','sadness','fear','contempt'};
@@ -1049,6 +1114,11 @@ function self = downsample(self,fps,rule)
 % This method derives SENTIMENTS, DESCRIPTIVES, and it updates NANINFO.
 %
 % See also INTERPOLATE, NANSET.
+
+
+% Add backup for undo
+self.beckupfex();
+
 
 % Check that FPS is provided
 if ~exist('fps','var')
@@ -1161,6 +1231,9 @@ function self = setbaseline(self,StatName,StatSource)
 %
 % See also NORMALIZE, DESCRIPTIVES.
 
+
+% Add backup for undo
+self.beckupfex();
 
 % Check StatName argument
 optstats = {'mean','median','q25','q75'};
@@ -1338,6 +1411,9 @@ function self = motioncorrect(self,varargin)
 % under development.
 
 
+% Add backup for undo
+self.beckupfex();
+
 args = struct('thrs',0.25,'normalize','-none');
 if ~isempty(varargin)
     ind1 = cellfun(@isnumeric,varargin);
@@ -1437,6 +1513,10 @@ function self = falsepositive(self,varargin)
 %
 %
 % See also COREGISTER, PROCRUSTES.
+
+
+% Add backup for undo
+self.beckupfex();
 
 % Read arguments
 args = struct('method','size','threshold',2.50,'param',[]);
@@ -1545,6 +1625,8 @@ function self = coregister(self,varargin)
 % See also FEX_REALLIGN, GET, PROCRUSTES, FALSEPOSITIVE.
 
 
+% Add backup for undo
+self.beckupfex();
 
 % Handle optional arguments
 args = struct('steps',1,'scaling',true,...
@@ -1611,6 +1693,10 @@ function self = interpolate(self,varargin)
 %
 %
 % See also FEX_INTERPOLATE, NANINFO.
+
+
+% Add backup for undo
+self.beckupfex();
 
 ind = find(strcmp(varargin,'rule'));
 if ~isempty(ind)
@@ -1693,6 +1779,9 @@ function self = rectification(self,thrs)
 %
 % THRS: a scalar indicating the lower bound, s.t. all self.FUNCTIONAL
 % values smaller than THRS are set to THRS. Default is -1.
+
+% Add backup for undo
+self.beckupfex();
 
 if ~exist('thrs','var')
     thrs = -1;
@@ -1858,6 +1947,8 @@ function self = temporalfilt(self,param,varargin)
 %
 % See Also FEX_BANDPASS, FIR1, FEXW_FILTPLOT.
     
+% Add backup for undo
+self.beckupfex();
 
 % Set default flags
 flagdc   = true;
@@ -2068,45 +2159,64 @@ end
 % *************************************************************************  
 
 
-    function self = normalize(self,varargin)
-    %
-    % -----------------------------------------------------------------  
-    % 
-    % Normalize the functional field
-    %
-    % -----------------------------------------------------------------
-    %
+function self = normalize(self,varargin)
+%
+% NORMALIZE normalizes the dataset.
+%
+% SYNTAX
+% 
+% self.NORMALIZE()
+% self.NORMALIZE('ArgName1',ArgVal,...)
+%
+%
+% NORMALIZE normalizes the dataset. Optional arguments include:
+%
+% method - a string with one of the following methods: 'zscore', 'center',
+%    '0:1', or '-1:1'. default set to 'center.'
+% outliers - a string set to 'on' or 'off' (default). When set to 'on',
+%    outlier values are identified using zscores, and are set to the
+%    maximum acceppted value.
+% threshold - a double that indicates which values from FUNCTIONAL are set
+%    considered outliers. This argument is ignored if 'outliers' is set to
+%    'off'. Default: 2.5.
+%
+%
+%
+% See also FEX_NORMALIZE.
 
-    % Set defaults
-    scale = {'method','c',...
-             'outliers','off',...
-             'threshold',2.5};
+% Add backup for undo
+self.beckupfex();
 
-    % Read optional arguments
-    for i = 1:2:length(varargin)
-        idx = strcmpi(scale,varargin{i});
-        idx = find(idx == 1);
-        if idx
-            scale{idx+1} = varargin{i+1};
-        end
+% Set defaults
+scale = {'method','c',...
+         'outliers','off',...
+         'threshold',2.5};
+
+% Read optional arguments
+for i = 1:2:length(varargin)
+    idx = strcmpi(scale,varargin{i});
+    idx = find(idx == 1);
+    if idx
+        scale{idx+1} = varargin{i+1};
     end
+end
 
-    h = waitbar(0,'Normalization ... ');
-    % Execute normalization method
-    for k = 1:length(self)
-       fprintf('Normalizing fexc %d of %d.\n',k,length(self));
-       if strcmpi(varargin{1},'baseline')
-       % Baseline normalization: this is only partially implemented.
-           X = repmat(mean(double(self(k).baseline),1),[length(self(k).functional),1]);
-           self(k).update('functional', double(self(k).functional) - X);
-       else
-           self(k).update('functional',fex_normalize(double(self(k).functional),scale{:}));
-       end
-       waitbar(k/length(self));
-    end
-    delete(h);
+h = waitbar(0,'Normalization ... ');
+% Execute normalization method
+for k = 1:length(self)
+   fprintf('Normalizing fexc %d of %d.\n',k,length(self));
+   if strcmpi(varargin{1},'baseline')
+   % Baseline normalization: this is only partially implemented.
+       X = repmat(mean(double(self(k).baseline),1),[length(self(k).functional),1]);
+       self(k).update('functional', double(self(k).functional) - X);
+   else
+       self(k).update('functional',fex_normalize(double(self(k).functional),scale{:}));
+   end
+   waitbar(k/length(self));
+end
+delete(h);
 
-    end
+end
 
 % *************************************************************************
 % *************************************************************************  
@@ -2133,6 +2243,9 @@ function self = smooth(self,varargin)
 %    inicated by the second argument.
 %
 % See also FEX_KERNEL.
+
+% Add backup for undo
+self.beckupfex();
 
 % Read arguments
 if isempty(varargin)
@@ -2483,7 +2596,25 @@ else
     return
 end
 
-end    
+end
+
+%**************************************************************************
+
+function self = beckupfex(self)
+%
+% BECKUPFEX
+%
+% Saves the current copy of FEXC to self.HISTORY.PREV so that the last
+% operation can be undone.
+%
+%
+% See also UNDO, CLONE.
+
+for k = 1:length(self)
+    self(k).history.prev = self(k).clone();
+end
+
+end
 
 end
 
