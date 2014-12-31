@@ -1,0 +1,168 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>fexSDK &mdash; fex-metrica 1.0.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="fex-metrica 1.0.1 documentation" href="index.html" />
+    <link rel="prev" title="Examples" href="examples.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="mat-modindex.html" title="MATLAB Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="examples.html" title="Examples"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">fex-metrica 1.0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="fexsdk">
+<h1>fexSDK<a class="headerlink" href="#fexsdk" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+<ul class="simple">
+</ul>
+</div>
+<div class="section" id="manual-documentation-fexc">
+<span id="fexc"></span><h2>manual documentation fexc()<a class="headerlink" href="#manual-documentation-fexc" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-fexSDK.src"></span><dl class="class">
+<dt id="fexSDK.src.fexc">
+<em class="property">class </em><code class="descclassname">fexSDK.src.</code><code class="descname">fexc</code><a class="headerlink" href="#fexSDK.src.fexc" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="fexSDK.src.fexc.coregister">
+<code class="descclassname">fexc.</code><code class="descname">coregister</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#fexSDK.src.fexc.coregister" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<p>coregister register face boxes to average face video location</p>
+<blockquote>
+<div><p>SYNTAX:</p>
+<p>self.coregister()
+self.coregister(&#8216;ArgName1&#8217;,ArgVale1, ... )</p>
+<p>coregister uses procrustes analysis to register a face box and the
+associated face landmarks to a standardized face in the current video.</p>
+<p>OPTIONAL ARGUMENTS:</p>
+<dl class="docutils">
+<dt>&#8216;steps&#8217; - a scalar value of 1 or 2 (default is 1). When it is set to 2,</dt>
+<dd>coregistration is done once for all data, then the error in the
+coregistration is used to infer false positives, and coregistration is
+done a second time using the average position of non false positives.</dd>
+<dt>&#8216;scaling&#8217; - true or false (default: true). Determines whether &#8216;scaling&#8217;</dt>
+<dd>is used for coregistration.</dd>
+<dt>&#8216;reflection&#8217; - true or false (default: false). Determine whether</dt>
+<dd>argument &#8216;reflection&#8217; is used for coregistration.</dd>
+<dt>&#8216;fp&#8217; - a truth value (default: false), which determine whether the error</dt>
+<dd>from coregistration will be used to identify false positive. This false
+alarm identification method can also be called using FALSEPOSITIVE.</dd>
+<dt>&#8216;threshold&#8217; - a scalar between 0 and Inf (default is 2.50). It indicates</dt>
+<dd><p class="first">the number or standard deviation above the mean of the residual sum of
+square error of the coregistration. When threshold is set to a number
+larger than 0, this is used to identify false positive.</p>
+<p class="last">NOTE that the &#8216;threshold&#8217; option has an effect only when the number of
+steps is set to 2, or when &#8216;fp&#8217; is set to true.</p>
+</dd>
+</dl>
+<p>coregister does not produce any output. Coregistration parameter can be
+used using self.GET(&#8216;coreg&#8217;).</p>
+</div></blockquote>
+</div>
+<div class="section" id="automatic-documentation-fexc">
+<h2>automatic documentation fexc()<a class="headerlink" href="#automatic-documentation-fexc" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">fexSDK</a><ul>
+<li><a class="reference internal" href="#manual-documentation-fexc">manual documentation fexc()</a></li>
+<li><a class="reference internal" href="#automatic-documentation-fexc">automatic documentation fexc()</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="examples.html"
+                        title="previous chapter">Examples</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/modules.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="mat-modindex.html" title="MATLAB Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="examples.html" title="Examples"
+             >previous</a> |</li>
+        <li><a href="index.html">fex-metrica 1.0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2014, Filippo Rossi.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.3b2.
+    </div>
+  </body>
+</html>
