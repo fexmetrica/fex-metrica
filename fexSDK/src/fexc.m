@@ -2471,7 +2471,7 @@ function self = export2viewer(self,filename)
 % 
 % SYNTAX:
 %
-% EXPORT2VIEWER(filename)
+% self.EXPORT2VIEWER(filename)
 %
 % This function exports the data to a comma separated file. The naming
 % convetion follow Emotient Inc., so this data can be open using Emotient

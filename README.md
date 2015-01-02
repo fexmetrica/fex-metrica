@@ -158,8 +158,7 @@ EXAMPLES
 ===========
 
 
-The folder labeled "samples" contains several exemplifications of how to use the **fex-metrica** toolbox.
-
+The folder labeled [samples!](fexSDK/samples/README.md) contains exemplifications of how to use the **fex-metrica** toolbox.
 
 
 ===========
