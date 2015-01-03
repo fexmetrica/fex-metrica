@@ -14,13 +14,14 @@ We used an artificial dataset from a single participant who played the Ultimatum
 In Each trial the participant sees the following:
 
 
-       Fixation    Offer     Decision
-       -------    -------    ------- 
-      |       |  |       |  |       |
-      |   +   |  |  $10  |  |  A/R? |
-      |       |  |       |  |       |
-       -------    -------    -------
-        4 sec      6 sec     t<6 sec
+
+                                                   Fixation    Offer     Decision
+                                                   -------    -------    ------- 
+                                                  |       |  |       |  |       |
+                                                  |   +   |  |  $10  |  |  A/R? |
+                                                  |       |  |       |  |       |
+                                                   -------    -------    -------
+                                                    4 sec      6 sec     t<6 sec
  
 
 The participant is asked to make specific expressions during the "Offer" window. In particular, the data was set up in such a way that:
@@ -68,9 +69,80 @@ The last file, [data_video_001.txt](data/design_video_001.txt), comprises the in
 Analysis
 ===========
 
+The first step in the analysis is to construct a **fexc** object, which is the main class used for **fex-metrica** analysis. There are several construction methods. The user can indicate a set of videos, and preprocessing with [Emotient SDK](http://www.emotient.com) is executed in place:
+
+```Matlab
+
+video_list = fexwsearchg(); % This opens a gui to select the movies
+fexobj = fexc('video',video_list);
+
+``` 
+
+Alternatively, since the .json files are already included in the [data](data) directory, you can create the **fexc** object using the follwoing syntax:
+
+```Matlab
+
+jlist = fexwsearchg(); % List of json files
+mlist = fexwsearchg(); % List of videos
+fexobj = fex_imputil('Json',jlist,mlist);
+
+```
+
+The resulting **fexobj** is a two-dimensional **fexc** object, with the following properties:
+
+```Matlab
+
+>> properties(fexobj)
+
+Properties for class fexc:
+    name
+    video
+    videoInfo
+    functional
+    structural
+    sentiments
+    time
+    design
+
+```
+
+Description of these properties can be accessed from Matlab prompt using the help command:
+
+```Matlab
+
+>> help fexc
+
+```
+
+You now need to set some extra properties, that will be needed latter, but that werent provided at the time of construction. To do so, you can use the method **update**:
+
+
+```Matlab
+
+time_files = fexwsearchg(); % Use Ui to list time files;
+design_files = fexwsearchg(); % Use Ui to list design files;
+
+fexobj.update('name',[101,102]); % Add subject name 
+fexobj.update('time',time_files); % Correct time using the files provided 
+fexobj.update('design',time_files); % Add design information
+
+```
+
+You can start looking at the data now. You can visualize the emotions timeseries using the method **show**:
+
+```Matlab
+
+fexobj(1).show();
+
+```
+
+Note that the index (1) call **show** only on the first video -- all methods can be applied to single videos or to all videos at once. 
+
+
+
 
 ===========
-Dataset Construction
+Appendix: Dataset Construction
 ===========
 
 The induction method works as follow. For each "Offer" window, the participant is asked to make an expression of disgust or happiness, based on this distribution:
