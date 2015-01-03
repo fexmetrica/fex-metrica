@@ -66,7 +66,7 @@ The last file, [data_video_001.txt](data/design_video_001.txt), comprises the in
 
 
 ===========
-Analysis
+Importing and Visualizing Raw Data
 ===========
 
 The first step in the analysis is to construct a **fexc** object, which is the main class used for **fex-metrica** analysis. There are several construction methods. The user can indicate a set of videos, and preprocessing with [Emotient SDK](http://www.emotient.com) is executed in place:
@@ -114,7 +114,7 @@ Description of these properties can be accessed from Matlab prompt using the hel
 
 ```
 
-You now need to set some extra properties, that will be needed latter, but that werent provided at the time of construction. To do so, you can use the method **update**:
+You now need to set some extra properties, that will be needed latter, but that weren't provided at the time of construction. To do so, you can use the method **update**:
 
 
 ```Matlab
@@ -137,6 +137,35 @@ fexobj(1).show();
 ```
 
 Note that the index (1) call **show** only on the first video -- all methods can be applied to single videos or to all videos at once. 
+
+A more interactive way of visualizing the video is the method **viewer**, which opens a UI that streams the video, and display the timeseries at the same time. The method **viewer** is one of the few which needs to be called using indices (only one video can be display at a time):
+
+```Matlab
+
+help fexc.viewer % Display help for viewer (see also fexw_streamerui linked there) 
+fexobj(1).viewer(); % Start the viewer UI
+
+```
+
+===========
+Preprocessing Proper
+===========
+
+There isn't a "canonical" way to preprocess facial expression timeseries. However, these data bear some resemblance with timeseries analyzed in neuroscience. Therfore we can use aspects of the preprocessing pipeline from the analysis of fMRI data and electrophysiology data. In particular, there are three major steps which usually help in extracting information from facial expression:
+
+1. Spatial processing;
+2. Temporal processing;
+3. Normalization.
+
+**Spatial Preprocessing** is mostly used to identify "false allarm," namely frames for which [Emotient SDK](http://www.emotient.com) identifies a face, which is most likely not a face, or it is not the face of the participant under consideration. Two helpfull methods for this are **coregister** and **falsepositive**:
+
+
+```Matlab
+
+fexobj.falspositive('method','position','threshold',2);
+fexobj.coregister('fp',true);
+
+```
 
 
 
