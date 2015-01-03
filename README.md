@@ -14,7 +14,7 @@ FEX METRICA includes code for running the analysis (fexSDK/src), and code to vis
 ANALYTIC TOOLS
 ===========
 
-Analytic tools can be access from fexc.m, the main object defined by **fex-metrica**. This class wraps the Emotient tools for video analysis, generic video manipulation utilities, and timeseries transformations. A FEXC_OBJECT can also call the visualization tools described in the next section.
+Analytic tools can be access from [fexc.m](fexSDK/src/fexc.m), the main object defined by **fex-metrica**. This class wraps the Emotient tools for video analysis, generic video manipulation utilities, and timeseries transformations. A FEXC_OBJECT can also call the visualization tools described in the next section.
 
 The tools associated with FEXC_OBJECTs comprise:
 
