@@ -25,7 +25,10 @@ The first file contains a timestamp for each of the frames acquired for [video_0
 
 The last file, [data_video_001.txt](data/design_video_001.txt), comprises the information about the task perfomed during video reocording.
 
- 
 
+| SID | Run | Trial | Stage | Expression | Decision | Time | Offer | Joy | Duration |Onset |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 101 | 1 | 1 | 1 | 0 | None | 1420259850.28 | 30.0 | 1.0 | 1.30049140542 | 1.98848602129 |
+| 101 | 1 | 1 | 2 | 1 | None | 1420259851.02 | 30.0 | 1.0 | 1.30049140542 | 1.98848602129 |
 
 
