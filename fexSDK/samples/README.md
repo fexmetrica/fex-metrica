@@ -157,7 +157,9 @@ There isn't a "canonical" way to preprocess facial expression timeseries. Howeve
 2. Temporal processing;
 3. Normalization.
 
-**Spatial Preprocessing** is mostly used to identify "false allarm," namely frames for which [Emotient SDK](http://www.emotient.com) identifies a face, which is most likely not a face, or it is not the face of the participant under consideration. Two helpfull methods for this are **coregister** and **falsepositive**:
+###Spatial Processing
+
+These operations are mostly used to identify "false allarm," namely frames for which [Emotient SDK](http://www.emotient.com) identifies a face, which is most likely not a face, or it is not the face of the participant under consideration. Two helpfull methods for this are **coregister** and **falsepositive**:
 
 
 ```Matlab
@@ -167,12 +169,19 @@ fexobj.coregister('fp',true);
 
 ```
 
+###Temporal Processing
+
+...
+
+###Normalization
 
 
 
 ===========
 Appendix: Dataset Construction
 ===========
+
+This section describes the procedure used to generate the stimuli for the dataset used.
 
 The induction method works as follow. For each "Offer" window, the participant is asked to make an expression of disgust or happiness, based on this distribution:
 
