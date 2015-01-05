@@ -528,7 +528,6 @@ flag = strcmp(get(handles.PlayButton,'String'),'Pause');
 
 while flag && handles.frameCount < handles.nframes;
 % main loop for streaming the video
-
    tic
    pause(0.001);
    % Handle annotation here    

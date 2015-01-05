@@ -27,6 +27,7 @@ classdef fexwoverlay < handle
 %
 % data - FEXC object or dataset with variable Names and Scores.
 % info - information on how the FEXWOVERLAY is generated.
+% fig -  main handle for the figure.
 % handles - Vector of handles to the generated image.
 %
 % FEXWOVERLAY Private properties:
@@ -97,6 +98,8 @@ properties
     % 
     % See also GET.INFO.
     info
+    % FIG: main handle for the figure.
+    fig
     % HANDLES: structure of handles for the generated image. Each field
     % stands for one of the layer of the image. Fields are:
     %
@@ -212,18 +215,16 @@ properties (Access = private)
     % three fields:
     %
     % overlay - indicates the transparency of the overlay on the template.
-    %       This is a number between 0 and 1 (default: 0.1). When overlay
+    %       This is a number between 0 and 1 (default: 0.4). When overlay
     %       is set to 1, no overlay is displayed.
     % fibers -  transparency of the overlay on the muscular fibers. For
     %       FIBERS = 1, the texture of the muscles is not displayed. By
-    %       default, this value is set to 0.7.
+    %       default, this value is set to 1.0.
     % brightness - the brightness of the colors. This is a number between
     %       -1 and 1, which is set by default to 0.
     %
     % See also FEXWOVERLAY, UPDATE.
     optlayers
-    % FIG: main handle for the figure.
-    fig
     % TYPECH is an integer between 1 and 3 indicating whther the features
     % required are muscles, Action Units, or Emotions.
     typech
@@ -287,6 +288,8 @@ function self = fexwoverlay(data,varargin)
 %
 % Optional arguments:
 %
+% fig - a figure handle for the image. When fig is not provided, a new
+%   handle is generated. 
 % template - set the template to be used (See also TEMPLATE). Default: 1.
 % side - a string (or a cell for each column of DATA) between 'left,'
 %   'right,' or 'both.' Default: 'both.' This sets the propery SIDE.
@@ -305,21 +308,20 @@ function self = fexwoverlay(data,varargin)
 % colorbar - boolean indicating whether to include a colorbar. Default:
 %   false.
 % optlayers - a vector with 1 to 3 components. In order, these components
-%   include: overlay transparanecy (between 0.0 and 1.0, default 0.1);
-%   muscles transparency (between 0 and 1, default 0.7); and brightness of
+%   include: overlay transparanecy (between 0.0 and 1.0, default 0.4);
+%   muscles transparency (between 0 and 1, default 1.0); and brightness of
 %   the overlay (between -1.0 and 1.0, default 0.0).
 %
 %
 % See also UPDATE, TEMPLATE, DATA, BOUNDS, SMOOTHING.
 
-
-% Determine whether data is present, and which type of variable it
-% is.        
+% Determine whether data is present, and which type of variable it is.        
 if exist('data','var')
     self.update('data',data);
 else
     self.data = [];
-end    
+end  
+
 % Variabe arguments in: set defaults, insert provided values, and
 % use the function "check" to make sure that the arguments are
 % properily specified.
@@ -327,7 +329,7 @@ args  = struct('template','template_01','side','both',...
     'combine','mean','bounds',[],'background',false,...
     'smoothing',struct('kernel','gaussian','size',10,'param',2.5),...
     'colmap','jet','colbar',false,...
-    'optlayers',struct('overlay',.1,'fibers',.7,'brightness',0));
+    'optlayers',struct('overlay',.4,'fibers',1,'brightness',0),'fig', []);
 fnames = fieldnames(args);
 [~,inds] = ismember(fnames,varargin(1:2:end));
 for i = 1:length(inds)
@@ -338,8 +340,18 @@ for i = 1:length(inds)
     self.update(fnames{i},args.(fnames{i}));
 end
 
-% Set the Visible flag off
+if isempty(self.fig)
+% Initialize an handle for the main axes -- This won't be displayed. 
+    self.fig = figure('Name','FexView','NumberTitle','off', 'Visible', 'off'); 
+%     set(self.fig,'NextPlot','replaceChildren');
+end
+
+% Set the Visible flag off/Initialize overlay
 self.visible = false;
+if ~isempty(self.data)
+    ind = find(~isnan(double(self.data(:,1))),1,'first');
+    self.makeoverlay(ind);
+end
 
 end
         
@@ -372,6 +384,14 @@ else
         self.setoi(varargin{i},varargin{i+1});
     end
 end
+
+% Select the correct frame
+if isa(self.overlaydata,'struct')
+    k = self.overlaydata.odn;
+else
+    k = 1;
+end
+
 % Test whether you need to update any image based on existence of
 % handles, and based on the type of argument.
 if ~isempty(self.fig)
@@ -379,14 +399,14 @@ if ~isempty(self.fig)
     if ~isempty(intersect(varargin(1:2:end),{'data','template','bounds'}))
     % When you change "data" or "template," you need to recompute
     % the overlay.
-        self.makeoverlay();
-        self.show();
+        ind = find(~isnan(double(self.data(:,1))),1,'first');
+        self.makeoverlay(ind);
+        self.show(k,self.visible);
     else
     % For all other properties, you can simply update the image.
-        self.show();
+        self.show(k,self.visible);
     end
 end
-
 
 end
 
@@ -404,9 +424,9 @@ function self = step(self,k)
 % K is the frame number to which STEP jumps to.
 
 if ~exist('k','var') && ~isfield(self.handles,'overlay')
-    self.show(1)
+    self.show(1,self.visible)
 elseif ~exist('k','var') && isfield(self.handles,'overlay')
-    self.show(self.overlaydata.odn + 1);
+    self.show(self.overlaydata.odn + 1,self.visible);
 else
     % Grab relevant values
     X = self.overlaydata.X;
@@ -421,10 +441,8 @@ else
     end
     self.overlaydata.odn = k;
     self.overlaydata.OD = OD; 
-    set(self.handles.muscles,'CData',uint8(self.overlaydata.OT));
+    set(self.handles.overlay,'CData',imresize(self.formato,[550,420]));
 end
-
-
 
 end
 
@@ -523,7 +541,7 @@ end
         end
         
         % Fexview uses 256-color maps.
-        if isa(self.colmap,'char')
+        if isa(self.colmap,'char') || isempty(self.colmap)
             ncolors = 256;
         else
             ncolors = size(self.colmap,1);
@@ -675,15 +693,15 @@ end
      
 %************************************************************************** 
 
-function self = show(self,n,vis)
+function [self, frame] = show(self,n,vis)
 %
 % SHOW - display or update overlay image.
 %
 % SYNTAX:
 %
 % self.SHOW()
-% self.SHOW(vis)
-% self.SHOW(vis,n)
+% self.SHOW(n)
+% self.SHOW(n,vis)
 %
 % The method SHOW displays the image. If no image exist, a image is
 % generated and the handle os stored in the privare property self.FIG. If
@@ -707,6 +725,8 @@ function self = show(self,n,vis)
 %
 % See also MAKEOEVERLAY, COMBINE, SETBACKGROUND, SMOOTHING, HANDLES.
 
+frame = [];
+
 % Read optional VIS argument
 if ~exist('vis','var')
     vis = true;
@@ -725,6 +745,14 @@ else
     end
 end
 
+% try
+%     axes(self.fig)
+% catch
+%     self.fig = figure('Name','FexView','NumberTitle','off', 'Visible', 'off'); 
+% %     set(self.fig,'NextPlot','replaceChildren');
+% end
+
+% 
 if isempty(self.fig) || ~isa(self.fig,'handle')
 % Initialize handle for the image
     self.fig = figure('Name','FexView','NumberTitle','off', 'Visible', 'off'); 
@@ -742,7 +770,7 @@ end
 % Escape without showing when data are missing
 if isnan(double(self.data(n,1)))
     hold on
-    self.handles.face = imshow(rgb2gray(self.template.img));
+    self.handles.face = imshow(imresize(rgb2gray(self.template.img),[550,420]));
     hold off
     if vis
         set(self.fig,'Visible','on');
@@ -752,7 +780,7 @@ end
   
 % Test whether the overlay exists, and generate one, if required.
 if isempty(self.overlaydata)
-    self.makeoverlay();
+    self.makeoverlay(n);
 end
 
 % Update the OVERLAYDATA.OD in case looping across images
@@ -769,57 +797,60 @@ if n ~= self.overlaydata.odn
     self.overlaydata.odn = n;
     self.overlaydata.OD = OD; 
 end
-
+imo = self.formato();
 
 % Fig. Handle for muscles (use mean value)
-self.handles.muscles = imshow(uint8(self.overlaydata.OT));
+self.handles.muscles = imshow(imresize(uint8(self.overlaydata.OT),[550,420]));
 
 % Colormap
-if ischar(self.colmap)
-    funmap = str2func(self.colmap);
-    map = colormap(funmap(256));
-else
-    map = self.colmap;
-end
+% if ischar(self.colmap)
+%     funmap = str2func(self.colmap);
+%     map = colormap(funmap(256));
+% else
+%     map = self.colmap;
+% end
 
 % Combine images
-if strcmp(self.combine,'max')
-    funcomb = str2func(sprintf('%s',self.combine));
-    imo = round(funcomb(self.overlaydata.OD,[],3));
-else
-    funcomb = str2func(sprintf('nan%s',self.combine));
-    imo = round(funcomb(self.overlaydata.OD,3));
-end
+% if strcmp(self.combine,'max')
+%     funcomb = str2func(sprintf('%s',self.combine));
+%     imo = round(funcomb(self.overlaydata.OD,[],3));
+% else
+%     funcomb = str2func(sprintf('nan%s',self.combine));
+%     imo = round(funcomb(self.overlaydata.OD,3));
+% end
+
 % Add background image
-if self.background
-    imo = self.setbackground(imo);
-end
+% if self.background
+%     imo = self.setbackground(imo);
+% end
+
 % Convert index image to rgb
-imo = ind2rgb(imo,brighten(map,self.optlayers.brightness));
+% imo = ind2rgb(imo,brighten(map,self.optlayers.brightness));
+
 % Smoothing
-switch self.smoothing.kernel
-    case {'gaussian','log','motion'}
-      KK = fspecial(self.smoothing.kernel,self.smoothing.size,self.smoothing.param);  
-    case {'average','disk'}
-      KK = fspecial(self.smoothing.kernel,self.smoothing.size);
-    case 'laplacian'
-      KK = fspecial(self.smoothing.kernel,self.smoothing.param);
-    otherwise
-    % no smoothing
-      KK = 1;
-end
+% switch self.smoothing.kernel
+%     case {'gaussian','log','motion'}
+%       KK = fspecial(self.smoothing.kernel,self.smoothing.size,self.smoothing.param);  
+%     case {'average','disk'}
+%       KK = fspecial(self.smoothing.kernel,self.smoothing.size);
+%     case 'laplacian'
+%       KK = fspecial(self.smoothing.kernel,self.smoothing.param);
+%     otherwise
+%     % no smoothing
+%       KK = 1;
+% end
 
 % Apply smoothing & mask to image
-imo = self.maskingo(imfilter(imo,KK));
+% imo = self.maskingo(imfilter(imo,KK));
 
 % Fig. Handles for overlay and background image
 hold on
-self.handles.overlay = imshow(imo);
-
+self.handles.overlay = imshow(imresize(imo,[550,420]));
 % Fig. Handles for colorbar
 if isa(self.colbar,'struct') && ~isempty(self.bounds)
 % You need to freeze the colorbar here. Otherwise it will be
-% updated, and won't reflect the overlay colormap.
+% updated, and won't reflect the overlay colormap. THIS PART OF THE CODE
+% NEEDS TO BE UPDATED FOR 2015a.
     cbfreeze('del')
     self.handles.cbar = colorbar;
     optcb = fieldnames(self.colbar);
@@ -833,22 +864,22 @@ if isa(self.colbar,'struct') && ~isempty(self.bounds)
 end
 
 % Fig Handle for face image
-self.handles.face = imshow(rgb2gray(self.template.img));
+self.handles.face = imshow(imresize(rgb2gray(self.template.img),[550,420]));
 hold off
 
 % Generate transparency data for overlay
 INDS   = ~isnan(nanmean(self.overlaydata.OT,3));
 alpha1 = ones(size(INDS,1),size(INDS,2));
 alpha1(INDS) = self.optlayers.fibers;
-alpha1 = imfilter(alpha1,fspecial('disk',5),'replicate');
+alpha1 = imfilter(imresize(alpha1,[550,420]),fspecial('disk',5),'replicate');
 
 % Generate transparency data for fibers
 if self.background
     INDS = self.template.getmask();
 end
-alpha2 = ones(size(alpha1));
+alpha2 = ones(size(INDS,1),size(INDS,2));
 alpha2(INDS) = self.optlayers.overlay;
-alpha2 = imfilter(alpha2,fspecial('disk',5),'replicate');
+alpha2 = imfilter(imresize(alpha2,[550,420]),fspecial('disk',5),'replicate');
 
 % When needed, show AUs/Emotions on one side only
 switch self.side
@@ -867,7 +898,10 @@ set(self.handles.overlay,'AlphaData',alpha1);
 set(self.handles.face,   'AlphaData',alpha2);
 if vis
     set(self.fig,'Visible','on');
+    self.visible = true;
 end
+
+% frame = getframe(self.fig);
 
 end
         
@@ -1034,6 +1068,11 @@ meta = fexwmetadata;
 
 % Switch across properties
 switch lower(names)
+    case 'fig'
+        if ~isempty(self.fig)
+            delete(self.fig);
+        end
+        self.fig = args;
     case 'data'
     % Read the data argument.
         self.data = self.read_data(args);            
@@ -1104,8 +1143,13 @@ switch lower(names)
         end
         % ADD SOME SAFE CHECK HERE !!
         self.smoothing = smt;
-    case 'colmap'  
-        self.colmap = args;
+    case 'colmap' 
+        if ischar(args)
+            funmap = str2func(args);
+            self.colmap = colormap(funmap(256));
+        else
+            self.colmap = args;
+        end
     case 'colbar'
     % Set info for the colorbar. If set to true, the defaults are
     % used, you can change the colorbar option latter using
@@ -1168,7 +1212,7 @@ switch class(data)
         self.fexwc = data.clone();
         ndata = self.fexwc.get('au');
     otherwise
-        error('"data" argument can be a cell, a char, or a dataset.');
+        error('"data" argument can be a cell, a char, a FEXC object or a dataset.');
 end     
 % Determine the type; note:
 %
@@ -1215,7 +1259,7 @@ end
 % store image type
 self.typech = type;
 % Report unrecognized channels;
-if ~isempty(unrecog)
+if ~isempty(unrecog) && ~strcmpi('au26',unrecog);
     warning('Unrecognized features.')
     disp(cell2dataset(unrecog,'VarNames',{'Unrecognized'}));
 end

@@ -1,30 +1,31 @@
 function varargout = fexw_overlayui(varargin)
-% FEXW_OVERLAYUI MATLAB code for fexw_overlayui.fig
-%      FEXW_OVERLAYUI, by itself, creates a new FEXW_OVERLAYUI or raises the existing
-%      singleton*.
 %
-%      H = FEXW_OVERLAYUI returns the handle to a new FEXW_OVERLAYUI or the handle to
-%      the existing singleton*.
+% FEXW_OVERLAYUI - UI for overlay image and movie generation.
 %
-%      FEXW_OVERLAYUI('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in FEXW_OVERLAYUI.M with the given input arguments.
+% SYNTAX:
 %
-%      FEXW_OVERLAYUI('Property','Value',...) creates a new FEXW_OVERLAYUI or raises the
-%      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before fexw_overlayui_OpeningFcn gets called.  An
-%      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to fexw_overlayui_OpeningFcn via varargin.
+% h = FEXW_OVERLAYUI(DATA)
 %
-%      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
-%      instance to run (singleton)".
+% The input DATA is a FEXC object.
 %
-% See also: GUIDE, GUIDATA, GUIHANDLES
+% There are six main panels in FEXW_OVERLAYUI:
+%
+% IMAGE PANEL - show the image;
+% CONTROL PANEL - moves from frame to frame;
+% PLOT PANEL - shows a timeseries of facial expression;
+% TEMPLATE PANEL - decide which image to be used as background;
+% SMOOTHING PANEL - allows to smooth the overlay;
+% COLOR PANEL - regulate transparencies and color properties.
+%
+%
+% See also FEXC, FEXWOVERLAY.
+%
+% Copyright (c) - 2015 Filippo Rossi, Institute for Neural Computation,
+% University of California, San Diego. email: frossi@ucsd.edu
+%
+% VERSION: 1.0.1 06-Jan-2015.
 
-% Edit the above text to modify the response to help fexw_overlayui
-
-% Last Modified by GUIDE v2.5 04-Jan-2015 20:25:31
-
-% Begin initialization code - DO NOT EDIT
+% START initialization ****************************************************
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
@@ -41,21 +42,64 @@ if nargout
 else
     gui_mainfcn(gui_State, varargin{:});
 end
-% End initialization code - DO NOT EDIT
+% End initialization ******************************************************
 
+function fexw_overlayui_OpeningFcn(hObject,eventdata,handles,varargin)
+%
+% FEXW_OVERLAYUI_OPENINGFCV - Initialize UI.
 
-% --- Executes just before fexw_overlayui is made visible.
-function fexw_overlayui_OpeningFcn(hObject, eventdata, handles, varargin)
-% This function has no output args, see OutputFcn.
-% hObject    handle to figure
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to fexw_overlayui (see VARARGIN)
+set(handles.figure1,'Name','Fex Viewer 1.0.1');
+
+if ~isempty(varargin)
+if ~isa(varargin{1},'fexc')
+    error('Data should be a FEXC object.');
+end
+
+% Update name 
+if ~isempty(varargin{1}.name)
+    str = get(handles.figure1,'Name');
+    str = sprintf('%s: %s',str,varargin{1}.name);
+    set(handles.figure1,'Name',str);
+end
+
+% Initialize FEXC options
+axes(handles.figaxis);
+handles.overlayc = fexwoverlay(varargin{1},'fig',handles.figaxis);
+handles.overlayc.show();
+
+set(handles.boundsl,'String',sprintf('%.2f',handles.overlayc.info.bounds(1)));
+set(handles.boundsu,'String',sprintf('%.2f',handles.overlayc.info.bounds(2)));
+
+% Time and frame count
+handles.n = 1;
+handles.tn = varargin{1}.time.TimeStamps;
+handles.t = fex_strtime(handles.tn);
+handles.current_time = handles.tn(1);
+set(handles.timetext,'String',handles.t{handles.n});
+
+% Add plot for positive and negative
+Y1 = varargin{1}.sentiments.Combined;
+Y2 = Y1; Y1(Y1 < 0) = 0; Y2(Y2 > 0) = 0;
+axes(handles.plotaxis);
+title('Positive and Negative Sentiments','fontsize',14,'Color','w');
+area(handles.plotaxis,varargin{1}.sentiments.TimeStamps,Y1,'FaceColor',[1,0,0],'LineWidth',2,'EdgeColor',[1,0,0]);
+alpha(0.4);
+area(handles.plotaxis,varargin{1}.sentiments.TimeStamps,Y2,'FaceColor',[0,0,1],'LineWidth',2,'EdgeColor',[0,0,1]);
+alpha(0.4);
+x = get(handles.plotaxis,'XTick');
+set(gca,'Color',[0,0,0],'XColor',[1,1,1],'YColor',[1,1,1],'XTick',...
+    x,'XTickLabel',fex_strtime(x,'short'),'LineWidth',2);
+ylim([-1,1]);
+hold off
+axes(handles.figaxis);
+
+end
+
+% Make smoothing parameter invisible
+set([handles.text3,handles.parambox],'Visible','off');
 
 % Choose default command line output for fexw_overlayui
 handles.output = hObject;
-
-% Update handles structure
 guidata(hObject, handles);
 
 % UIWAIT makes fexw_overlayui wait for user response (see UIRESUME)
@@ -72,281 +116,226 @@ function varargout = fexw_overlayui_OutputFcn(hObject, eventdata, handles)
 % Get default command line output from handles structure
 varargout{1} = handles.output;
 
+% *************************************************************************
+% **************** VIDEO CONTROLLERS **************************************
+% *************************************************************************
 
-% --- Executes on button press in buttonback.
 function buttonback_Callback(hObject, eventdata, handles)
-% hObject    handle to buttonback (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% 
+% BUTTONBACK_CALLBACK - Go Back one frame.
 
+if handles.n - 1 >= 1
+    handles.n = handles.n - 1;
+    handles.overlayc.show(handles.n);
+    set(handles.timetext,'String',handles.t{handles.n});
+end
+guidata(hObject, handles);
 
-% --- Executes on button press in buttonplay.
 function buttonplay_Callback(hObject, eventdata, handles)
-% hObject    handle to buttonplay (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+%
+% BUTTONPLAY_CALLBACK - plays/pause the movie.
 
+if strcmp(get(handles.buttonplay,'String'),'Play')
+    set(handles.buttonplay,'String','Pause');
+else
+    set(handles.buttonplay,'String','Play');
+end
 
-% --- Executes on button press in buttonforward.
+flag = strcmp(get(handles.buttonplay,'String'),'Pause');
+nframes = size(handles.overlayc.data,1);
+
+while flag && handles.n < nframes;
+    tic
+    pause(0.001);
+    handles.overlayc.step(handles.n);
+    set(handles.timetext,'String',handles.t{handles.n});
+    flag = strcmp(get(handles.buttonplay,'String'),'Pause');
+    % find next frame
+    handles.current_time = handles.current_time + toc; 
+    handles.n =  dsearchn(handles.tn,handles.current_time);
+    % handles.n = handles.n + 1;
+end
+
+set(handles.buttonplay,'String','Play');
+
+% Return to the beginning of the video
+if handles.n == nframes;
+    handles.n = 1;
+    handles.current_time = handles.tn(handles.n);
+    handles.overlayc.step(handles.n);
+    set(handles.timetext,'String',handles.t{handles.n});
+end
+
+guidata(hObject, handles);
+
 function buttonforward_Callback(hObject, eventdata, handles)
-% hObject    handle to buttonforward (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+%
+% BUTTONFORWAWD_CALLBACK - Advance 1 frame.
 
+if handles.n + 1 <= size(handles.overlayc.data,1)
+    handles.n = handles.n + 1;
+    handles.overlayc.show(handles.n);
+    set(handles.timetext,'String',handles.t{handles.n});
+end
+guidata(hObject, handles);
+
+% **************** TEMPLATE PROPERTIES ************************************
 
 % --- Executes on selection change in templatemenu.
 function templatemenu_Callback(hObject, eventdata, handles)
-% hObject    handle to templatemenu (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+%
+% TEMPLATEMENU_CALLBACK - Change the template on which the imeage is
+% displayed.
 
-% Hints: contents = cellstr(get(hObject,'String')) returns templatemenu contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from templatemenu
-
-
-% --- Executes during object creation, after setting all properties.
-function templatemenu_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to templatemenu (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-% --- Executes on selection change in kernelmenu.
-function kernelmenu_Callback(hObject, eventdata, handles)
-% hObject    handle to kernelmenu (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns kernelmenu contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from kernelmenu
-
-
-% --- Executes during object creation, after setting all properties.
-function kernelmenu_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to kernelmenu (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-function sizebox_Callback(hObject, eventdata, handles)
-% hObject    handle to sizebox (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of sizebox as text
-%        str2double(get(hObject,'String')) returns contents of sizebox as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function sizebox_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to sizebox (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-function parambox_Callback(hObject, eventdata, handles)
-% hObject    handle to parambox (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of parambox as text
-%        str2double(get(hObject,'String')) returns contents of parambox as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function parambox_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to parambox (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-% --- Executes on slider movement.
-function slider1_Callback(hObject, eventdata, handles)
-% hObject    handle to slider1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'Value') returns position of slider
-%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-
-
-% --- Executes during object creation, after setting all properties.
-function slider1_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to slider1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: slider controls usually have a light gray background.
-if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor',[.9 .9 .9]);
-end
-
-
-% --- Executes on slider movement.
-function slider2_Callback(hObject, eventdata, handles)
-% hObject    handle to slider2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'Value') returns position of slider
-%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-
-
-% --- Executes during object creation, after setting all properties.
-function slider2_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to slider2 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: slider controls usually have a light gray background.
-if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor',[.9 .9 .9]);
-end
-
-
-% --- Executes on slider movement.
-function slider3_Callback(hObject, eventdata, handles)
-% hObject    handle to slider3 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'Value') returns position of slider
-%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-
-
-% --- Executes during object creation, after setting all properties.
-function slider3_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to slider3 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: slider controls usually have a light gray background.
-if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor',[.9 .9 .9]);
-end
-
+handles.overlayc.update('template',get(handles.templatemenu,'Value'));
+guidata(hObject, handles);
 
 
 function boundsl_Callback(hObject, eventdata, handles)
-% hObject    handle to boundsl (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% 
+% BOUNDSL - set lower and upper bounds
 
-% Hints: get(hObject,'String') returns contents of boundsl as text
-%        str2double(get(hObject,'String')) returns contents of boundsl as a double
+% *************************************************************************
+% **************** SMOOTHING PROPERTIES ***********************************
+% *************************************************************************
 
+function kernelmenu_Callback(hObject, eventdata, handles)
+%
+% KERNELMENU_CALLBACK - Change smoothing kernel & test whether it is legal.
 
-% --- Executes during object creation, after setting all properties.
-function boundsl_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to boundsl (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
+% Gather all values
+list = get(handles.kernelmenu,'String');
+k = lower(list{get(handles.kernelmenu,'Value')});
+param = str2double(get(handles.parambox,'String'));
+ksize = str2double(get(handles.sizebox,'String'));
 
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
+% Check size and reset
+if ksize <= 1 || isempty(ksize) || isnan(ksize)
+   ksize = 1;
+   set(handles.sizebox,'String','1.00');
 end
 
-
-
-function boundsu_Callback(hObject, eventdata, handles)
-% hObject    handle to boundsu (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of boundsu as text
-%        str2double(get(hObject,'String')) returns contents of boundsu as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function boundsu_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to boundsu (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
+% Set up the kenrel & check parameters
+if strcmp(k,'none')
+    set(handles.kernelmenu,'Value',1);
+    set([handles.text3,handles.parambox],'Visible','off');
+elseif ismember(k,{'gaussian','log'});
+    set(handles.sizebox,'Enable','on');
+    set([handles.text3,handles.parambox],'Visible','on');
+    if isempty(param) || isnan(param) || param <=0
+        param = 2.5;
+        set(handles.parambox,'String','2.50');
+    end
+elseif strcmp(k,'laplacian');
+    set(handles.sizebox,'Enable','off');
+    set([handles.text3,handles.parambox],'Visible','on');
+    if isempty(param) || param < 0 || param > 1 || isnan(param)
+        param = 0.5;
+        set(handles.parambox,'String','0.5');
+    end
+else
+% average and disk methods
+    set(handles.sizebox,'Enable','on');
 end
 
+handles.overlayc.update('smoothing',struct('kernel',k,'size',ksize,'param',param));
+guidata(hObject, handles);
 
-% --- Executes on selection change in colmapmenu.
+
+% *************************************************************************
+% **************** COLOR PROPERTIES ***************************************
+% *************************************************************************
+
+
 function colmapmenu_Callback(hObject, eventdata, handles)
-% hObject    handle to colmapmenu (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+%
+% COLMAP - Update colormap.
 
-% Hints: contents = cellstr(get(hObject,'String')) returns colmapmenu contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from colmapmenu
-
-
-% --- Executes during object creation, after setting all properties.
-function colmapmenu_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to colmapmenu (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
+list = get(handles.colmapmenu,'String');
+k = lower(list{get(handles.colmapmenu,'Value')});
+handles.overlayc.update('colmap',k);
+guidata(hObject, handles);
 
 
-% --- Executes on button press in colorbarbox.
+function slideroverlay_Callback(hObject, eventdata, handles)
+% 
+% SLIDEROVERLAY_CALLBACK - Update transparencies and brightness.
+
+vals = [get(handles.slideroverlay,'Value'),...
+        get(handles.sliderfibers,'Value'),...
+        get(handles.sliderbrightness,'Value')];
+
+handles.overlayc.update('optlayers',vals);
+guidata(hObject, handles);
+
+
 function colorbarbox_Callback(hObject, eventdata, handles)
-% hObject    handle to colorbarbox (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+%
+% ADDCOLORBAR - insert a colorbar.
+%
+% This option is not currently implemented.
 
-% Hint: get(hObject,'Value') returns toggle state of colorbarbox
+% *************************************************************************
+% **************** PLOT OPTION ********************************************
+% *************************************************************************
 
-
-% --- Executes on slider movement.
 function timeslider_Callback(hObject, eventdata, handles)
-% hObject    handle to timeslider (see GCBO)
+% 
+%
+% TIMESLIDER_CALLBACK - update image displayed.
+
+
+% --------------------------------------------------------------------
+function menutemplate_Callback(hObject, eventdata, handles)
+% hObject    handle to menutemplate (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'Value') returns position of slider
-%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
 
-
-% --- Executes during object creation, after setting all properties.
-function timeslider_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to timeslider (see GCBO)
+% --------------------------------------------------------------------
+function interpolatenans_Callback(hObject, eventdata, handles)
+% hObject    handle to interpolatenans (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
+% handles    structure with handles and user data (see GUIDATA)
 
-% Hint: slider controls usually have a light gray background.
-if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor',[.9 .9 .9]);
-end
+
+% --------------------------------------------------------------------
+function Untitled_6_Callback(hObject, eventdata, handles)
+% hObject    handle to Untitled_6 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function Untitled_7_Callback(hObject, eventdata, handles)
+% hObject    handle to Untitled_7 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function open_fexobject_Callback(hObject, eventdata, handles)
+% hObject    handle to open_fexobject (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function openfile_Callback(hObject, eventdata, handles)
+% hObject    handle to openfile (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function menuquit_Callback(hObject, eventdata, handles)
+% hObject    handle to menuquit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function menuselect_Callback(hObject, eventdata, handles)
+% hObject    handle to menuselect (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
