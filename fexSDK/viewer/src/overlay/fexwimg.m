@@ -5,16 +5,19 @@ classdef fexwimg < handle
 %
 % FEXWIMG Properties:
 %
-% name - Name of the .FEXW file.
+% name - A name given to the template (e.g. ?anger?);
 % img - Image data.
 % hdr - FEXWHDR object associated with IMG.
 %
+% The header of the image is an instance of the class fexwhdr. The header
+% of the image contains information about the morphology of the face in
+% img.
 % 
 % FEXWIMG Methods:
 %
 % FEXWIMG - Constructor function.
 % DRAWMASK - opens a UI that helps to draw a mask of the face.
-% GETMASK - returns a matrix of zeros and one with a face mask.
+% GETMASK - returns a matrix of zeros and ones with a face mask.
 % TEST - show results of FEXWIMG creation.
 %
 %
@@ -141,10 +144,13 @@ function IndsMask = getmask(self)
 %
 % IndsMask = self.GETMASK();
 %
-% Converts coordinates of a mask specified by the dataset self.hdr.MASK
-% into a matrix with same number of rows and columns as IMG.
+% The method GETMASK converts the coordinates of the perimeter of mask
+% (namely the dataset in self.hdr.mask) into a matrix of the same size of
+% the image, with value 0 for pixel outside the face, and value 1 for
+% within-face pixels.
 %
-% See also DRAWMASK, FEXWHDR.
+%
+% See also DRAWMASK, FEXWHDR.MASK.
 
 IndsMask = [];
 try

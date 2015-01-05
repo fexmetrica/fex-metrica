@@ -1,6 +1,6 @@
 classdef fexwhdr < handle
 %
-% FEXWHDR - Header for FEXWIMG image object.
+% FEXWHDR - Header for FEXWIMG image object. Internal use only.
 %
 % This object stores header information about a FEXWIMG information object.
 % Note that the header require a FEXWIMG object, and it is called from
@@ -8,12 +8,12 @@ classdef fexwhdr < handle
 %
 % FEXWHDR Properties:
 %
-% path - String with path to current image.
-% imsize - Vector with image size.
-% format - String with image format.
-% landmarks - ...
-% muscles - ...
-% mask - ...
+% path - string indicating the path to the original image;
+% imsize - vector with image size, [Height, Width, Color Channels];
+% format - string indicating the format of the image;
+% landmarks - dataset with coordinates for face landmarks;
+% muscles - structure with coordinates and texture of facial muscles;
+% mask - dataset with X and Y data for the perimeter of the face mask.
 %
 %
 % FEXWHDR Methods:
@@ -46,19 +46,40 @@ properties
     imsize
     % FORMAT: string with the image format.
     format
-    % LANDMARKS: list of landmarks names and coordinates. 
+    % LANDMARKS: is an instance of class dataset, and it is organized as
+    % follow. The property 'VarNames' is {'X', 'Y'}; the property
+    % 'ObsNames' is a cell with elements {'eyebrow_left_left',
+    % 'eyebrow_left_right', ...}. There is no need to include all the
+    % landmarks, but the naming has to follow the convention shown in the
+    % figure.
+    % 
+    % More landmarks points usually guarantee more accurate localization of
+    % the muscular fibers. Some of these landmarks can be computed using
+    % the Emotient SDK, but at the moment, we didn?t implement an automated
+    % procedure.
     landmarks
-    % MUSCLES: parameters for coregistration used to get the muscles
-    % location on the current FEXWIMG object. The parameters are computed
-    % using procrustes analysis. In order to compute these parameters you
-    % need LANDMARKS.
+    % MUSCLES: This property is a structure s.t. each field is named after
+    % a muscle. All fields contain two subfields, 'indx' and 'texture.' The
+    % field 'indx' is a vector of linear indices with the location of a
+    % muscle on the image. The field 'texture' is a vector with the texture
+    % of the muscles at each pixel.
+    %
     %
     % See also PROCRUSTES.
     muscles
     % MASK: parameters for a double ellipses used to define the location of
     % a mask of the face, or matrix inidicating in and out of face pixels.
     %
-    % See also FEXWDRAWMASKUI.
+    % The property MASK is a dataset, with variable names X and Y. X and Y
+    % are coordinates that describe an ellipsis or a double ellipsis, which
+    % masks the face in the image. A mask can be defined using a set of six
+    % parameters, two for the center of the face, two for the upper and
+    % lower major semi-axes, one for the minor semi-axis, and one for the
+    % rotation. When upper and lower semi-axes have the same value, the
+    % mask is elliptical. Instead, when they have different value, the mask
+    % is a double ellipsis.
+    %
+    % See also FEXWDRAWMASKUI, FEWIMG.DRAWMASK, FEWIMG.GETMASK.
     mask
 end
     
