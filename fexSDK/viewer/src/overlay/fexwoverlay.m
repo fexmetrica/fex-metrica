@@ -46,6 +46,7 @@ classdef fexwoverlay < handle
 % 
 % fexwoverlay - Constructor for FEXWOVERLAY.
 % update - Set or updates properties for FEXWOVERLAY.
+% select - Select subset of features when FEXC is provided.
 % makeoverlay - Generates overlay data (use with SHOW).
 % coldataidx - Converts DATA into a set of indices for a 256-color map.
 % show - Shows or updates the image.
@@ -407,6 +408,66 @@ if ~isempty(self.fig)
         self.show(k,self.visible);
     end
 end
+
+end
+
+%**************************************************************************
+
+function self = select(self,arg)
+%
+% SELECT - select features when FEXC object is entered for DATA.
+%
+% SYNTAX:
+%
+% self.SELECT('emotion_name')
+% self.SELECT('aus')
+% self.SELECT({'au1','au2',...})
+%
+% ARG can be:
+%
+% - A string with one of the seven basic emotions;
+% - A string with one of the available action units;
+% - A string set to 'aus' or 'AUS', which will select all action units;
+% - A cell of string with selected action units.
+%
+%
+% See also FEXC, LIST.
+
+% Check that the method can be applied
+if isempty(self.fexwc)
+    warning('Method SELECT required a FEXC object.');
+    return
+end
+
+if ischar(arg)
+    if ismember(lower(arg),self.list('e'))
+    % One emotion is provided
+        meta = importdata('fexwmetadata.mat');    
+        inds = strcmpi(arg,meta.emoinfo.Properties.VarNames);
+        inds = double(meta.emoinfo(:,inds)); 
+        inds = inds(inds ~=0);
+        inds = strsplit(sprintf(repmat('AU%d\n',[1,length(inds)]),inds'));
+        D = self.fexwc.functional(:,inds(1:end-1));
+    elseif ismember(lower(arg),self.list('aus'))
+    % one action unit
+        D = self.fexwc.functional(:,{upper(arg)});
+    elseif strcmpi(arg, 'aus')
+    % all action units
+        D = self.fexwc.functional(:,upper(self.list('aus')));
+    end
+elseif isa(arg,'cell')
+    % List of action units
+    D = [];
+    for j = 1:length(arg)
+        if ismember(lower(arg),self.list('aus'))
+            D = cat(2,D,self.fexwc.functional(:,upper(arg(j))));
+        else
+            warning('Feature %s not recognized.',arg{j});
+        end
+    end
+end
+% Update dataset
+self.update('data',D);
 
 end
 

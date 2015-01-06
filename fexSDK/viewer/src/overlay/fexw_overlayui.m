@@ -56,9 +56,13 @@ if ~isa(varargin{1},'fexc')
 end
 
 % Update name 
+str = get(handles.figure1,'Name');
 if ~isempty(varargin{1}.name)
-    str = get(handles.figure1,'Name');
     str = sprintf('%s: %s',str,varargin{1}.name);
+    set(handles.figure1,'Name',str);
+elseif isempty(varargin{1}.name) && ~isempty(varargin{1}.video)
+    [~,name] = fileparts(varargin{1}.video);
+    str = sprintf('%s: %s',str,name);
     set(handles.figure1,'Name',str);
 end
 
@@ -76,45 +80,39 @@ handles.tn = varargin{1}.time.TimeStamps;
 handles.t = fex_strtime(handles.tn);
 handles.current_time = handles.tn(1);
 set(handles.timetext,'String',handles.t{handles.n});
+% Set TimeSlider
+set(handles.timeslider,'Min',0,'Max',handles.tn(end),'Value',0);
+set(handles.timeslider,'SliderStep',[1/length(handles.tn),0.1]);
 
 % Add plot for positive and negative
-Y1 = varargin{1}.sentiments.Combined;
-Y2 = Y1; Y1(Y1 < 0) = 0; Y2(Y2 > 0) = 0;
+Y1 = varargin{1}.sentiments.Positive;
+Y2 = varargin{1}.sentiments.Negative;
 axes(handles.plotaxis);
+hold on
 title('Positive and Negative Sentiments','fontsize',14,'Color','w');
-area(handles.plotaxis,varargin{1}.sentiments.TimeStamps,Y1,'FaceColor',[1,0,0],'LineWidth',2,'EdgeColor',[1,0,0]);
+area(varargin{1}.sentiments.TimeStamps,Y1,'FaceColor',[1,1,1],'LineWidth',2,'EdgeColor',[1,1,1]);
 alpha(0.4);
-area(handles.plotaxis,varargin{1}.sentiments.TimeStamps,Y2,'FaceColor',[0,0,1],'LineWidth',2,'EdgeColor',[0,0,1]);
+area(varargin{1}.sentiments.TimeStamps,Y2,'FaceColor',[1,0,0],'LineWidth',2,'EdgeColor',[1,0,0]);
 alpha(0.4);
 x = get(handles.plotaxis,'XTick');
 set(gca,'Color',[0,0,0],'XColor',[1,1,1],'YColor',[1,1,1],'XTick',...
     x,'XTickLabel',fex_strtime(x,'short'),'LineWidth',2);
-ylim([-1,1]);
+ylim([0,max(max(Y1),max(Y2))]);
+xlim([handles.tn(1),handles.tn(end)]);
+legend({'Pos.','Neg.'},'TextColor',[1,1,1],'Box','off');
 hold off
 axes(handles.figaxis);
 
 end
 
-% Make smoothing parameter invisible
-set([handles.text3,handles.parambox],'Visible','off');
-
 % Choose default command line output for fexw_overlayui
+handles.doclose = false;
 handles.output = hObject;
 guidata(hObject, handles);
 
 % UIWAIT makes fexw_overlayui wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 
-
-% --- Outputs from this function are returned to the command line.
-function varargout = fexw_overlayui_OutputFcn(hObject, eventdata, handles) 
-% varargout  cell array for returning output args (see VARARGOUT);
-% hObject    handle to figure
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Get default command line output from handles structure
-varargout{1} = handles.output;
 
 % *************************************************************************
 % **************** VIDEO CONTROLLERS **************************************
@@ -127,6 +125,8 @@ function buttonback_Callback(hObject, eventdata, handles)
 if handles.n - 1 >= 1
     handles.n = handles.n - 1;
     handles.overlayc.show(handles.n);
+    handles.current_time = handles.tn(handles.n);
+    set(handles.timeslider,'Value',handles.tn(handles.n));
     set(handles.timetext,'String',handles.t{handles.n});
 end
 guidata(hObject, handles);
@@ -137,8 +137,12 @@ function buttonplay_Callback(hObject, eventdata, handles)
 
 if strcmp(get(handles.buttonplay,'String'),'Play')
     set(handles.buttonplay,'String','Pause');
+    set(handles.buttonback,'Enable','off');
+    set(handles.buttonforward,'Enable','off');
 else
     set(handles.buttonplay,'String','Play');
+    set(handles.buttonback,'Enable','on');
+    set(handles.buttonforward,'Enable','on');
 end
 
 flag = strcmp(get(handles.buttonplay,'String'),'Pause');
@@ -151,8 +155,12 @@ while flag && handles.n < nframes;
     set(handles.timetext,'String',handles.t{handles.n});
     flag = strcmp(get(handles.buttonplay,'String'),'Pause');
     % find next frame
+    if handles.current_time ~= get(handles.timeslider,'Value');
+        handles.current_time = get(handles.timeslider,'Value');
+    end
     handles.current_time = handles.current_time + toc; 
     handles.n =  dsearchn(handles.tn,handles.current_time);
+    set(handles.timeslider,'Value',handles.tn(handles.n));
     % handles.n = handles.n + 1;
 end
 
@@ -164,6 +172,7 @@ if handles.n == nframes;
     handles.current_time = handles.tn(handles.n);
     handles.overlayc.step(handles.n);
     set(handles.timetext,'String',handles.t{handles.n});
+    set(handles.timeslider,'Value',get(handles.timeslider,'Min'));
 end
 
 guidata(hObject, handles);
@@ -175,25 +184,25 @@ function buttonforward_Callback(hObject, eventdata, handles)
 if handles.n + 1 <= size(handles.overlayc.data,1)
     handles.n = handles.n + 1;
     handles.overlayc.show(handles.n);
+    handles.current_time = handles.tn(handles.n);
+    set(handles.timeslider,'Value',handles.tn(handles.n));
     set(handles.timetext,'String',handles.t{handles.n});
 end
 guidata(hObject, handles);
 
+
+
+
 % **************** TEMPLATE PROPERTIES ************************************
-
-% --- Executes on selection change in templatemenu.
-function templatemenu_Callback(hObject, eventdata, handles)
-%
-% TEMPLATEMENU_CALLBACK - Change the template on which the imeage is
-% displayed.
-
-handles.overlayc.update('template',get(handles.templatemenu,'Value'));
-guidata(hObject, handles);
-
 
 function boundsl_Callback(hObject, eventdata, handles)
 % 
-% BOUNDSL - set lower and upper bounds
+% BOUNDS - set lower and upper bounds.
+
+bl = str2double(get(handles.boundsl,'String'));
+bu = str2double(get(handles.boundsu,'String'));
+handles.overlayc.update('bounds',[bl,bu]);
+
 
 % *************************************************************************
 % **************** SMOOTHING PROPERTIES ***********************************
@@ -284,58 +293,173 @@ function timeslider_Callback(hObject, eventdata, handles)
 %
 % TIMESLIDER_CALLBACK - update image displayed.
 
+if strcmp(get(handles.buttonplay,'String'),'Play')
+    handles.current_time = get(handles.timeslider,'Value');
+    handles.n =  dsearchn(handles.tn,handles.current_time);
+    handles.overlayc.step(handles.n);
+    set(handles.timetext,'String',handles.t{handles.n});
+end
+guidata(hObject, handles);
+
 
 % --------------------------------------------------------------------
 function menutemplate_Callback(hObject, eventdata, handles)
-% hObject    handle to menutemplate (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+%
+% MENUTEMPLATE_CALLBACK - updates template.
 
+% Gather the handles for the menue and the 
+label = get(gcbo,'Label');
+hand  =  get(get(gcbo,'Parent'),'Children');
+% Uncheck all and re-chek selectde
+set(hand,'Checked','off');
+set(gcbo,'Checked','on');
+% Update template
+if strcmpi(label(1),'t')
+    label = label(end);
+end
+handles.overlayc.update('template',lower(label));
+guidata(hObject, handles);
+
+
+% --------------------------------------------------------------------
+function menucombine_Callback(hObject, eventdata, handles)
+% 
+% MENUCOMBINE_CALLBACK - determines how to combine overlapping features.
+
+% Gather the handles for the menue and the 
+label = get(gcbo,'Label');
+hand  =  get(get(gcbo,'Parent'),'Children');
+% Uncheck all and re-chek selectde
+set(hand,'Checked','off');
+set(gcbo,'Checked','on');
+% Update template
+handles.overlayc.update('combine',lower(label));
+guidata(hObject, handles);
+
+% --------------------------------------------------------------------
+function menuside_Callback(hObject, eventdata, handles)
+% 
+% MENUSIDE_CALLBACK - determines the side of the image.
+
+% Gather the handles for the menue and the 
+label = get(gcbo,'Label');
+hand  =  get(get(gcbo,'Parent'),'Children');
+% Uncheck all and re-chek selectde
+set(hand,'Checked','off');
+set(gcbo,'Checked','on');
+% Update template
+handles.overlayc.update('side',lower(label));
+guidata(hObject, handles);
 
 % --------------------------------------------------------------------
 function interpolatenans_Callback(hObject, eventdata, handles)
-% hObject    handle to interpolatenans (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% 
+% INTERPOLATENANS_CALLBACK - 
 
 
 % --------------------------------------------------------------------
-function Untitled_6_Callback(hObject, eventdata, handles)
-% hObject    handle to Untitled_6 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+function saveimage_Callback(hObject, eventdata, handles)
+% 
+% SAVEIMAGE_CALLBACKE - 
 
 
 % --------------------------------------------------------------------
-function Untitled_7_Callback(hObject, eventdata, handles)
-% hObject    handle to Untitled_7 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
+function savemovie_Callback(hObject, eventdata, handles)
+% 
+% SAVEMOVIE_CALLBACK - 
 
 % --------------------------------------------------------------------
 function open_fexobject_Callback(hObject, eventdata, handles)
-% hObject    handle to open_fexobject (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% 
+% OPEN_FEXOBJECT_CALLBACK - 
 
 
 % --------------------------------------------------------------------
 function openfile_Callback(hObject, eventdata, handles)
-% hObject    handle to openfile (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-% --------------------------------------------------------------------
-function menuquit_Callback(hObject, eventdata, handles)
-% hObject    handle to menuquit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
+%
+% OPENFILE_CALLABACK -
 
 % --------------------------------------------------------------------
 function menuselect_Callback(hObject, eventdata, handles)
-% hObject    handle to menuselect (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+%
+% MENUSELECT_CALLBACK - select features
+
+% Gather the handles for the menue and the 
+label = get(gcbo,'Label');
+hand  =  get(get(gcbo,'Parent'),'Children');
+% Uncheck all and re-chek selectde
+set(hand,'Checked','off');
+set(gcbo,'Checked','on');
+
+% Update template
+handles.overlayc.select(lower(label));
+if strcmpi(label,'contempt')
+    handles.overlayc.update('side','right');
+    set(get(handles.menuside,'Children'),'Checked','off');
+    set(handles.sider,'Checked','on');
+else
+    handles.overlayc.update('side','both');
+    set(get(handles.menuside,'Children'),'Checked','off');
+    set(handles.sideb,'Checked','on');
+end
+
+set(handles.boundsl,'String',sprintf('%.2f',handles.overlayc.info.bounds(1)));
+set(handles.boundsu,'String',sprintf('%.2f',handles.overlayc.info.bounds(2)));
+guidata(hObject, handles);
+
+% --------------------------------------------------------------------
+function menuhelp_Callback(hObject, eventdata, handles)
+% 
+% MENUHELP_CALLBACK
+
+doc fexw_overlayui
+
+
+function menubackground_Callback(hObject, eventdata, handles)
+%
+% MENUBACKGROUND_CALLBACK - Add a background
+
+s = get(handles.menubackground,'Checked');
+if strcmp(s,'off')
+    set(handles.menubackground,'Checked','on');
+    handles.overlayc.update('background',true);
+else
+    set(handles.menubackground,'Checked','off');
+    handles.overlayc.update('background',false);
+end
+
+% ********************************* CLOSE REQUESTS ************************
+
+function figure1_CloseRequestFcn(hObject, eventdata, handles)
+% 
+% FIGURE1_CLOSEREQUESTFCN - request closing.
+
+if strcmp(get(handles.buttonplay,'String'),'Pause')
+    set(handles.buttonplay,'String','Play');
+    handles.doclose = true;
+    handles.output = hObject;
+    guidata(hObject, handles);
+else
+    delete(handles.figure1);
+end
+
+
+function menuquit_Callback(hObject, eventdata, handles)
+%
+% MENUQUIT_CALLBACK - request closing.
+
+if strcmp(get(handles.buttonplay,'String'),'Pause')
+    set(handles.buttonplay,'String','Play');
+    handles.doclose = true;
+    handles.output = hObject;
+    guidata(hObject, handles);
+else
+    figure1_CloseRequestFcn(hObject,[],handles);
+end
+
+
+function varargout = fexw_overlayui_OutputFcn(hObject, eventdata, handles) 
+%
+% FEXW_OEVRLAYUI_OUTPUTFCN - Get output
+
+varargout{1} = handles.output;
