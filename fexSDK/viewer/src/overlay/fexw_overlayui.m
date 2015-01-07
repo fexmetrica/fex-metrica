@@ -196,6 +196,7 @@ end
 
 % Initialize FEXC options
 axes(handles.figaxis);
+axis tight
 handles.overlayc = fexwoverlay(varargin{1},'fig',handles.figaxis);
 handles.overlayc.show();
 
@@ -208,6 +209,8 @@ handles.tn = varargin{1}.time.TimeStamps;
 handles.t = fex_strtime(handles.tn);
 handles.current_time = handles.tn(1);
 set(handles.timetext,'String',handles.t{handles.n});
+set(handles.frametext,'String',sprintf('%.4d',handles.n));
+
 % Set TimeSlider
 set(handles.timeslider,'Min',0,'Max',handles.tn(end),'Value',0);
 set(handles.timeslider,'SliderStep',[1/length(handles.tn),0.025]);
@@ -332,6 +335,7 @@ if handles.n - 1 >= 1
     set(handles.cursor,'XData',repmat(handles.current_time,[10,1]));
     set(handles.timeslider,'Value',handles.tn(handles.n));
     set(handles.timetext,'String',handles.t{handles.n});
+    set(handles.frametext,'String',sprintf('%.4d',handles.n));
 end
 guidata(hObject, handles);
 
@@ -343,10 +347,14 @@ if strcmp(get(handles.buttonplay,'String'),'Play')
     set(handles.buttonplay,'String','Pause');
     set(handles.buttonback,'Enable','off');
     set(handles.buttonforward,'Enable','off');
+    set(handles.saveimage,'Enable','off');
+    set(handles.savemovie,'Enable','off');
 else
     set(handles.buttonplay,'String','Play');
     set(handles.buttonback,'Enable','on');
     set(handles.buttonforward,'Enable','on');
+    set(handles.saveimage,'Enable','on');
+    set(handles.savemovie,'Enable','on');
 end
 
 flag = strcmp(get(handles.buttonplay,'String'),'Pause');
@@ -357,6 +365,7 @@ while flag && handles.n < nframes;
     pause(0.001);
     handles.overlayc.step(handles.n);
     set(handles.timetext,'String',handles.t{handles.n});
+    set(handles.frametext,'String',sprintf('%.4d',handles.n));
     flag = strcmp(get(handles.buttonplay,'String'),'Pause');
     % find next frame
     if handles.current_time ~= get(handles.timeslider,'Value');
@@ -370,6 +379,10 @@ while flag && handles.n < nframes;
 end
 
 set(handles.buttonplay,'String','Play');
+set(handles.buttonback,'Enable','on');
+set(handles.buttonforward,'Enable','on');
+set(handles.saveimage,'Enable','on');
+set(handles.savemovie,'Enable','on');
 
 % Return to the beginning of the video
 if handles.n == nframes;
@@ -377,6 +390,7 @@ if handles.n == nframes;
     handles.current_time = handles.tn(handles.n);
     handles.overlayc.step(handles.n);
     set(handles.timetext,'String',handles.t{handles.n});
+    set(handles.frametext,'String',sprintf('%.4d',handles.n));
     set(handles.timeslider,'Value',get(handles.timeslider,'Min'));
 end
 
@@ -393,6 +407,7 @@ if handles.n + 1 <= size(handles.overlayc.data,1)
     set(handles.cursor,'XData',repmat(handles.current_time,[10,1]));
     set(handles.timeslider,'Value',handles.tn(handles.n));
     set(handles.timetext,'String',handles.t{handles.n});
+    set(handles.frametext,'String',sprintf('%.4d',handles.n));
 end
 guidata(hObject, handles);
 
@@ -529,6 +544,7 @@ if strcmp(get(handles.buttonplay,'String'),'Play')
     handles.n =  dsearchn(handles.tn,handles.current_time);
     handles.overlayc.step(handles.n);
     set(handles.timetext,'String',handles.t{handles.n});
+    set(handles.frametext,'String',sprintf('%.4d',handles.n));
 end
 guidata(hObject, handles);
 
@@ -677,12 +693,24 @@ function interpolatenans_Callback(hObject, eventdata, handles)
 
 function saveimage_Callback(hObject, eventdata, handles)
 % 
-% SAVEIMAGE_CALLBACKE - 
+% SAVEIMAGE_CALLBACKE - Save the current image.
+%
+% Saving can only be done when the video is not playing.
+
+imsave(handles.figaxis);
+% h = fexw_saveui('image');
+% handles.overlayc.saveo('format',['-d',h.format],'dpi',h.quality,'name',h.name);
 
 
 function savemovie_Callback(hObject, eventdata, handles)
 % 
-% SAVEMOVIE_CALLBACK - 
+% SAVEMOVIE_CALLBACK - Save a video
+%
+% Saving can only be done when the video is not playing.
+
+h = fexw_saveui('movie');
+handles.overlayc.makemovie('cut',h.extent,'quality',h.quality,'name',h.name);
+
 
 function open_fexobject_Callback(hObject, eventdata, handles)
 % 

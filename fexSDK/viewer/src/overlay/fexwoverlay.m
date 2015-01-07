@@ -502,7 +502,7 @@ else
     end
     self.overlaydata.odn = k;
     self.overlaydata.OD = OD; 
-    set(self.handles.overlay,'CData',imresize(self.formato,[550,420]));
+    set(self.handles.overlay,'CData',imresize(self.formato,'OutputSize',[720,600]));
 end
 
 end
@@ -694,6 +694,8 @@ function [self,args] = makemovie(self,varargin)
 % The output ARGS is a structure with the parameters used to generate the
 % video.
 %
+% NOTE: CURRENTLY INTERPOLATE AND FPS ARGUMENT ARE IGNORED.
+%
 %
 % See also FEXC, VIDEOWRITER.
     
@@ -713,13 +715,28 @@ args = struct('name',sprintf('fxw%s.avi',datestr(now,'dd:mm:yy:HH:MM:SS')),...
               'cut',[1,size(self.data,1)],...
               'quality',50,...
               'fps',15);
-          
+
 % Read arguments:
-% ... 
+fnames = fieldnames(args);
+[~,inds] = ismember(fnames,varargin(1:2:end));
+for i = 1:length(inds)
+    if inds(i) ~= 0
+        % Set/Test that arguments are properly specified
+        args.(fnames{i}) = varargin{inds(i)*2};
+    end
+end
+
+% Make sure that cut is properly set
+if isinf(args.cut(end))
+    args.cut(end) = size(self.data,1);
+elseif args.cut(1) < 1 || args.cut(2) > size(self.data,1)
+    error('Indices exceed number of frames.');
+end
+
 
 % Initialization of the image
-delete(self.fig);
-self.fig = [];
+% delete(self.fig);
+% self.fig = [];
 ind = find(~isnan(double(self.data(:,1))),1,'first');
 self.show(ind,false);
 
@@ -729,6 +746,7 @@ writerObj.FrameRate = args.fps;
 writerObj.Quality = args.quality;
 open(writerObj);
 
+self.step(args.cut(1));
 frame = getframe(self.fig);
 writeVideo(writerObj,frame);
 
@@ -736,7 +754,7 @@ h = waitbar(0,'Creating Movie');
 for k = args.cut(1)+1:args.cut(2)
     % generate image
     self.step(k);
-    self.show(k,false);
+    % self.show(k,false);
     waitbar((k-args.cut(1))/range(args.cut),h);
     % writer component 
     frame = getframe(self.fig);
@@ -746,8 +764,8 @@ end
 % Close video writer, delete waitbar
 close(writerObj);
 delete(h);
-delete(self.fig);
-self.fig = [];
+% delete(self.fig);
+% self.fig = [];
 warning('on','images:initSize:adjustingMag');
 
 end
@@ -817,21 +835,21 @@ end
 if isempty(self.fig) || ~isa(self.fig,'handle')
 % Initialize handle for the image
     self.fig = figure('Name','FexView','NumberTitle','off', 'Visible', 'off'); 
-    % set(self.fig,'NextPlot','replaceChildren');
+    set(self.fig,'NextPlot','replaceChildren');
 else
     try
         set(self.fig,'Visible', 'off');
         set(self.fig,'NextPlot','replaceChildren');
     catch
         self.fig = figure('Name','FexView','NumberTitle','off', 'Visible', 'off'); 
-        % set(self.fig,'NextPlot','replaceChildren');
+        set(self.fig,'NextPlot','replaceChildren');
     end
 end
 
 % Escape without showing when data are missing
 if isnan(double(self.data(n,1)))
     hold on
-    self.handles.face = imshow(imresize(rgb2gray(self.template.img),[550,420]));
+    self.handles.face = imshow(imresize(rgb2gray(self.template.img),'OutputSize','OutputSize',[720,600]));
     hold off
     if vis
         set(self.fig,'Visible','on');
@@ -861,7 +879,7 @@ end
 imo = self.formato();
 
 % Fig. Handle for muscles (use mean value)
-self.handles.muscles = imshow(imresize(uint8(self.overlaydata.OT),[550,420]));
+self.handles.muscles = imshow(imresize(uint8(self.overlaydata.OT),'OutputSize',[720,600]));
 
 % Colormap
 % if ischar(self.colmap)
@@ -906,7 +924,7 @@ self.handles.muscles = imshow(imresize(uint8(self.overlaydata.OT),[550,420]));
 
 % Fig. Handles for overlay and background image
 hold on
-self.handles.overlay = imshow(imresize(imo,[550,420]));
+self.handles.overlay = imshow(imresize(imo,'OutputSize',[720,600]));
 % Fig. Handles for colorbar
 if isa(self.colbar,'struct') && ~isempty(self.bounds)
 % You need to freeze the colorbar here. Otherwise it will be
@@ -925,14 +943,14 @@ if isa(self.colbar,'struct') && ~isempty(self.bounds)
 end
 
 % Fig Handle for face image
-self.handles.face = imshow(imresize(rgb2gray(self.template.img),[550,420]));
+self.handles.face = imshow(imresize(rgb2gray(self.template.img),'OutputSize',[720,600]));
 hold off
 
 % Generate transparency data for overlay
 INDS   = ~isnan(nanmean(self.overlaydata.OT,3));
 alpha1 = ones(size(INDS,1),size(INDS,2));
 alpha1(INDS) = self.optlayers.fibers;
-alpha1 = imfilter(imresize(alpha1,[550,420]),fspecial('disk',5),'replicate');
+alpha1 = imfilter(imresize(alpha1,'OutputSize',[720,600]),fspecial('disk',5),'replicate');
 
 % Generate transparency data for fibers
 if self.background
@@ -940,7 +958,7 @@ if self.background
 end
 alpha2 = ones(size(INDS,1),size(INDS,2));
 alpha2(INDS) = self.optlayers.overlay;
-alpha2 = imfilter(imresize(alpha2,[550,420]),fspecial('disk',5),'replicate');
+alpha2 = imfilter(imresize(alpha2,'OutputSize',[720,600]),fspecial('disk',5),'replicate');
 
 % When needed, show AUs/Emotions on one side only
 switch self.side
