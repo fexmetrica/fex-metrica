@@ -1,8 +1,5 @@
 #! /bin/bash
 
-# Move to the directory with c++ code
-cd cppdir
-
 # clean installation
 # rm -r build
 # rm -r bin

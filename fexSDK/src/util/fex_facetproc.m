@@ -86,7 +86,8 @@ cmd = cell(size(h));
 for k = 1:size(nlist,1)
     cmd{k} = sprintf('%s -f %s -o %s',FACET_EXEC,nlist{k,1},Y{k});
 end
-for k = 1:size(nlist,1)
+% Run the preprocessing
+parfor k = 1:size(nlist,1)
     h{k} = system(cmd{k});
 end
 cmd = char(cmd);

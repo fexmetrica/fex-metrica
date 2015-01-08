@@ -51,8 +51,8 @@ classdef fexwoverlay < handle
 % coldataidx - Converts DATA into a set of indices for a 256-color map.
 % show - Shows or updates the image.
 % saveo - Save the current image, or the FEXWOVERLAY object.
-% list - Display a list of muscles, action units, or emotions.
 % makemovie - generates a movie from data - (only applies to FEXC objects). 
+% list - Display a list of muscles, action units, or emotions.
 %
 % See also FEXWHDR, FEXWIMG, FEXWDRAWMASKUI, FEXC, FEXC.VIEWER.
 %
@@ -60,7 +60,7 @@ classdef fexwoverlay < handle
 % Copyright (c) - 2014-2015 Filippo Rossi, Institute for Neural Computation,
 % University of California, San Diego. email: frossi@ucsd.edu
 %
-% VERSION: 1.0.1 10-Sep-2014. 
+% VERSION: 1.0.1 08-Jan-2015. 
 
     
 properties
