@@ -217,8 +217,15 @@ set(handles.timeslider,'SliderStep',[1/length(handles.tn),0.025]);
 
 % Plot update
 handles.cursor = plotpanelmaster(handles);
-axes(handles.figaxis);
 
+% Video streaming axis place holder
+axes(handles.vidaxis);
+axis tight
+imshow('movie_placeholder.jpg');
+handles.vidobj = [];
+
+% return to fig axis
+axes(handles.figaxis);
 end
 
 % Choose default command line output for fexw_overlayui
@@ -336,6 +343,11 @@ if handles.n - 1 >= 1
     set(handles.timeslider,'Value',handles.tn(handles.n));
     set(handles.timetext,'String',handles.t{handles.n});
     set(handles.frametext,'String',sprintf('%.4d',handles.n));
+    % Add movie frame
+    if ~isempty(handles.vidobj)
+        img = read(handles.vidobj,handles.fexobj.time.FrameNumber(handles.n));
+        imshow(img,'parent',handles.vidaxis);
+    end 
 end
 guidata(hObject, handles);
 
@@ -349,12 +361,14 @@ if strcmp(get(handles.buttonplay,'String'),'Play')
     set(handles.buttonforward,'Enable','off');
     set(handles.saveimage,'Enable','off');
     set(handles.savemovie,'Enable','off');
+    set(handles.addmovie,'Enable','off');
 else
     set(handles.buttonplay,'String','Play');
     set(handles.buttonback,'Enable','on');
     set(handles.buttonforward,'Enable','on');
     set(handles.saveimage,'Enable','on');
     set(handles.savemovie,'Enable','on');
+    set(handles.addmovie,'Enable','on');
 end
 
 flag = strcmp(get(handles.buttonplay,'String'),'Pause');
@@ -366,6 +380,11 @@ while flag && handles.n < nframes;
     handles.overlayc.step(handles.n);
     set(handles.timetext,'String',handles.t{handles.n});
     set(handles.frametext,'String',sprintf('%.4d',handles.n));
+    % Add movie frame
+    if ~isempty(handles.vidobj)
+        img = read(handles.vidobj,handles.fexobj.time.FrameNumber(handles.n));
+        imshow(img,'parent',handles.vidaxis);
+    end 
     flag = strcmp(get(handles.buttonplay,'String'),'Pause');
     % find next frame
     if handles.current_time ~= get(handles.timeslider,'Value');
@@ -383,6 +402,8 @@ set(handles.buttonback,'Enable','on');
 set(handles.buttonforward,'Enable','on');
 set(handles.saveimage,'Enable','on');
 set(handles.savemovie,'Enable','on');
+set(handles.addmovie,'Enable','on');
+
 
 % Return to the beginning of the video
 if handles.n == nframes;
@@ -392,6 +413,11 @@ if handles.n == nframes;
     set(handles.timetext,'String',handles.t{handles.n});
     set(handles.frametext,'String',sprintf('%.4d',handles.n));
     set(handles.timeslider,'Value',get(handles.timeslider,'Min'));
+    % Add movie frame
+    if ~isempty(handles.vidobj)
+        img = read(handles.vidobj,1);
+        imshow(img,'parent',handles.vidaxis);
+    end 
 end
 
 guidata(hObject, handles);
@@ -408,6 +434,11 @@ if handles.n + 1 <= size(handles.overlayc.data,1)
     set(handles.timeslider,'Value',handles.tn(handles.n));
     set(handles.timetext,'String',handles.t{handles.n});
     set(handles.frametext,'String',sprintf('%.4d',handles.n));
+    % Add movie frame
+    if ~isempty(handles.vidobj)
+        img = read(handles.vidobj,handles.fexobj.time.FrameNumber(handles.n));
+        imshow(img,'parent',handles.vidaxis);
+    end 
 end
 guidata(hObject, handles);
 
@@ -545,6 +576,11 @@ if strcmp(get(handles.buttonplay,'String'),'Play')
     handles.overlayc.step(handles.n);
     set(handles.timetext,'String',handles.t{handles.n});
     set(handles.frametext,'String',sprintf('%.4d',handles.n));
+    % Add movie frame
+    if ~isempty(handles.vidobj)
+        img = read(handles.vidobj,handles.fexobj.time.FrameNumber(handles.n));
+        imshow(img,'parent',handles.vidaxis);
+    end 
 end
 guidata(hObject, handles);
 
@@ -773,3 +809,43 @@ function slider7_CreateFcn(hObject,eventdata,handles)
 %
 % SLIDER7_CREATEFCN - I don't know what's using this ... but some object is
 % FIX THIS.
+
+
+% --------------------------------------------------------------------
+function addmovie_Callback(hObject,eventdata, handles)
+% 
+% ADDMOVIE_CALLBACK - stream the movie alongside the overlay image.
+%
+% CALLBACK disabled during playback. 
+
+% Check whether the movie exists
+if ~exist(handles.fexobj.video,'file')
+    warning('No movie was provided ... ignoring command.');
+    return
+end
+
+% handle checked - unchecked version
+if strcmp(get(handles.addmovie,'Checked'),'on')
+    handles.vidobj = [];
+    set(handles.addmovie,'Checked','off');
+    imshow('movie_placeholder.jpg','parent',handles.vidaxis);
+else
+% Check whether there is a compression friendly version of the movie
+    [~,newname] = fileparts(handles.fexobj.video);
+    newname = sprintf('fexwstreamermedia/c%s.avi',newname);
+    if ~exist(newname,'file')
+        handles.fexobj.videoutil(true);
+    end
+    handles.vidobj = VideoReader(newname);
+    frame_n = handles.fexobj.time.FrameNumber(handles.n);
+    img = read(handles.vidobj,frame_n);
+    imshow(img,'parent',handles.vidaxis);
+    set(handles.addmovie,'Checked','on')
+end
+guidata(hObject, handles);
+
+
+
+
+
+
