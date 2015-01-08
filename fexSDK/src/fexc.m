@@ -27,10 +27,13 @@ classdef fexc < handle
 % update - Changes FEXC fields.
 % undo - retvert FEXC to previou state.
 % nanset - Reset NaNs after INTERPOLATE or DOWNSAMPLE are used.
-% getvideoInfo - Read general information about a video file. 
 % get - Shortcut to get subset of FEXC variables or properties.
 % fexport - Export FEXC data or notes to .CSV file.
 % getmatrix	- [... ...]
+% 
+% VIDEO UTILITIES:
+% getvideoInfo - Read general information about a video file. 
+% videoutil - Some implemented video transformation with ffmpeg.
 %
 % SPATIAL PROCESSING: 
 % coregister - Register face boxes to average face video location.
@@ -183,6 +186,12 @@ properties (Access = protected)
     %
     % See also SETBASELINE.
     baseline
+    % VERBOSE: Verbosity level. When set to false, operation will not
+    % generate a waiting bar. Default: True. This property can be changed
+    % using the method UBDATE.
+    %
+    % See also UPDATE
+    verbose
 end
 
 
@@ -286,7 +295,6 @@ else
 % ADD VIDEO ONLY CASE + JSON CONVERSION
     return
 end
-
 
 % Add file data: Note that the heaeder needs to have the name
 % given by the fexfacet code (load a structure named 'hdrs')
@@ -468,12 +476,17 @@ function self = undo(self)
 % UNDO can be use to revert to the version of FEXC before the last
 % operation.
 %
-% Note that ANNOTATIONS can NOT be undone. 
+% Note that ANNOTATIONS can NOT be undone. Additionally, note REDO can be
+% achieved calling UNDO again:
+%
+%   > self.UNDO(self.UNDO())
+%
 %
 % See also CLONE, GET, ANNOTATIONS, REINITIALIZE.
 
 for k = 1:length(self)
     if ~isempty(self(k).history.prev)
+    h = self(k).clone();
     % Overwrite public properies
     for p = [properties(self(k))','descrstats','naninfo'];
         self(k).(p{1}) = self(k).history.prev.(p{1});
@@ -482,6 +495,9 @@ for k = 1:length(self)
     self(k).tempkernel  = self(k).history.prev.tempkernel;
     self(k).thrsemo     = self(k).history.prev.thrsemo;
     self(k).coregparam  = self(k).history.prev.coregparam;
+    % Allow REDO - Now Prev is set to the FEXC object after the operation
+    % that was just undone.
+    self(k).history.prev = h;
     else
     warning('Nothing to undo ... ');
     end
@@ -502,6 +518,7 @@ function self = update(self,arg,val)
 % self(k).UPDATE('outdir',X)
 % self(k).UPDATE('name',X)
 % self(k).UPDATE('video',X)
+% self(k).UPDATE('verbose',X)
 %
 % X must have the same size of the matrix from the dataset it replaces.
 % Otherwise, UPDATE won't make the substitution.
@@ -511,18 +528,14 @@ function self = update(self,arg,val)
 % times.
 %
 %
-% See also FUNCTIONAL, STRUCTURAL, OUTDIR, NAME, VIDEO, DESIGN.
+% See also FUNCTIONAL, STRUCTURAL, OUTDIR, NAME, VIDEO, DESIGN, VERBOSE.
 
 
 % Add backup for undo
 self.beckupfex();
 
-arg = lower(arg);
-if ~ismember(arg,{'functional','structural','outdir','name','video','design'})
-    error('Unknown field to update');
-end
-
-switch arg
+% Optional fields:
+switch lower(arg)
     case {'functional','structural'}
         if length(self) > 1
             warning('UPDATE does not operate on stacked FEXC for this field.');
@@ -571,7 +584,15 @@ switch arg
             self.design = val;
         else
             error('Mispecified design argument.');                
-        end     
+        end
+    case 'verbose'
+        for k = 1:length(self)
+            if val
+                self(k).verbose = val;
+            else
+                self(k).verbose = false;
+            end
+        end
     otherwise
         error('Unrecognized field "%s".',arg);
 end
@@ -689,7 +710,104 @@ end
 
 end
 
+% *************************************************************************
 
+function self = videoutil(self,crop_frame,change_fexc)
+%
+% VIDEOUTIL - Shortcut to video utility actions with ffmpeg.
+%
+% SYNTAX:
+% self.VIDEOUTIL()
+% self.VIDEOUTIL(CROP_FRAME)
+% self.VIDEOUTIL(CROP_FRAME,APPLY)
+%
+% VIDEOUTIL methods wraps few functionality from ffmpeg, and allows to
+% apply selected operation to the video file. VIDEOUTIL will create a new
+% video with the same name of the original one in a subfolder named
+% FEXSTREAMERMEDIA located in the current directory. If a video already
+% exists, the user is asked to give confirmation on the command line. The
+% default action of VIDEOUTIL is to save each video to uncompressed AVI
+% format. This is required by FEXW_STREAMERUI UI. Default: true.
+%
+% ARGUMENTS:
+% 
+% CROP_FRAME - Used to reduce the frame size to a box of given size. The
+%   user can set CROP_FRAME to true. VIDEOUTIL will use the method GET to
+%   obtain a box that contains the face boxes from each frame. This facebox
+%   is then used to crop the video. Alternatively, the user can enter a
+%   vector [X_0, Y_0, Width, Hight] with a custome face box. Default:
+%   false.
+% CHANGE_FEXC - Boolean value. When set to true, it applies the changes to
+%   the FEXC object. In the case of UNCOMP = 1, APPLY will set self.VIDEO
+%   to the new video file. When CROP = 1, APPLY will adjust the coordinates
+%   of the STRUCTURAL field to account for the new frame size. Default:
+%   false.
+%
+%
+% NOTE: to use this method you need to have a video and to have ffmpeg
+% installed.
+%
+%
+% See also FEXW_STREAMERUI, GET, STRUCTURAL.
+
+% Add backup for undo
+self.beckupfex();
+
+if ~exist('crop_frame','var')
+    crop_frame = false;
+end
+if ~exist('change_fexc','var')
+    change_fexc = false;
+end
+
+% Read various CROP_FRAME options
+if ~isa(crop_frame,'logical') && ~ismember(4,size(crop_frame))
+    error('CROP_FRAME option mispecification.');
+elseif isa(crop_frame,'logical')
+    B = get(self,'facebox','double');
+elseif length(self) == size(crop_frame,1)
+    B = crop_frame;
+    crop_frame = true;
+elseif length(self) > 1 && size(crop_frame,1) == 1
+    B = repmat(crop_frame,[length(self),1]);
+    crop_frame = true;
+else
+    error('CROP_FRAME option mispecification.');
+end
+
+% Create directory for new videos in the current directory
+if ~exist('fexwstreamermedia','dir')
+    mkdir('fexwstreamermedia');
+end
+
+% Apply operations
+for k = 1:length(self)
+self(k).video = deblank(self(k).video);
+if exist(self(k).video,'file')
+    [~,fname] = fileparts(self(k).video);
+    new_name  = sprintf('%s/fexwstreamermedia/%s.avi',pwd,fname);
+    strc = ' ';
+    if crop_frame
+    % Add crop string [W:H:X:Y];
+        strc = sprintf('crop=%d:%d:%d:%d',round(B(k,[3,4,1,2])));
+    end
+    % Execute (-s 960x540 -vcodec libx264 -vpre medium)
+    cmd = sprintf('ffmpeg -i %s -vcodec mjpeg -an -q 1 -filter:v "%s" %s',self(k).video,strc,new_name);
+    [isError,output] = unix(sprintf('source ~/.bashrc && %s',cmd),'-echo');
+    % Something went wrong: print error and escape
+    if isError ~= 0 
+        warning(output);
+    end
+    % Apply transformations to FEXC object
+    if change_fexc
+        warning('CHANGE_FEXC is not implemented yet.');
+    end 
+else
+    warning('Missing video (%d): %s.',k,self(k).video);
+end
+end
+
+end
 % *************************************************************************
 
 function X = get(self,ReqArg,Spec)
@@ -715,6 +833,8 @@ function X = get(self,ReqArg,Spec)
 %    1, X is a matrix with as many rows length(self). Columns indicate:
 %    overall number of Nans, Number of clusters of nans, and number of
 %    falsepositive identified.
+% E. coordinates for a facebox which include all face boxes in the video
+%    (string set to 'facebox').
 %
 % SPEC options depend on the value of REGARG.
 %
@@ -772,6 +892,14 @@ switch lower(ReqArg)
         for k = 1:length(self)
             X   = cat(1,X,self(k).structural(:,ind==0));
         end
+    case 'facebox'
+        facehdr = {'FaceBoxX','FaceBoxY','FaceBoxW','FaceBoxH'};
+        for k = 1:length(self)
+            B = double(self(k).structural(:,facehdr));
+            B(:,3:4) = B(:,1:2) + B(:,3:4);
+            X = cat(1,X,[min(B(:,1:2)), max(B(:,3:4)) - min(B(:,1:2))]);
+        end
+        X = mat2dataset(X,'VarNames',facehdr);
     case 'pose'
         for k = 1:length(self)
             X  = cat(1,X,self(k).structural(:,{'Roll','Pitch','Yaw'})); 
@@ -872,7 +1000,7 @@ elseif sum(strcmpi(Spec,{'Data','Data1','Data2','Annotations','Notes'})) == 0;
     error('SPEC options: ''Data'',''Annotations''.');
 end
 
-% Store flist
+% Initialize waitbar
 h = waitbar(0,sprintf('Exporting %s ... ',Spec));
 
 flist = cell(length(self),1);
@@ -1147,7 +1275,7 @@ for k = 1:length(self)
     % Switch to INTERPOLATE (RULE is transformed in number of acceptable
     % NaN-frames per second).
         warning('Actual (%.2f fps) <= Required (%.2f fps). Using method INTERPOLATE.',mfps,fps);
-        self(k).interpolate('fps',fps,'rule',max(round(nfps*(1-rule)),1));
+        self(k).interpolate('fps',fps,'rule',max(round(nfps*(1-rule)),1),'verbose',false);
     else
     % Set up the kernel (box kernel).
         kk2 = ones(nfps,1)./nfps;
@@ -1697,26 +1825,40 @@ function self = interpolate(self,varargin)
 
 % Add backup for undo
 self.beckupfex();
-
+% Read rule
 ind = find(strcmp(varargin,'rule'));
 if ~isempty(ind)
     arg.rule = varargin{ind +1};
 else
     arg.rule = Inf;
 end
+% Read fps
 ind = find(strcmp(varargin,'fps'));
 if ~isempty(ind)
     arg.fps = varargin{ind +1};
 else
     arg.fps = 15;
 end
+% Verbose option 
+ind = find(strcmp(varargin,'verbose'));
+if ~isempty(ind)
+    v = varargin{ind +1};
+else
+    v = true;
+end
 
 VarNames = self(1).functional.Properties.VarNames;
-h = waitbar(0,'Interpolation ...');
+
+if v
+    % Add waitbar when verbose is set to true
+    h = waitbar(0,'Interpolation ...');
+end
 
 for k = 1:length(self)
 fprintf('Interpolating timeseries from fexc %d/%d.\n',k,length(self));
-waitbar(k/length(self),h);
+if v
+    waitbar(k/length(self),h);
+end
 % Interpolate: safe check for number of nans
 NofNans = mean(isnan(sum(double(self(k).functional),2)));
 if NofNans < 0.90
@@ -1755,8 +1897,9 @@ else
 end
 
 end
-
-delete(h);
+if v
+    delete(h);
+end
 end
 
 
