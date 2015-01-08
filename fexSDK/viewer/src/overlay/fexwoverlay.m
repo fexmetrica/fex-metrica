@@ -115,11 +115,11 @@ end
     
 properties (Access = private)
     % TEMPLATE: name of the template to be used. The argument TEMPLATE can
-    % be a string, an integer between 1 and 12, or a FEXWIMG object.
+    % be a string, an integer between 1 and 11, or a FEXWIMG object.
     % 
-    % When the user wants to display an overlay that is not between the 12
-    % included in the VIEWER, ?template? must be a FEXWIMG. A list of
-    % available names for the 12 templates is provided below:
+    % When the user wants to display an overlay that is not between the 11
+    % included in the VIEWER, TEMPLATE must be a FEXWIMG. A list of
+    % available names for the 11 templates is provided below:
     %
     %
     %       | Number | Description|
@@ -419,6 +419,7 @@ function self = select(self,arg)
 %
 % SYNTAX:
 %
+% self.SELECT()
 % self.SELECT('emotion_name')
 % self.SELECT('aus')
 % self.SELECT({'au1','au2',...})
@@ -430,13 +431,20 @@ function self = select(self,arg)
 % - A string set to 'aus' or 'AUS', which will select all action units;
 % - A cell of string with selected action units.
 %
+% When ARG is left empty, a UI will pop-up, and it will allow to select a
+% set of Action Units.
 %
-% See also FEXC, LIST.
+% See also FEXC, LIST, FEXW_SELECTUI.
 
 % Check that the method can be applied
 if isempty(self.fexwc)
     warning('Method SELECT required a FEXC object.');
     return
+end
+
+% Use the UI when you call select without ARG
+if ~exist('arg','var')
+    arg = fexw_selectui();
 end
 
 if ischar(arg)
@@ -566,102 +574,113 @@ self.overlaydata.basecolor  = BaseColor;            % Base color
 
 end
  
-        function [ColDataIdx,BaseColor] = coldataidx(self,Y,repval,bnds)
-        %
-        % -----------------------------------------------------------------
-        %
-        % "Y" can be a vector of values, one component per facial
-        % expression feature. ALternatively, "Y" can be a matrix: the
-        % columns indicate facial expressions features, while the rows
-        % indicate a different overlay image (in case you have a
-        % time-series of features). If you set "Y" to a 1*K vector of nans,
-        % "coldataidx" will generate K equally spaced indices.
-        %
-        % "repval" its a boolean value (i.e. 1/0, true/false), and it
-        % applies to emotions. With emotions, multiple action units,
-        % associated with the same value. Default is: false.
-        %
-        % bnds is a 2 component vector [b1,b2], such that the only features
-        % displayed are those associated with values (in "Y") between b1
-        % and b2. When you specify bnds, the property "self.bounds" is
-        % updated. The default is to use the existing values from
-        % "self.bounds."
-        %
-        % -----------------------------------------------------------------
-        %
-        
-        % Arguments check.
-        if nargin == 0
-            error('You need to provide "Y."');
-        elseif nargin == 1
-        % Repeat same value for all features.
-            repval = false;
-        elseif nargin == 4
-        % Update the bounds argument.
-            self.bounds = bnds;
-        end
-        
-        % Fexview uses 256-color maps.
-        if isa(self.colmap,'char') || isempty(self.colmap)
-            ncolors = 256;
-        else
-            ncolors = size(self.colmap,1);
-        end
+function [ColDataIdx,BaseColor] = coldataidx(self,Y,repval,bnds)
+%
+% COLDATAIDX - transform DATA into RGB color indices
+%
+% SYNTAX:
+%
+% self.COLDATAIDX(Y)
+% self.COLDATAIDX(Y,REPVAL)
+% self.COLDATAIDX(Y,REPVAL,BNDS)
+%
+% ARGUMENTS:
+%
+% Y - can be a vector of values, one component per facial
+%   expression feature. Alternatively, Y can be a matrix: the
+%   columns indicate facial expressions features, while the rows
+%   indicate a different overlay image (in case you have a
+%   time-series of features). If you set Y to a 1*K vector of nans,
+%   COLDATAIDX will generate K equally spaced indices.
+%
+% REPVAL - its a boolean value (i.e. 1/0, true/false), and it applies to
+%   emotions only. Emotions are unpacked into combination of Action Units.
+%   When REPVAL is set to true, instead of the Action Units score, the
+%   evidence score for the emotion is displayed. Default: false.
+%
+% BNDS - is a 2 component vector [b1,b2], and the Action Units scores
+%   displayed are those associated with Y values between b1 and b2. When
+%   you specify bnds, the property self.BOUNDS is updated. The default is
+%   to use the existing values from self.BOUNDS. If BNDS is not entered,
+%   and self.BOUNDS is empty, the defaults are specified as follows:
+%
+%   1. +/- values: BOUNDS are set to be [min(Y),max(Y)] and BACKGROUND
+%   value is set to first color.
+%   2. + values only: all data are positive,and bounds are set between 0
+%   and the maximum score in Y.
+%   3. - values only: all data are negative, they are convert to positive,
+%   and we use the same procedure as in 2.
+%
+%
+% See also BOUNDS.
 
-        % Check whether there are nans in Y (or if Y is enterely composed
-        % of nans).
-        ytest = reshape(Y,numel(Y),1);
+% Arguments check.
+if nargin == 0
+    error('You need to provide "Y."');
+elseif nargin == 1
+% Repeat same value for all features.
+    repval = false;
+elseif nargin == 4
+% Update the bounds argument.
+    self.bounds = bnds;
+end
 
-        % Set up bounds when not provided. There are three cases:
-        %  (1) +/- values: bounds are set to be symmetric, and base value
-        %      is set to first color.
-        %  (2) + values: all data are positive,and bounds are set between 0
-        %      and the maximum value of the data;
-        %  (3) - values: all data are negative, they are convert to
-        %      positive, and we use the same procedure as in (2).
-        if isempty(self.bounds) || isnan(sum(self.bounds))
-            % Make bounds symmetric
-            if min(ytest) < 0 && max(ytest) > 0
-                % maxVal = max(abs([min(min(ytest),0),max(ytest)]));
-                self.bounds = [min(ytest),max(ytest)];
-            elseif min(ytest) < 0 && max(ytest) <= 0
-            % If all values are negative, we change sign in the process of
-            % assigning color index.
-                ytest  = abs(ytest);
-                self.bounds = [0,max(ytest)];
-            elseif min(ytest) >= 0 && max(ytest) >= 0
-                self.bounds = [0,max(ytest)];
-            end  
-        end
-        % I DON'T KNOW IF EXCLUDING OUT OF BOUND DATA, OR CAPING THEM IS
-        % THE BEST IDEA. FOR NOW I AM EXCLUDING THEM.
-        ytest(ytest < self.bounds(1) | ytest > self.bounds(2)) = nan;
-        
-        % Set the colormap
-        if sum(isnan(ytest)) == length(ytest)
-        % No data provided, so you generate an equally spaced colormap. In
-        % this case, self.bounds are ignored even when provided.
-            if repval
-                ColDataIdx = repmat(ncolors,[1,size(Y,2)]);
-            else
-                ColDataIdx = linspace(1,ncolors,size(Y,2));
-            end
-        else
-        % This is the expected case -- when you provided data.   
-            YY = linspace(self.bounds(1),self.bounds(2),ncolors);
-            ColDataIdx = dsearchn(YY(:),ytest(:)); 
-        end
-        % Get ColDataIdx matrix
-        ColDataIdx = reshape(ColDataIdx,size(Y,1),size(Y,2));
-        
-        % Set base color information.
-        if self.bounds(1) == 0
-            BaseColor = 1;
-        elseif self.bounds(1) < 0
-            BaseColor = round(ncolors/2);
-        end
-        
-        end
+% Fexview uses 256-color maps.
+if isa(self.colmap,'char') || isempty(self.colmap)
+    ncolors = 256;
+else
+    ncolors = size(self.colmap,1);
+end
+
+% Check whether there are nans in Y (or if Y is enterely composed
+% of nans).
+ytest = reshape(Y,numel(Y),1);
+
+% Set up bounds when not provided.
+if isempty(self.bounds) || isnan(sum(self.bounds))
+    if min(ytest) < 0 && max(ytest) > 0
+        % maxVal = max(abs([min(min(ytest),0),max(ytest)]));
+        self.bounds = [min(ytest),max(ytest)];
+    elseif min(ytest) <= 0
+    % If all values are negative, we change sign in the process of
+    % assigning color index.
+        ytest  = abs(ytest);
+        self.bounds = [0,max(ytest)];
+    elseif min(ytest) >= 0
+        self.bounds = [0,max(ytest)];
+    end  
+end
+% I DON'T KNOW IF EXCLUDING OUT OF BOUND DATA, OR CAPING THEM IS
+% THE BEST IDEA. FOR NOW I AM EXCLUDING THEM.
+ytest(ytest < self.bounds(1) | ytest > self.bounds(2)) = nan;
+
+% Set the colormap
+if sum(isnan(ytest)) == length(ytest) || range(ytest) == 0
+% No data provided, so you generate an equally spaced colormap. In
+% this case, self.bounds are ignored even when provided.
+    if repval
+        ColDataIdx = repmat(ncolors,[1,size(Y,2)]);
+    else
+        ColDataIdx = linspace(1,ncolors,size(Y,2));
+    end
+else
+% This is the expected case -- when you provided data.   
+    YY = linspace(self.bounds(1),self.bounds(2),ncolors);
+    ColDataIdx = dsearchn(YY(:),ytest(:)); 
+end
+% Get ColDataIdx matrix
+ColDataIdx = reshape(ColDataIdx,size(Y,1),size(Y,2));
+
+% Fixme: Change the basecolor procedure.
+%
+% Set base color information.
+if self.bounds(1) == 0
+    BaseColor = 1;
+elseif self.bounds(1) < 0
+    BaseColor = 1; % round(ncolors/2);
+end
+
+end
 
 %************************************************************************** 
 
@@ -799,10 +818,10 @@ function [self, frame] = show(self,n,vis)
 %   or not. Default: true.
 %
 %
+% SHOW updates the HANDLES property.
 %
-% SHOW update the HANDLES property.
-%
-% See also MAKEOEVERLAY, COMBINE, SETBACKGROUND, SMOOTHING, HANDLES.
+% See also MAKEOEVERLAY, FORMATO, COMBINE, SETBACKGROUND, SMOOTHING,
+% HANDLES.
 
 frame = [];
 
