@@ -162,10 +162,13 @@ if nargout==1, X = [X Y]; end
 
 function hand_names = get_handle_names(handles)
 
+hand_names = [];
 hnd = get(handles.image_axes,'Children');
 for i = 1:length(hnd)
     hand_names.(get(hnd(i),'DisplayName')) = hnd(i);
 end
+
+
 
 % --- Executes on button press in donebutton.
 function donebutton_Callback(hObject, eventdata, handles)
