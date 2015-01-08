@@ -48,13 +48,13 @@ end
 fclose(fid);
 
 % Compile files
-try 
-   system('make clean');
-catch error
-    warning(error.message);
-end
+% try 
+%    system('make clean');
+% catch error
+%     warning(error.message);
+% end
 cmd = 'cmake -G "Unix Makefiles" && make';
-h = system(cmd);
+h = system(sprintf('source ~/.bashrc && %s',cmd));
 
 if h == 0
     fprintf('\nInstallation was successfull. \n\n');

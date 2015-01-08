@@ -1,4 +1,4 @@
-function [Y,h] = fex_facetproc(list,varargin)
+function [Y,cmd,h] = fex_facetproc(list,varargin)
 %
 % FEX_FACETPROC calls FACET SDK executable file to process videos
 %
@@ -82,10 +82,14 @@ end
 nlist = nlist(ind > 0,:);
 Y = nlist(:,2);
 h = cell(size(nlist,1),1);
-parfor k = 1:size(nlist,1)
-    h{k} = system(sprintf('%s -f %s -o %s',FACET_EXEC,nlist{k,1},Y{k}));
+cmd = cell(size(h));
+for k = 1:size(nlist,1)
+    cmd{k} = sprintf('%s -f %s -o %s',FACET_EXEC,nlist{k,1},Y{k});
 end
-
+for k = 1:size(nlist,1)
+    h{k} = system(cmd{k});
+end
+cmd = char(cmd);
 
 
 
