@@ -97,13 +97,15 @@ fexObj = [];
 
 switch lower(filetype)
     case 'azfile'
+        warning('off','MATLAB:codetools:ModifiedVarnames');
+        warning('off','stats:dataset:ModifiedVarnames');
         for i = 1:size(filepath,1)
-            warning('off','MATLAB:codetools:ModifiedVarnames');
             temp = dataset('File',deblank(filepath(i,:)),'Delimiter',',');
-            warning('on','MATLAB:codetools:ModifiedVarnames');
             fexObj = cat(1,fexObj,convutilint(temp,deblank(moviepath{i})));
             fprintf('Created fexObject %d/%d.\n',i,size(filepath,1));
         end
+        warning('off','MATLAB:codetools:ModifiedVarnames');
+        warning('off','stats:dataset:ModifiedVarnames');
     case 'ffile'
         for i = 1:size(filepath,1)
             warning('off','MATLAB:codetools:ModifiedVarnames');
