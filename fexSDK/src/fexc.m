@@ -28,6 +28,7 @@ classdef fexc < handle
 % undo - retvert FEXC to previou state.
 % nanset - Reset NaNs after INTERPOLATE or DOWNSAMPLE are used.
 % get - Shortcut to get subset of FEXC variables or properties.
+% listf - List variables names.
 % fexport - Export FEXC data or notes to .CSV file.
 % getmatrix	- [... ...]
 % 
@@ -887,16 +888,19 @@ switch lower(ReqArg)
             X  = cat(1,X,self(k).functional(:,ind));
         end
     case 'emotions'
-        list = {'anger','contempt','disgust','joy','fear','sadness',...
-                'surprise','confusion','frustration'};
+        % list = {'anger','contempt','disgust','joy','fear','sadness',...
+        %         'surprise','confusion','frustration'};
+        list = self.listf('primary');
         for k = 1:length(self)
             X  = cat(1,X,self(k).functional(:,list));
         end
     case 'landmarks'
-        k1 = cellfun(@isempty,strfind(self(1).structural.Properties.VarNames, '_x'));
-        k2 = cellfun(@isempty,strfind(self(1).structural.Properties.VarNames, '_y'));
+        % k1 = cellfun(@isempty,strfind(self(1).structural.Properties.VarNames, '_x'));
+        % k2 = cellfun(@isempty,strfind(self(1).structural.Properties.VarNames, '_y'));
+        list = self.listf('land');
         for k = 1:length(self)
-            X = cat(1,X,self(k).structural(:,k1==0|k2==0));
+            % X = cat(1,X,self(k).structural(:,k1==0|k2==0));
+            X = cat(1,X,self(k).structural(:,list));
         end
     case 'face'
         ind = cellfun(@isempty,strfind(self.structural.Properties.VarNames, 'Face'));
@@ -967,6 +971,72 @@ elseif strcmpi(Spec,'struct')
 end
 
 end
+
+% *************************************************************************
+
+function n = listf(self,type)
+%
+% self.LIST - list variables names.
+%
+% SYNTAX:
+%
+% se;f.LIST()
+% self.LIST(TYPE)
+%
+% TYPE is a string set to:
+%
+%  |  String      | Shortcut   |            Output              |
+%  | ============ | ========   | ============================== |
+%  | 'primary'    | 'p','pe'   | 7 Primary emotions names       |
+%  | 'secondary'  | 'se','cf'  | Confusion and frustration      |
+%  | 'emotions'   | 'e'        | Primary and secondary emotions |
+%  | 'aus'        | 'a'        | Action Units                   |
+%  | 'face'       | 'f'        | Face box (X,Y,W,H)             |
+%  | 'landmarks'  | 'land','l' | Landmarks coordinates          |
+%  | 'sentiments' | 's','sent' | Sentiments                     |
+%  | 'pose'       | 'ps'       | Pose                           |
+%  | ============ | ========   | ============================== |
+%
+%
+% When TYPE is empty, the output cell "n" contains all available features.
+% Otherwise, "n" is a cell with the features name. NOTE that these features
+% are not necessarely included in the current FEXC object.
+%
+% 
+% See also GET
+
+if ~exist('type','var')
+    type = 'all';
+end
+
+c = dataset('File','fexchannels.txt');
+switch lower(type)
+    case {'primary','p','pe'}
+      target = 'emo1';
+    case {'secondary','se','cf'}
+      target = 'emo2';
+    case {'emotion','emotions','e'}
+      target = {'emo1','emo2'};
+    case {'aus','au','a'}
+      target = 'au';
+    case {'face','f'}
+      target = 'face';
+    case {'landmarks','landmark','land','l'}
+       target = 'land';
+    case {'sentiments','sentiment','s','sent'}
+       target = 'sent1';
+    case {'pose','ps'}
+       target = 'pose';
+    case 'all'
+       target = unique(c.Class);
+    otherwise
+       warning('TYPE not recognized: %s.', type);
+end
+   
+n = deblank(c.Name(ismember(c.Class,target)));
+
+end
+
 
 % *************************************************************************
 
