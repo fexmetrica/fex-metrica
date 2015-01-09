@@ -86,10 +86,16 @@ cmd = cell(size(h));
 for k = 1:size(nlist,1)
     cmd{k} = sprintf('%s -f %s -o %s',FACET_EXEC,nlist{k,1},Y{k});
 end
+% Update envirnoment (! temporararely)
+env1 = getenv('DYLD_LIBRARY_PATH');
+setenv('DYLD_LIBRARY_PATH',['/usr/local/bin:/usr/bin:/usr/local/sbin:',env1]);
+
 % Run the preprocessing
 parfor k = 1:size(nlist,1)
-    h{k} = system(cmd{k});
+    h{k} = system(sprintf('source ~/.bashrc && %s',cmd{k}));
 end
+% return to original environment setting
+setenv('DYLD_LIBRARY_PATH',env1);
 cmd = char(cmd);
 
 
