@@ -6,6 +6,8 @@ set(FACETMAIN "/Users/filippo/src/emotient/Dec2014/FACET/FacetSDK")
 
 if (OpenCV_FOUND)
 
+set(EXECUTABLE_OUTPUT_PATH ..)
+
 include_directories("${FACETMAIN}/include" ${OpenCV_INCLUDE_DIRS})
 include_directories("${FACETMAIN}/samples")
 link_directories("${FACETMAIN}/lib")

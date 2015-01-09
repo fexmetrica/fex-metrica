@@ -1,0 +1,4 @@
+# Fex-Metrica .gitignore file -- Ignore build files
+
+fexSDK/src/facet/cpp/osx/build
+fexSDK/src/facet/cpp/osx/fexfacetexec

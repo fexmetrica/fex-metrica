@@ -16,13 +16,13 @@ addpath(genpath(pwd));
 
 % Set up some directories
 base = pwd;
-target_dir = sprintf('%s/fexSDK/src/facet/cppdir/osx',pwd);
+target_dir = sprintf('%s/fexSDK/src/facet/cpp/osx',pwd);
 cd(target_dir);
 
 % Change specific lines on CMakeList.txt and config.hpp
 cmakefilename = sprintf('%s/CMakeLists.txt',target_dir);
 confifilename = sprintf('%s/config.hpp',target_dir);
-videotest = sprintf('%s/fexSDK/samples/data/test/test.mov',base);
+videotest = sprintf('%s/fexSDK/test/test.mov',base);
 
 % Find FACET SDK main directory
 FACET_DIR = uigetdir(pwd,'Select "FacetSDK" Directory'); %'/Users/filippo/src/emotient/Dec2014/FACET/FacetSDK';
@@ -47,27 +47,27 @@ for i = 1:length(con)
 end
 fclose(fid);
 
-% Compile files
-% try 
-%    system('make clean');
-% catch error
-%     warning(error.message);
-% end
-cmd = 'cmake -G "Unix Makefiles" && make';
-h = system(sprintf('source ~/.bashrc && %s',cmd));
-
-if h == 0
-    fprintf('\nInstallation was successfull. \n\n');
-else
-    warning('Installation failed.');
+% Clean Build directory
+if exist('build','dir')
+    [h,out] = system('rm -r build');
+    if h ~= 0
+        warning(out);
+    end
 end
-
+mkdir('build'); cd('build')
+    
+cmd = 'cmake -G "Unix Makefiles" .. && make';
+h = system(sprintf('source ~/.bashrc && %s',cmd));
 % Return to base
 cd(base)
 
-% Run test for fexfacetexec
-fprintf('\n+++++++++++++++++++++++++++++++\nRUNNING TETS ...\n+++++++++++++++++++++++++++++++\n\n');
-[~,h] = fex_facetproc(videotest);
+if h == 0
+    fprintf('\nInstallation was successfull. \n\n');
+    fprintf('\n\nRUNNING TETS ...\n\n');
+    [~,h] = fex_facetproc(videotest);
+else
+    warning('Installation failed.');
+end
 
 
 
