@@ -25,10 +25,7 @@ The project tree is organized as follows.
             fexc.m      master class for fex-metrica
             ui/         directory for user interface
             util/       directory for utilities
-        viewer/         visualization toolbox
-            include/    external utilities
-            shared/     common files used by the viewer
-            src/        source code
+            viewer/     visualization toolbox
     LICENSE.md          MIT license
     manual/             directory with manuals
     README.md           this file
@@ -45,13 +42,7 @@ The tools associated with **FEXC_OBJECTs** comprise:
 * [facet](fexSDK/src/facet/): a set of hard-coded routines which wrap some of FACET SDK functions;
 * [util](fexSDK/src/util/): several functions for data handling, and time series manipulation;
 * [ui](fexSDK/src/ui/): [NOT DEVELOPPED] A user interface.
-
-
-===========
-VISUALIZATION
-===========
-
-**Fex-metrica** viewer can be used for visualization, and it displays statistics or raw data on images of faces. A manual is provided in the "viewer/man" folder.
+* [viewer](fexSDK/src/viewer): toolbox for visualization.
 
 
 ![alt text](https://github.com/filipporss/fex-metrica/blob/master/manual/images/FexView-pic.jpg "Fex-Viewer")
