@@ -48,12 +48,11 @@ classdef fexdesignc
 %__________________________________________________________________________
 %
 %
-% Copiright: Filippo Rossi, Institute for Neural Computation, University
-% of California, San Diego.
 %
-% email: frossi@ucsd.edu
+% Copyright (c) - 2014 - 2015 Filippo Rossi, Institute for Neural Computation,
+% University of California, San Diego. email: frossi@ucsd.edu
 %
-% Version: 08/05/14.
+% VERSION: 1.0.1 09-Jan-2015.
 
 
 
