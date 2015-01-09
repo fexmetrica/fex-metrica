@@ -400,25 +400,33 @@ if ~isnan(self.time.TimeStamps(1)) && isnan(self.time.FrameNumber(1))
 % imply 1000 frames per second.
     indrep  = [diff(self.time.TimeStamps) < 10e-4;0];
     self.time.FrameNumber(indrep == 0) = (1:sum(indrep == 0))';
+    self.time.FrameNumber(indrep ~= 0) = nan;
+    self.time.FrameNumber = self.time.FrameNumber(:)';
     [bl,bn] = bwlabel(isnan(self.time.FrameNumber));
     for i = 1:bn
         nfnind = find(bl == i,1,'first');
         self.time.FrameNumber(bl == i) = self.time.FrameNumber(nfnind+1);
     end
 % If a frames repeats and there are nans in there, remove them.
-    ind = isnan(sum(double(self.functional),2)) & bl > 0;
+    ind = isnan(sum(double(self.functional),2)) & bl(:) > 0;
     self.functional = self.functional(ind == 0,:);
     self.structural = self.structural(ind == 0,:);
     self.naninfo    = self.naninfo(ind == 0,:);
     if ~isempty(self.diagnostics)
         self.diagnostics = self.diagnostics(ind == 0,:);
     end
-    self.time = self.time(ind == 0,:);
+    self.time.TimeStamps = self.time.TimeStamps(ind == 0,:);
+    self.time.FrameNumber = self.time.FrameNumber(ind == 0)';
 end
 
 % Convert time
 self.time.StrTime = fex_strtime(self.time.TimeStamps);
-self.time = dataset2struct(self.time);
+if isa(self.time,'struct')
+    self.time = struct2dataset(self.time);
+end
+% if isa(self.time,'dataset')
+%     self.time = dataset2struct(self.time);
+% end
 
 % Set some more properties
 self.thrsemo = 0;
@@ -551,7 +559,7 @@ switch lower(arg)
         else
             for k = 1:length(self)
                 try
-                    self(k).(arg) = val(k,:);
+                    self(k).(arg) = deblank(char(val(k,:)));
                 catch
                     self(k).(arg) = val{k};
                 end
@@ -940,6 +948,10 @@ switch lower(ReqArg)
             nnts = self(k).showannotation;
             X = cat(1,X,nnts);
         end
+    case {'dirout','outdir'}
+        for k = 1:length(self)
+            X = cat(1,X,{self(k).outdir});
+        end
     otherwise
     % Error message
         warning('Unrecognized argument %s.',ReqArg);
@@ -1283,7 +1295,7 @@ for k = 1:length(self)
     % Set up the kernel (box kernel).
         kk2 = ones(nfps,1)./nfps;
         % Interpolate data first to mfps & Convolve
-        self(k).interpolate('fps',mfps,'rule',inf);
+        self(k).interpolate('fps',mfps,'rule',inf,'verbose',false);
         % Set up a set of indices for nans
         I = conv(double(self(k).naninfo.count > 0),kk2,'same');
         % Grab indices for the center of the convolution (CHECK THIS);
@@ -1843,7 +1855,7 @@ else
     arg.fps = 15;
 end
 % Verbose option 
-ind = find(strcmp(varargin,'verbose'));
+ind = find(strcmpi(varargin,'verbose'));
 if ~isempty(ind)
     v = varargin{ind +1};
 else
@@ -2549,25 +2561,30 @@ function h = show(self,type,saveflag)
 % h = self.SHOW(type)
 % h = self.SHOW(type,saveflag)
 %
-% TYPE is a string, which specifies what you want to plot.
+% TYPE is a string, which specifies what you want to plot. Options include:
 %
-% SAVEFLAG is a boolean value. When set to true, the image is svaed, when
+% 'timeplot' - Timeseries of emotions (default);
+% 'summaryplot' - Distribution of emotions and median values;
+% 'all' - Both 'timeplots' and 'summary.'
+%
+% SAVEFLAG is a boolean value. When set to true, the image is saved, when
 % set to false, the image is displayed instead. When the image is
-% displaied, you can press any keyboard value to delete it.
+% displaied, you can press any keyboard value to delete it. When TYPE is
+% set to 'all,' SAVEFLAG is set to false
 %
-% When self is a single FEXC object, self.SHOW
-% displays the image on the screen. Otherwise, self.SHOW will save the
-% images in a subfolder in the main directory.
-%
-% NOTE: RIGHT NOW THE ONLY IMPLEMENTED PLOT IS A TIMESERIES OF EMOTIONS, SO
-% TYPE IS IGNORED.
+% When SELF is a single FEXC object, self.SHOW displays the image on the
+% screen. Otherwise, self.SHOW will save the images in a subfolder in the
+% main directory (or in the SELF.DIROUT directory).
 %
 %
-% See also FEXW_TIMEPLOT, FEX_GETCOLORS, FEX_STRTIME.
+% See also FEXW_TIMEPLOT, FEXW_SUMMARYPLOT, FEX_GETCOLORS, FEX_STRTIME
 
 % Controll that one input variable is provided.
 if ~exist('type','var')
-    type = 'emotions';
+    type = 'timeplot';
+elseif sum(strcmpi(type,{'timeplot','summaryplot','all'})) ~=1
+    warning('Unrecognized TYPE: %s. Using "timeplot".');
+    type = 'timeplot';
 end
 
 % Save/Don't save when handling single file.
@@ -2575,25 +2592,27 @@ if ~exist('saveflag','var')
     saveflag = false;
 end
 
-% Only one option is implemented for now.
-if ~strcmpi(type,'emotions')
-    warning('Only emotion plots are implemeted.');
-    type = 'emotions';
-end
-
 % Swicth across plots type.
 switch lower(type)
-    case 'emotions'
+    case {'timeplot','summaryplot'}
         if length(self) > 1
             hb = waitbar(0,'Printing images ... ');
             h = cell(length(self),1);
             for k = 1:length(self)
-                h{k} = fexw_timeplot(self(k),'-save');
+                if strcmpi(type,'tymeplot')
+                    h{k} = fexw_timeplot(self(k),'-save');
+                else
+                    h{k} = fexw_summaryplot(self(k),'save',true,'show',false);
+                end
                 waitbar(k/length(self),hb);
             end
             delete(hb);
         else
-            h = fexw_timeplot(self);
+            if strcmpi(type,'timeplot')
+                h = fexw_timeplot(self);
+            else
+                [~,h] = fexw_summaryplot(self,'save',false,'show',true);
+            end
             set(h,'Name','Press any key to exit');
             fprintf('Press any key to exit.\n')
             pause();
@@ -2603,7 +2622,26 @@ switch lower(type)
             if saveflag
                 fexw_timeplot(self,'-save');
             end
-        end
+        end        
+    case 'all'
+       hb = waitbar(0,'Printing images ... ');
+       h = cell(length(self),3);
+       for k = 1:length(self)
+           % Create images
+           h{k,1} = fexw_timeplot(self(k),'-save');
+           waitbar((k-.5)/length(self),hb);
+           h{k,2} = fexw_summaryplot(self(k),'save',true,'show',false);
+           waitbar(k/length(self),hb);
+           % Combine and clean images
+           new_name = [h{k,1}(1:end-9),'.pdf'];
+           append_pdfs(new_name,h{k,[2,1]});
+           [flag,out] = system(sprintf('rm %s && rm %s',h{k,1},h{k,2}));
+           if flag ~=0
+               warning(out);
+           end
+       end
+       delete(hb);
+       h = h(:,3); 
     otherwise
         error('Unrecognized argument: %s.',upper(type));
 end

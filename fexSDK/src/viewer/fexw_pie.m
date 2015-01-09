@@ -1,25 +1,52 @@
 function [hp,ht,hl] = fexw_pie(data,hand,varargin)
 %
-% Wraps the pie function and handles naming, color assignment and
-% expansions.
+% FEXW_PIE - Create pie chart.
 %
-% data is a vector and :
+% SYNTAX:
+% 
+% FEXW_PIE(data)
+% FEXW_PIE(data,hand)
+% FEXW_PIE(data,hand,'Arg1Name',Arg1Val,...)
+% [hp] = FEXW_PIE(...)
+% [hp,ht] = FEXW_PIE(...)
+% [hp,ht,hl] = FEXW_PIE(...)
 %
-% -- sum(data) <= 1 --> incomplete pie or full pie
-% -- sum(data) > 1  --> normalize
+% FEXW_PIE wraps MATLAB function to create a pie chart.
 %
-% Negative elements in data are set to 0.
+% ARGUMENTS:
 %
-% hand [optional] is an handle to a figure axis where the pie chart is
-% displayed.
+% DATA: a vector with values for each slice of the chart. When sum(data)
+%   ~=1, the data are normalized.
+% HAND: handles of an existing figure whete the pie chart is displayed.
+%   When HAND is empty, a new image is generated.
 %
-% Optional arguments are:
+% OPTIONAL ARGUMENTS:
 %
-% >> Color:     [matrix: length(data)*3]
-% >> Alpha:     [0-1, (default: 0.3)]
-% >> Strings:   [cell]
-% >> isLegend:  [true,false, (default: false)]
-% >> Expand:    [true,false, (default: true)]
+% COLOR: a matrix of size [length(data),3]. You can use FEX_GETCOLORS to
+%   obtain this matrix. When left empty, FEXW_PIE uses equally spaced
+%   colors from the colormap 'jet.'
+% ALPHA: a sacal between 0 and 1 with face color transparency. Default:
+%   0.03.
+% STRINGS: A cell with labels for each slice of the pie.
+% ISLEGEND: A boolean value. When set to true, the text associated with
+%   each slice is used as legend. Default: false.
+% EXPAND: A boolean value. When set to true, the slice are separeted.
+%   Otherwise, no gap is left between the slices. Default: true.
+%
+% OUTPUT:
+%
+% The output includes handles for the patches, i.e. the slices of the  pie
+% chart, saved in HP; the handles for the text in HT, and the handles for
+% the legend stored in HL (if ISLEGEND==false, this last output is empty).
+%
+%
+% See also FEX_GETCOLORS, PIE.
+%
+%
+% Copyright (c) - 2015 Filippo Rossi, Institute for Neural Computation,
+% University of California, San Diego. email: frossi@ucsd.edu
+%
+% VERSION: 1.0.1 09-Jan-2014.
 
 
 
@@ -97,6 +124,7 @@ end
 % Adjust text properties
 % ex_string = {''};
 if args.islegend
+    ex_string = cell(length(ht),1);
     for i = 1:length(ht)
         ex_string{i} = get(ht(i),'String');
         set(ht(i),'String','');
@@ -111,6 +139,11 @@ elseif ~args.islegend && ~isempty(args.text)
         set(ht(i),'String',args.text{i});
     end
 end
+
+if ~exist('hl','var')
+    hl = [];
+end
+
 
 end
 

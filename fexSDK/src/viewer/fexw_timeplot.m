@@ -17,7 +17,7 @@ function h = fexw_timeplot(fexObj,varargin)
 % h is an handle to the figure if ActionVal is set to '-show,' and it is a
 % string whith the path to the image if '-save' is used. Images are saved
 % in a subfolder in the current directory. The subfolder is called
-% 'fexwtimeplots' (the directory will be created if it doesn't exist). The
+% 'fexwplots' (the directory will be created if it doesn't exist). The
 % name of the image saved is obtained from the name of the video (i.e.
 % fexObj.video). No image is overwritten, and a count is attached at the
 % end of the name of the file. If the field fexObj.video is empty, the
@@ -81,12 +81,12 @@ end
 pos = [0,0, 8.27 11.69];
 h = figure('Units','inches','Position',pos,'Visible','off','Name',name);
 set(h,'Color',[0,0,0],'ToolBar','none','MenuBar','none','NumberTitle','off');
-
+axis tight
 
 % Generate the sentiments plot
 lims = max(2,max(abs(S.Combined)));
 subplot(7,2,1:4),hold on, box on    
-set(gca,'OuterPosition',[.001,.69,.994,.315],'Color',[0,0,0]);
+set(gca,'OuterPosition',[.025,.69,.994,.300],'Color',[0,0,0]); % [.001,.69,.994,.315]
 set(gca,'XColor',[1,1,1],'YColor',[1,1,1],'LineWidth',2,'fontsize',12);
 if size(T,1) < 1e4
     hh1 = area(T,S.Positive,'FaceColor','w','LineWidth',2,'EdgeColor','w');
@@ -99,9 +99,9 @@ end
 
 ylim([-lims,lims]); xlim([T(1),T(end)]);    
 set(gca,'XTickLabel',fex_strtime(get(gca,'XTick'),'short'));
-ylabel('Sentiments','fontsize',12,'Color','white');
-legend([hh1,hh2],{'Positive','Negative'},'TextColor',[1,1,1],'Box','off',...
-    'Location','EastOutside');
+ylabel('Sentiment Scores','fontsize',12,'Color','k');
+legend([hh1,hh2],{'Positive','Negative'},'TextColor',[1,1,1],'Box','off','Location','NorthEastOutside');
+title('Sentiments','fontsize',18);
 
 % Generate the emotion plots
 lims = [min(reshape(Y,numel(Y),1)),max(reshape(Y,numel(Y),1))];
@@ -116,9 +116,9 @@ for n = 1:size(Y,2)
     else
         plot(T,Y(:,n),'LineWidth',2,'Color',CLR(n,:));
     end
-    ylim([lims(1),max(lims(2),2)]); xlim([T(1),T(end)]); 
+    ylim([lims(1),max(lims(2),2)]); xlim([T(1),T(end)]);
     plot(T,zeros(size(T)),'--w','LineWidth',2);
-    ylabel(YHDR{n},'fontsize',12,'Color','w')
+    ylabel(YHDR{n},'fontsize',12,'Color','w');
 end
 % Update common properties
 he = findobj(h,'Tag','EmoAx');
@@ -128,16 +128,21 @@ set(he,'Color',[0,0,0],'XColor',[1,1,1],'YColor',[1,1,1],'XTick',...
 
 % Saving/Showing image step
 if sum(strcmpi('-save',varargin)) > 0
-    if ~exist('fexwtimeplots','dir')
-        mkdir('fexwtimeplots');
+    if isempty(fexObj(k).get('dirout'))
+        SAVE_TO = pwd;
+    else
+        SAVE_TO = char(fexObj(k).get('dirout'));
     end
-    name = sprintf('fexwtimeplots/%s_i',name); q=1;
+    if ~exist([SAVE_TO,'/fexwplots'],'dir')
+        mkdir([SAVE_TO,'/fexwplots']);
+    end
+    name = sprintf('%s/fexwplots/%s_i',SAVE_TO,name); q=1;
     while exist(sprintf('%s%.3d.pdf',name,q),'file')
         q = q + 1;
     end
     name = sprintf('%s%.3d.pdf',name,q);
     fprintf('Saving image %s ... ',name);
-    print(h,'-dpdf','-r450',name);
+    print(h,'-dpdf','-r350',name);
     delete(h); h = name;
     fprintf('\n');
 else
