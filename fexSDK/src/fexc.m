@@ -67,9 +67,24 @@ classdef fexc < handle
 % Copyright (c) - 2014 Filippo Rossi, Institute for Neural Computation,
 % University of California, San Diego. email: frossi@ucsd.edu
 %
-% VERSION: 1.0.1 16-Dec-2014.
+% VERSION: 1.0.1 10-Jan-2014.
+%
+% COMMENTS:
+%
+% Fixme: constructor - new constructor method;
+% Fixme: naninfo backup/reinitialize error;
+% Fixme: getband method;
+% Fixme: getmatrix;
+% Fixme: 3 parameters derive sentiments methods;
+% Fixme: internal copy of structural or indices for matching;
+% Fixme: smoothing, temporalfilt, and interpolate nans handling;
+% Fixme: descriptives bug;
+% Fixme: summary printout;
+% Fixme: verbose argument;
+% Fixme: add files to select from in viewers;
+% Fixme: time.TimeStamp(0) should be 0;
+% Fixme: show should be intereactive.
     
-
 properties
     % NAME: a string containing a descriptive name for the video, e.g.
     % participant name. When the field is not specified, this is set to
@@ -956,6 +971,9 @@ switch lower(ReqArg)
         for k = 1:length(self)
             X = cat(1,X,{self(k).outdir});
         end
+        if length(X) == 1
+            X = char(X);
+        end
     otherwise
     % Error message
         warning('Unrecognized argument %s.',ReqArg);
@@ -1744,7 +1762,7 @@ for i = 1:2:length(varargin)
 end
 
 % Not all methods are implemented
-if ~ismember(args.method,{'coreg','size','pca','kalman','position'});
+if ~ismember(lower(args.method),{'coreg','size','pca','kalman','position'});
     warning('Wrong method specified.')
     return
 elseif ismember(args.method,{'pca','kalman'});
@@ -1758,7 +1776,7 @@ for k = 1:length(self)
 	% Initialize index
     idx = zeros(length(self(k).structural.FaceBoxW),1);
     I = ~isnan(self(k).structural.FaceBoxW);
-    switch args.method
+    switch lower(args.method)
         case 'size'
             z = zscore(self(k).structural.FaceBoxW(I).^2);
             idx(I) = abs(z)>=args.threshold;        
@@ -2736,6 +2754,7 @@ methods (Access = private)
 %
 % export2viewer - save data to .CSV file.
 % swhoannotations - display annotation.
+% beckupfex - creates a backup copy of current fexc.object.
     
 function self = export2viewer(self,filename)
 %
