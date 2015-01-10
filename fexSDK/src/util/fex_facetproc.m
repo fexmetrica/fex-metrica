@@ -88,7 +88,7 @@ for k = 1:size(nlist,1)
 end
 % Update envirnoment (! temporararely)
 env1 = getenv('DYLD_LIBRARY_PATH');
-setenv('DYLD_LIBRARY_PATH',['/usr/local/bin:/usr/bin:/usr/local/sbin:',env1]);
+setenv('DYLD_LIBRARY_PATH','/usr/local/bin:/usr/bin:/usr/local/sbin');
 
 % Run the preprocessing
 parfor k = 1:size(nlist,1)
