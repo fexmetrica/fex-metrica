@@ -26,6 +26,7 @@ The project tree is organized as follows.
             ui/         directory for user interface
             util/       directory for utilities
             viewer/     visualization toolbox
+        test/           directory for tests
     LICENSE.md          MIT license
     manual/             directory with manuals
     README.md           this file
@@ -52,7 +53,7 @@ The tools associated with **FEXC_OBJECTs** comprise:
 REQUIREMENTS
 ===========
 
-**Fex-metrica** was developped on unix machine. Despite most operation should work on Windows systems as well, they were never tested. **Fex-metrica** is almost exclusively written in [Matlab](http://www.mathworks.com). The toolbox was tested on verison 2013b, 2014b and 2015a. **Fex-metrica** requires the following Matlab modules:
+**Fex-metrica** was developped on Unix. Most operation should work on Windows systems as well, but they were never tested. **Fex-metrica** is almost exclusively written in [Matlab](http://www.mathworks.com). The toolbox was tested on verison 2013b, 2014b and 2015a. **Fex-metrica** requires the following Matlab modules:
 
 * Matlab [stats toolbox](http://www.mathworks.com/products/statistics/);
 * Matlab [computer vision toolbox](http://www.mathworks.com/products/computer-vision/);
@@ -120,7 +121,7 @@ ENV.append "LDFLAGS", "-stdlib=libstdc++ -lstdc++"
 ENV["CXX"] = "/usr/bin/clang++ -stdlib=libstdc++"
 ```
 
-Save, and close the .rb file. Now you need to install OpenCv. You can use the following command (which will also install several dependencies, including [ffmpeg](https://www.ffmpeg.org)):
+Save, and close the .rb file. Now you need to install OpenCV. You can use the following command (which will also install several dependencies, including [ffmpeg](https://www.ffmpeg.org)):
 
 ```
 brew install --with-ffmpeg --build-from-source --fresh -vd homebrew/science/opencv
@@ -133,21 +134,6 @@ All required package should be set up, and you can now install **fex-metrica**. 
 ```
 
 A UI will pop up, which will ask you to indicate the path for the FacetSDK directory -- this is the directory of the Emotient toolbox, which contains subdirectories "facets", "include," "samples," ... After adding the FacetSDK directory, the .cpp code from **fex-metrica** will be compiled and tested.
-
-
-NOTE that, based on your matlab installation, during the testing phase you may run in the following error message:
-
-
-```
-dyld: Symbol not found: __ZN2cv5MutexD1Ev
-    Referenced from: /usr/local/lib/libopencv_ocl.2.4.dylib
-    Expected in: /Applications/MATLAB_R2013a.app/bin/maci64/libopencv_core.2.4.dylib
-    in /usr/local/lib/libopencv_ocl.2.4.dylib
-```
-
-
-This is due to the fact that the copy of OpenCv used by Matlab, and the one used by the FACET SDK are not compatible. This means that you cannot call the FACET SDK from Matlab -- although you can still call it from the terminal. I am currently working on this bug.
-
 
 Once all these steps are completed, you can use **fex-metrica** for your project. However, the "fexinstall.m" file does not add permanently **fex-metrica** to your Matlab paths. Therefore, when you start Matlab, you need to run the following command:
 
