@@ -3,8 +3,6 @@
 % Run this script to install fex-metrica. This script compiles the .cpp
 % files in fexSDK/facet/cppdir/osx. 
 
-
-
 % Installation is developped only for mac
 if ~strcmpi(computer, 'maci64');
     warning('Install currently works on Mac only.');
@@ -19,15 +17,13 @@ base = pwd;
 target_dir = sprintf('%s/fexSDK/src/facet/cpp/osx',pwd);
 cd(target_dir);
 
-% Change specific lines on CMakeList.txt and config.hpp
+% Find FACET SDK main directory
+FACET_DIR = uigetdir(pwd,'Select "FacetSDK" Directory');
+
+% Add FACET SDK to CMakeList.txt
 cmakefilename = sprintf('%s/CMakeLists.txt',target_dir);
 confifilename = sprintf('%s/config.hpp',target_dir);
 videotest = sprintf('%s/fexSDK/test/test.mov',base);
-
-% Find FACET SDK main directory
-FACET_DIR = uigetdir(pwd,'Select "FacetSDK" Directory'); %'/Users/filippo/src/emotient/Dec2014/FACET/FacetSDK';
-
-% Add FACET SDK to CMakeList.txt
 cml = cellstr(importdata(cmakefilename));
 ind = cellfun(@isempty,strfind(cml, 'set(FACETMAIN'));
 cml{ind==0} = sprintf('set(FACETMAIN "%s")',FACET_DIR);
@@ -36,7 +32,6 @@ for i = 1:length(cml)
     fprintf(fid,'%s\n',cml{i});
 end
 fclose(fid);
-
 % Update config.hpp with FACET_DIR/facets
 con = cellstr(importdata(confifilename));
 ind = cellfun(@isempty,strfind(con, '#define FACETSDIR'));
@@ -54,17 +49,30 @@ if exist('build','dir')
         warning(out);
     end
 end
+
+% Build executable files
 mkdir('build'); cd('build')
-    
 cmd = 'cmake -G "Unix Makefiles" .. && make';
 h = system(sprintf('source ~/.bashrc && %s',cmd));
+
 % Return to base
 cd(base)
+
+% Make fex_json2dat.py executable
+system('chmod + x fexSDK/src/util/*py');
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%% INSTALLATION TESTS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if h == 0
     fprintf('\nInstallation was successfull. \n\n');
     fprintf('\n\nRUNNING TETS ...\n\n');
-    [~,h] = fex_facetproc(videotest);
+    [n,~,h1] = fex_facetproc(videotest,'dir','fexSDK/test');
+    if h1{1} == 0
+       fex_jsonparser(n{1},'fexSDK/test/test.csv');
+    end
+    fprintf('\nTests passed succesfully.\n')
 else
     warning('Installation failed.');
 end

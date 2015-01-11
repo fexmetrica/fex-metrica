@@ -1,7 +1,11 @@
 # Fex-Metrica .gitignore files:
 #
-# Version 09-Jan-2015.
+# Version 10-Jan-2015.
 
 # Ignore build files
 fexSDK/src/facet/cpp/osx/build
 fexSDK/src/facet/cpp/osx/fexfacetexec
+
+# Ignore test files
+fexSDK/test/test.json
+fexSDK/test/test.csv
