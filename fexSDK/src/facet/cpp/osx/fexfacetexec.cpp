@@ -39,7 +39,7 @@ using namespace EMOTIENT;
 
 const float MILLIS_PER_SEC = 1000.0;
 const float DEFAULT_IMAGE_SCALE_FACTOR = 1.;
-const int DEFAULT_MAX_FRAMES = 10000;
+const int DEFAULT_MAX_FRAMES = 100000;
 const int DEFAULT_MIN_SIZE = 50;
 const int DEFAULT_NUM_TRACKS = 10;
 
