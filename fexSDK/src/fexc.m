@@ -67,7 +67,7 @@ classdef fexc < handle
 % Copyright (c) - 2014 Filippo Rossi, Institute for Neural Computation,
 % University of California, San Diego. email: frossi@ucsd.edu
 %
-% VERSION: 1.0.1 10-Jan-2014.
+% VERSION: 1.0.1 10-Jan-2015.
 %
 % COMMENTS:
 %
