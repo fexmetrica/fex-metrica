@@ -10,8 +10,27 @@ if ~strcmpi(computer, 'maci64');
 end
 
 % Add path
-addpath(genpath(pwd));
+addpath(genpath(pwd))
 
+
+% Permanently add fex_init to the search path
+% init_name = sprintf('%s/fexSDK/fex_init.m',pwd);
+% cml = cellstr(importdata(init_name));
+% ind = cellfun(@isempty,strfind(cml, 'FEXROOT='));
+% cml{ind==0} = sprintf('FEXROOT= "%s")',pwd);
+% fid = fopen(init_name,'w');
+% for i = 1:length(cml)
+%     fprintf(fid,'%s\n',cml{i});
+% end
+% fclose(fid);
+% status = savepath(init_name);
+% if status == 1
+%     fex_init;
+% else
+%     warning('I couldn''t add fex_init to Matlab search path.');
+%     addpath(genpath(pwd));
+% end
+    
 % Set up some directories
 base = pwd;
 target_dir = sprintf('%s/fexSDK/src/facet/cpp/osx',pwd);
@@ -59,7 +78,7 @@ h = system(sprintf('source ~/.bashrc && %s',cmd));
 cd(base)
 
 % Make fex_json2dat.py executable
-system('chmod + x fexSDK/src/util/*py');
+system('chmod +x fexSDK/src/util/*py');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%% INSTALLATION TESTS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
