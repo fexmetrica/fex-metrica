@@ -1,28 +1,18 @@
 function varargout = fex_constructorui(varargin)
-% FEX_CONSTRUCTORUI MATLAB code for fex_constructorui.fig
-%      FEX_CONSTRUCTORUI, by itself, creates a new FEX_CONSTRUCTORUI or raises the existing
-%      singleton*.
 %
-%      H = FEX_CONSTRUCTORUI returns the handle to a new FEX_CONSTRUCTORUI or the handle to
-%      the existing singleton*.
+% FEX_CONSTRUCTORUI - Helper UI for generating FEXC objects.
 %
-%      FEX_CONSTRUCTORUI('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in FEX_CONSTRUCTORUI.M with the given input arguments.
+% [...] [...]
+% 
 %
-%      FEX_CONSTRUCTORUI('Property','Value',...) creates a new FEX_CONSTRUCTORUI or raises the
-%      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before fex_constructorui_OpeningFcn gets called.  An
-%      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to fex_constructorui_OpeningFcn via varargin.
+% See also FEXGENC, FEXC.
 %
-%      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
-%      instance to run (singleton)".
 %
-% See also: GUIDE, GUIDATA, GUIHANDLES
+% Copyright (c) - 2015 Filippo Rossi, Institute for Neural Computation,
+% University of California, San Diego. email: frossi@ucsd.edu
+%
+% VERSION: 1.0.1 10-Jan-2015.
 
-% Edit the above text to modify the response to help fex_constructorui
-
-% Last Modified by GUIDE v2.5 10-Jan-2015 20:35:15
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -44,13 +34,16 @@ end
 % End initialization code - DO NOT EDIT
 
 
-% --- Executes just before fex_constructorui is made visible.
+% --------------------------------------------------------------------
+%  Initialize UI
+% --------------------------------------------------------------------
 function fex_constructorui_OpeningFcn(hObject, eventdata, handles, varargin)
-% This function has no output args, see OutputFcn.
-% hObject    handle to figure
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to fex_constructorui (see VARARGIN)
+%
+% OPENING_FCN - initialize the user interface.
+
+
+% Create an empty figure generation object.
+handles.const = fexgenc();
 
 % Choose default command line output for fex_constructorui
 handles.output = hObject;
@@ -73,35 +66,55 @@ function varargout = fex_constructorui_OutputFcn(hObject, eventdata, handles)
 varargout{1} = handles.output;
 
 
-% --- Executes on selection change in addfilecontroller.
-function addfilecontroller_Callback(hObject, eventdata, handles)
-% hObject    handle to addfilecontroller (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% --------------------------------------------------------------------
+%  Buttons controller
+% --------------------------------------------------------------------
 
-% Hints: contents = cellstr(get(hObject,'String')) returns addfilecontroller contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from addfilecontroller
+function selectbutton_Callback(hObject, eventdata, handles)
+%
+% SELECTBUTTON - select files
 
+k = get(handles.addfilecontroller,'String');
+name = k{get(handles.addfilecontroller,'Value')};
 
-% --- Executes during object creation, after setting all properties.
-function addfilecontroller_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to addfilecontroller (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
+h = fexwsearchg(name);
+switch name
+    case 'Movies'
+        prop = 'movies';
+    case 'FACET Data'
+        prop = 'files';
+    case 'Time Stamps'
+        prop = 'timeinfo';
+    case 'Design'
+        prop = 'design';
 end
 
+if isempty(prop)
+    return
+end
+handles.const.set(prop,cellstr(h));
 
-% --- Executes on button press in cancelbutton.
+% Set active / inactive button export
+if isempty(handles.const.movies) && isempty(handles.const.movies)
+    set(handles.exportbutton,'Enable','off');
+    set(handles.facetbutton,'Enable','off');
+else
+    set(handles.exportbutton,'Enable','on');
+end
+% Set active / inactive button facet
+if isempty(handles.const.movies)
+    set(handles.facetbutton,'Enable','off');
+else
+    set(handles.facetbutton,'Enable','on');
+end
+guidata(hObject, handles);
+
+
 function cancelbutton_Callback(hObject, eventdata, handles)
-% hObject    handle to cancelbutton (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% 
+% CANCELBUTTON -- 
 
+delete(handles.figure1);
 
 % --- Executes on button press in facetbutton.
 function facetbutton_Callback(hObject, eventdata, handles)
@@ -116,9 +129,28 @@ function exportbutton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+% --------------------------------------------------------------------
+%  Pop Up Menue fo Select
+% --------------------------------------------------------------------
 
-% --- Executes on button press in pushbutton1.
-function pushbutton1_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% --- Executes on selection change in addfilecontroller.
+function addfilecontroller_Callback(hObject, eventdata, handles)
+%
+% ADDFILECONTROLLER - Callback
+
+k = get(handles.addfilecontroller,'String');
+name = k{get(handles.addfilecontroller,'Value')};
+
+switch name
+    case 'Movies'
+        str = sprintf('\nSelect video files for the analysis by pressing the buttoon "Select".');
+    case 'FACET Data'
+        str = sprintf('\nSelect Facial Expressions files by pressing the buttoon "Select".');
+    case 'Time Stamps'
+        str = sprintf('\nProvide information on video timing by pressing the buttoon "Select".');
+    case 'Design'
+        str = sprintf('\nSelect Design files by pressing the buttoon "Select".');
+end
+set(handles.helpbox,'String',str);
+guidata(hObject, handles);
+

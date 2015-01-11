@@ -64,7 +64,7 @@ classdef fexc < handle
 % viewer - Interactive display of FEXC video and associated data.
 %
 %
-% Copyright (c) - 2014 Filippo Rossi, Institute for Neural Computation,
+% Copyright (c) - 2014-2015 Filippo Rossi, Institute for Neural Computation,
 % University of California, San Diego. email: frossi@ucsd.edu
 %
 % VERSION: 1.0.1 10-Jan-2015.

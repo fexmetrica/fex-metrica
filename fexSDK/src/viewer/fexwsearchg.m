@@ -1,14 +1,14 @@
 function varargout = fexwsearchg(varargin)
 %
-% Fex Metrica & Fex Viewer multiple files selector gui.
-%__________________________________________________________________________
+% FEXWSEARCHG - Fex Metrica & Fex Viewer multiple files selector UI.
 %
-% Copiright: Filippo Rossi, Institute for Neural Computation, University
-% of California, San Diego.
 %
-% email: frossi@ucsd.edu
 %
-% Version: 10/31/14.
+%
+% Copyright (c) - 2014-2015 Filippo Rossi, Institute for Neural Computation,
+% University of California, San Diego. email: frossi@ucsd.edu
+%
+% VERSION: 1.0.1 11-Jan-2015.
 
 
 % Begin initialization code - DO NOT EDIT
@@ -35,6 +35,13 @@ end
 function fexwsearchg_OpeningFcn(hObject, eventdata, handles, varargin)
 % 
 % Initialization
+
+% Add title:
+if ~isempty(varargin)
+    set(handles.figure1,'name',sprintf('FexSearch: Select %s',varargin{1}));
+else
+    set(handles.figure1,'name','FexSearch');
+end
 
 set(handles.PathStringEdit,'String',pwd);
 handles.file_list = ''; 
