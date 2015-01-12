@@ -9,3 +9,4 @@ fexSDK/src/facet/cpp/osx/fexfacetexec
 # Ignore test files
 fexSDK/test/test.json
 fexSDK/test/test.csv
+fexSDK/test/fextest_report.mat

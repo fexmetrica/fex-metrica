@@ -10,26 +10,25 @@ if ~strcmpi(computer, 'maci64');
 end
 
 % Add path
-addpath(genpath(pwd))
-
-
+% addpath(genpath(pwd))
 % Permanently add fex_init to the search path
-% init_name = sprintf('%s/fexSDK/fex_init.m',pwd);
-% cml = cellstr(importdata(init_name));
-% ind = cellfun(@isempty,strfind(cml, 'FEXROOT='));
-% cml{ind==0} = sprintf('FEXROOT= "%s")',pwd);
-% fid = fopen(init_name,'w');
-% for i = 1:length(cml)
-%     fprintf(fid,'%s\n',cml{i});
-% end
-% fclose(fid);
-% status = savepath(init_name);
-% if status == 1
-%     fex_init;
-% else
-%     warning('I couldn''t add fex_init to Matlab search path.');
-%     addpath(genpath(pwd));
-% end
+init_name = sprintf('%s/fexSDK/include/fex_init.m',pwd);
+cml = cellstr(importdata(init_name));
+ind = cellfun(@isempty,strfind(cml, 'FEXMETROOT = '));
+cml{ind==0} = sprintf('FEXMETROOT = ''%s/fexSDK'';',pwd);
+fid = fopen(init_name,'w');
+for i = 1:length(cml)
+    fprintf(fid,'%s\n',cml{i});
+end
+fclose(fid);
+% Add path name permanently
+path(path,fileparts(init_name));
+savepath;
+status = fex_init;
+if status == 0
+    warning('I couldn''t add fex_init to Matlab search path.');
+    addpath(genpath(pwd));
+end
     
 % Set up some directories
 base = pwd;
@@ -70,13 +69,16 @@ if exist('build','dir')
 end
 
 % Build executable files
-mkdir('build'); cd('build')
-cmd = 'cmake -G "Unix Makefiles" .. && make';
-h = system(sprintf('source ~/.bashrc && %s',cmd));
-
+if FACET_DIR ~=0
+    mkdir('build'); cd('build')
+    cmd = 'cmake -G "Unix Makefiles" .. && make';
+    h = system(sprintf('source ~/.bashrc && %s',cmd));
 % Return to base
-cd(base)
+else
+    warning('Installation failed.');
+end
 
+cd(base)
 % Make fex_json2dat.py executable
 system('chmod +x fexSDK/src/util/*py');
 
@@ -92,9 +94,12 @@ if h == 0
        fex_jsonparser(n{1},'fexSDK/test/test.csv');
     end
     fprintf('\nTests passed succesfully.\n')
+    tests.exec = 1;
 else
+    tests.exec = 0;
     warning('Installation failed.');
 end
+save('fexSDK/test/fextest_report.mat','tests');
 
 
 
