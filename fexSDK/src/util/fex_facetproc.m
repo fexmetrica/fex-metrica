@@ -75,7 +75,16 @@ switch class(list)
     case 'cell'
         for i = 1:length(list)
            nlist{i,1} = list{i};
-           [~,name] = fileparts(list(i,:));
+           [d,name] = fileparts(list(i,:));
+           if ~isempty(find(strcmpi('dir',varargin),1))
+               SAVE_TO = varargin{find(strcmpi('dir',varargin)) + 1};
+           else
+               SAVE_TO = d;
+           end
+           if ~exist(SAVE_TO,'dir') || isempty(SAVE_TO)
+               warning('Directory provided does not exists. Using PWD');
+               SAVE_TO = pwd;
+           end
            nlist{i,2} = sprintf('%s/%s.json',SAVE_TO,name);
         end
     otherwise
