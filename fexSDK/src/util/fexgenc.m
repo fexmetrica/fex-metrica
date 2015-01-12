@@ -164,7 +164,7 @@ elseif length(varargin) == 1
     self.init(varargin{1});
 else
 % Update properies / check for errors
-    varargin = lower(varargin);
+    varargin(1:2:end) = lower(varargin(1:2:end));
     for i = 1:2:length(varargin)
         [flag,arg] = self.read(varargin{i},varargin{i+1});
         if flag == 0
@@ -174,6 +174,16 @@ else
         end
     end
 end
+
+% Update checklist -- 
+for i = fieldnames(self.checklist)'
+    if isempty(self.(i{1}))
+        slef.checklist.(i{1}) = 0;
+    else
+        slef.checklist.(i{1}) = 1;
+    end
+end
+
     
 end
 
@@ -301,7 +311,7 @@ end
 
 %------------------------------------------------------------------
 
-function [flag,X] = read(propname,propval)
+function [flag,X] = read(self,propname,propval)
 %
 % READ - Helper function to parse and check provided arguments.
 %
@@ -321,22 +331,22 @@ function [flag,X] = read(propname,propval)
 %
 % See also SET.
 
-if nargin < 2
+if nargin < 3
     error('READ requires "propname" and "propval" arguments.');
 end
 
 flag = 0;
-X    = propval;
+X    = [];
 
 switch lower(propname)
-    case 'movies'
-        fprintf('TODO'); 
-    case 'files'
-        fprintf('TODO'); 
-    case 'timeinfo'
-        fprintf('TODO'); 
-    case 'design'
-        fprintf('TODO'); 
+    case {'movies','files','design'}
+        if isa(propval,'char');
+            propval = cellstr(propval);
+        end
+        if isempty(propval(end))
+            propval = propval(1:end-1);
+        end
+        X = propval;
     case 'targetdir'
         fprintf('TODO'); 
     otherwise 

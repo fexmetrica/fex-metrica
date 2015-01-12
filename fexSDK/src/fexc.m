@@ -225,7 +225,7 @@ function self = fexc(varargin)
 % USAGE:
 %
 % fexObj = FEXC()
-% fexObj = FEXC('-interactive')                         [NOT IMPL.]
+% fexObj = FEXC('ui')                                   [NOT IMPL.]
 % fexObj = FEXC(FEX_PPOC)                               [OBSOLETE] 
 % fexObj = FEXC('data', datafile)
 % fexObj = FEXC('data', datafile,'ArgNam1',ArgVal1,...)
@@ -2751,11 +2751,27 @@ end % <<<-------------- END OF PUBLIC METHODS ------------------------|
 methods (Access = private)
 %
 % Private Methods:
-%
+% 
+% init - initial constructor.
 % export2viewer - save data to .CSV file.
 % swhoannotations - display annotation.
 % beckupfex - creates a backup copy of current fexc.object.
     
+function self = init(dim)
+%
+% INIT - initial constructor.
+%
+% USAGE:
+%
+% self = INIT()
+% self = INIT(dim)
+%
+% Generates an empty FEXC object. DIM inidicates the size of the stack.
+
+
+
+end
+
 function self = export2viewer(self,filename)
 %
 % EXPORT2VIEWER utility function to save data as .CSV file.

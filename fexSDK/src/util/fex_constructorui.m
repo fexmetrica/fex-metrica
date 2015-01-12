@@ -44,6 +44,7 @@ function fex_constructorui_OpeningFcn(hObject, eventdata, handles, varargin)
 
 % Create an empty figure generation object.
 handles.const = fexgenc();
+set(handles.figure1,'Name','Fex-Metrica Object Constructor');
 
 % Choose default command line output for fex_constructorui
 handles.output = hObject;
@@ -77,7 +78,7 @@ function selectbutton_Callback(hObject, eventdata, handles)
 k = get(handles.addfilecontroller,'String');
 name = k{get(handles.addfilecontroller,'Value')};
 
-h = fexwsearchg(name);
+h = fexwsearchg();
 switch name
     case 'Movies'
         prop = 'movies';
@@ -92,8 +93,7 @@ end
 if isempty(prop)
     return
 end
-handles.const.set(prop,cellstr(h));
-
+handles.const.set(prop,h);
 % Set active / inactive button export
 if isempty(handles.const.movies) && isempty(handles.const.movies)
     set(handles.exportbutton,'Enable','off');
@@ -107,6 +107,11 @@ if isempty(handles.const.movies)
 else
     set(handles.facetbutton,'Enable','on');
 end
+% Update checklist
+set(handles.movies_cb,'Value',~isempty(handles.const.movies));
+set(handles.expression_cb,'Value',~isempty(handles.const.files));
+set(handles.designcb,'Value',~isempty(handles.const.design));
+
 guidata(hObject, handles);
 
 
@@ -118,9 +123,29 @@ delete(handles.figure1);
 
 % --- Executes on button press in facetbutton.
 function facetbutton_Callback(hObject, eventdata, handles)
-% hObject    handle to facetbutton (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+%
+% FACETBUTTON - run facet SDK - 
+
+% Test whether the executable exist
+
+try 
+    tests = importdata('fextest_report.mat');
+catch
+    tests.exec = 0;
+end
+
+if tests.exec == 0
+    warning('Facet executable was not installed.');
+    str = sprintf('\nSorry, you don''t appear to have installed the executable.');
+    set(handles.helpbox,'String',str);
+else
+    for i = 1:length(handles.const.movies)
+    % TODO
+    end
+end
+
+guidata(hObject, handles);
+
 
 
 % --- Executes on button press in exportbutton.
