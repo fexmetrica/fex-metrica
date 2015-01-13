@@ -225,8 +225,7 @@ function self = fexc(varargin)
 % USAGE:
 %
 % fexObj = FEXC()
-% fexObj = FEXC('ui')                                   [NOT IMPL.]
-% fexObj = FEXC(FEX_PPOC)                               [OBSOLETE] 
+% fexObj = FEXC('ui')
 % fexObj = FEXC('data', datafile)
 % fexObj = FEXC('data', datafile,'ArgNam1',ArgVal1,...)
 % fexObj = FEXC('video',videolist)
@@ -261,20 +260,43 @@ function self = fexc(varargin)
 % outdir       - Output directory for the results.
 %
 %
-% See also UPDATE, FEX_FACETPROC, FEX_IMPUTIL, FEXWSEARCHG.
+% See also FEXGENC, FEX_CONSTRUCTORUI, UPDATE, FEX_FACETPROC, FEX_IMPUTIL,
+% FEXWSEARCHG.
 
 
 % handle function to read "varargin"
 readarg = @(arg)find(strcmp(varargin,arg));
-
+self = self.init();
 % NO ARGUMENT PROVIDED
 if isempty(varargin)
     return 
+% USE UI to 
+elseif strcmpi(varargin{1},'ui')
+    h = fex_constructorui();
+    if isempty(h)
+        return
+    else
+    self = fex_imputil('Json',h.files{1},h.movies{1});
+    self(1).update('name',h.name{1});
+    for k = 2:length(h.files)
+        self = cat(1,self,fex_imputil('Json',h.files{k},h.movies{k}));
+        self(k).update('name',h.name{k});
+        if k == 2
+            he = waitbar(k/length(h.files),sprintf('Object: %d / %d',k,length(h.files)));
+        elseif k < length(h.files)
+            waitbar(k/length(h.files),he,sprintf('Object: %d / %d',k,length(h.files)));
+        else
+            delete(he)
+        end
+    end
+    self.update('outdir',h.targetdir);
+    end
+    return
 % FIRST ARGUMENT IS A FEXPPOC OBJECT
-elseif isa(varargin{1},'fexppoc')
-    self.video = varargin{1}.video;
-    self.videoInfo = varargin{1}.videoInfo;
-    temp = importdata(varargin{1}.facetfile);
+% elseif isa(varargin{1},'fexppoc')
+%     self.video = varargin{1}.video;
+%     self.videoInfo = varargin{1}.videoInfo;
+%     temp = importdata(varargin{1}.facetfile);
 % DATA ARE PROVIVED
 elseif ismember('data',varargin(1:2:end))
     % Grab information from varargin
@@ -2757,18 +2779,33 @@ methods (Access = private)
 % swhoannotations - display annotation.
 % beckupfex - creates a backup copy of current fexc.object.
     
-function self = init(dim)
+function self = init(self)
 %
 % INIT - initial constructor.
 %
 % USAGE:
 %
 % self = INIT()
-% self = INIT(dim)
 %
-% Generates an empty FEXC object. DIM inidicates the size of the stack.
+% Generates an empty FEXC object.
 
-
+% mat2dataset(nan(1,length(hdrs.functional)),'VarNames',hdrs.functional')
+% Set default arguments
+load('fexheaders.mat');
+arg_init = struct('name','','video','','videoInfo',[],...
+       'functional',[],...
+       'structural',[],...
+       'sentiments',dataset([],[],[],[],'VarNames',{'Winner','Positive','Negative','Combined'}),...
+       'time',dataset([],[],[],'VarNames',{'FrameNumber','TimeStamps','StrTime'}),...
+       'design',[],'outdir','','history',[],'tempkernel',[],...
+       'thrsemo',0,'descrstats',[],'annotations',[],'coregparam',[],...
+       'naninfo',dataset([],[],[],'VarNames',{'count','tag','falsepositive'}),...
+       'diagnostics',[],'baseline',[],'verbose',true);   
+% Initialization of FEXC object
+fld = fieldnames(arg_init);
+for n = fld'
+    self.(n{1}) = arg_init.(n{1});
+end
 
 end
 
