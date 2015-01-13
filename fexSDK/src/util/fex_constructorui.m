@@ -39,39 +39,30 @@ end
 % --------------------------------------------------------------------
 function fex_constructorui_OpeningFcn(hObject, eventdata, handles, varargin)
 %
-% OPENING_FCN - initialize the user interface.
-
+% OPENINGFCN - initialize the user interface.
 
 % Create an empty figure generation object.
-handles.const = fexgenc();
 set(handles.figure1,'Name','Fex-Metrica Object Constructor');
-
-% Choose default command line output for fex_constructorui
-handles.output = hObject;
-
-% Update handles structure
+handles.const = fexgenc();
+update_text(handles);
+% Output and update
+handles.output = handles.const;
 guidata(hObject, handles);
-
-% UIWAIT makes fex_constructorui wait for user response (see UIRESUME)
-% uiwait(handles.figure1);
+uiwait(handles.figure1);
 
 
-% --- Outputs from this function are returned to the command line.
 function varargout = fex_constructorui_OutputFcn(hObject, eventdata, handles) 
-% varargout  cell array for returning output args (see VARARGOUT);
-% hObject    handle to figure
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+%
+% OUTPUTFCN - select output argument.
 
-% Get default command line output from handles structure
 varargout{1} = handles.output;
+delete(handles.figure1);
 
 
 % --------------------------------------------------------------------
 %  Buttons controller
 % --------------------------------------------------------------------
-
-function selectbutton_Callback(hObject, eventdata, handles)
+function selectbutton_Callback(hObject,eventdata, handles)
 %
 % SELECTBUTTON - select files
 
@@ -94,40 +85,65 @@ if isempty(prop)
     return
 end
 handles.const.set(prop,h);
+
 % Set active / inactive button export
 if isempty(handles.const.movies) && isempty(handles.const.movies)
     set(handles.exportbutton,'Enable','off');
     set(handles.facetbutton,'Enable','off');
+elseif isempty(handles.const.movies) && ~isempty(handles.const.files)
+    set(handles.exportbutton,'Enable','on');
+    set(handles.facetbutton,'Enable','off');
+elseif ~isempty(handles.const.movies) && isempty(handles.const.files)
+    set(handles.exportbutton,'Enable','off');
+    set(handles.facetbutton,'Enable','on');
 else
     set(handles.exportbutton,'Enable','on');
+    set(handles.facetbutton,'Enable','on');   
 end
-% Set active / inactive button facet
-if isempty(handles.const.movies)
-    set(handles.facetbutton,'Enable','off');
-else
-    set(handles.facetbutton,'Enable','on');
-end
+
 % Update checklist
 set(handles.movies_cb,'Value',~isempty(handles.const.movies));
 set(handles.expression_cb,'Value',~isempty(handles.const.files));
 set(handles.designcb,'Value',~isempty(handles.const.design));
 
+% Move to new item:
+nv = get(handles.addfilecontroller,'Value') + 1;
+if nv <= length(k)
+    set(handles.addfilecontroller,'Value',nv);
+    update_text(handles);
+%     switch k{nv}
+%     case 'Movies'
+%         str = sprintf('\nSelect video files for the analysis by pressing the buttoon "Select".');
+%     case 'FACET Data'
+%         str = sprintf('\nSelect Facial Expressions files by pressing the buttoon "Select".');
+%     case 'Time Stamps'
+%         str = sprintf('\nProvide information on video timing by pressing the buttoon "Select".');
+%     case 'Design'
+%         str = sprintf('\nSelect Design files by pressing the buttoon "Select".');
+%     end
+%     set(handles.helpbox,'String',str);
+end
+
+% Update
+handles.output = handles.const;
 guidata(hObject, handles);
 
 
 function cancelbutton_Callback(hObject, eventdata, handles)
 % 
-% CANCELBUTTON -- 
+% CANCELBUTTON -- exit constructor without data.
 
-delete(handles.figure1);
+delete(handles.const);
+handles.const = [];
+handles.output = handles.const;
+guidata(hObject, handles);
+figure1_CloseRequestFcn(handles.figure1, eventdata, handles)
 
-% --- Executes on button press in facetbutton.
 function facetbutton_Callback(hObject, eventdata, handles)
 %
-% FACETBUTTON - run facet SDK - 
+% FACETBUTTON - run facet SDK. 
 
 % Test whether the executable exist
-
 try 
     tests = importdata('fextest_report.mat');
 catch
@@ -144,24 +160,70 @@ else
     end
 end
 
+handles.output = handles.const;
 guidata(hObject, handles);
 
 
-
-% --- Executes on button press in exportbutton.
 function exportbutton_Callback(hObject, eventdata, handles)
-% hObject    handle to exportbutton (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+%
+% EXPORTBUTTON - Exist constructor and save data.
+
+% Add output directory
+folder_name = uigetdir(pwd,'Select Output Directory');
+if isempty(folder_name)
+    folder_name = pwd;
+end
+handles.const.set('targetdir',folder_name);
+
+% Return constructor object
+handles.output = handles.const;
+guidata(hObject, handles);
+figure1_CloseRequestFcn(handles.figure1,[],handles)
+
 
 % --------------------------------------------------------------------
 %  Pop Up Menue fo Select
 % --------------------------------------------------------------------
-
-% --- Executes on selection change in addfilecontroller.
 function addfilecontroller_Callback(hObject, eventdata, handles)
 %
 % ADDFILECONTROLLER - Callback
+
+% k = get(handles.addfilecontroller,'String');
+% name = k{get(handles.addfilecontroller,'Value')};
+update_text(handles);
+% switch name
+%     case 'Movies'
+%         str = sprintf('\nSelect video files for the analysis by pressing the buttoon "Select".');
+%     case 'FACET Data'
+%         str = sprintf('\nSelect Facial Expressions files by pressing the buttoon "Select".');
+%     case 'Time Stamps'
+%         str = sprintf('\nProvide information on video timing by pressing the buttoon "Select".');
+%     case 'Design'
+%         str = sprintf('\nSelect Design files by pressing the buttoon "Select".');
+% end
+% set(handles.helpbox,'String',str);
+guidata(hObject, handles);
+
+
+% --------------------------------------------------------------------
+%  CLOSE REQUEST
+% --------------------------------------------------------------------
+
+function figure1_CloseRequestFcn(hObject, eventdata, handles)
+%
+% CLOSEREQUESTFCN - send close request 
+
+if isequal(get(handles.figure1,'waitstatus'),'waiting')
+    uiresume(hObject);
+else
+    delete(hObject);
+end
+
+% --------------------------------------------------------------------
+%  HELPER FUNCTIONS
+% --------------------------------------------------------------------
+
+function update_text(handles)
 
 k = get(handles.addfilecontroller,'String');
 name = k{get(handles.addfilecontroller,'Value')};
@@ -177,5 +239,5 @@ switch name
         str = sprintf('\nSelect Design files by pressing the buttoon "Select".');
 end
 set(handles.helpbox,'String',str);
-guidata(hObject, handles);
+
 

@@ -68,6 +68,11 @@ end
 %------------------------------------------------------------------
 
 properties(Access='public',Hidden)
+    % NAME - name property for FEXC instance object. This is set to MOVIE
+    % files without extension or path when provided. Otherwise, this is set
+    % to FILES name withou path or extension. When not provided, this
+    % argument is set to '101','102', ... .
+    name
     % CHECKLIST - a set of 4 boolean values inidcating the status of the
     % properies: MOVIES, FILES, DESIGN and TIMEINFO.
     %
@@ -183,7 +188,6 @@ for i = fieldnames(self.checklist)'
         slef.checklist.(i{1}) = 1;
     end
 end
-
     
 end
 
@@ -248,6 +252,39 @@ end
 end
 
 %------------------------------------------------------------------
+% Getter methods
+%------------------------------------------------------------------
+
+methods
+%
+% GETTER METHODS
+
+function H = get.name(self)
+% 
+% NAME - getter function for name.
+
+if isempty(self.movies) && isempty(self.files)
+    H =  '';
+    return
+elseif ~isempty(self.movies)
+    N = self.movies;
+else
+    N = self.files;
+end
+
+H = cell(length(N),1);
+for k = 1:length(N)
+    [~,H{k}] = fileparts(N{k});
+end
+
+end
+
+%------------------------------------------------------------------
+    
+end
+
+
+%------------------------------------------------------------------
 % Private methods
 %------------------------------------------------------------------
 
@@ -265,7 +302,7 @@ function self = init(self,varargin)
 
 % Default values
 initvals = struct('movies','','files','','design','','timeinfo','','targetdir',pwd,...
-    'checklist',struct('movies',0,'files',0,'design',0,'timeinfo',0),'warnmsg','');   
+    'checklist',struct('movies',0,'files',0,'design',0,'timeinfo',0),'name', '','warnmsg','');   
     
 % Check arguments
 if isempty(varargin)
@@ -336,19 +373,15 @@ if nargin < 3
 end
 
 flag = 0;
-X    = [];
-
 switch lower(propname)
     case {'movies','files','design'}
         if isa(propval,'char');
             propval = cellstr(propval);
         end
-        if isempty(propval(end))
-            propval = propval(1:end-1);
-        end
-        X = propval;
+        ind = cellfun(@isempty,propval,'UniformOutput',true);
+        X = propval(ind == 0);
     case 'targetdir'
-        fprintf('TODO'); 
+        X = char(propval);
     otherwise 
         error('Unrecognized property: %s.',propname);
 end
