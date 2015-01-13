@@ -119,10 +119,12 @@ switch lower(filetype)
         end
     case 'json'
         for i = 1:size(filepath)
-            data = fex_jsonparser(deblank(filepath(i,:))); 
+            f = deblank(filepath(i,:));
+            [p2,f2] = fileparts(f);
+            data = fex_jsonparser(deblank(filepath(i,:)),[p2,'/',f2,'.csv'],false); 
             ds = struct2dataset(data);
             [~,ind] = sort(ds.timestamp);
-            fexObj = cat(1,fexObj,fexc('data',ds(ind,:),'video',eblank(moviepath{i}),'TimeStamps',ds.timestamp));
+            fexObj = cat(1,fexObj,fexc('data',ds(ind,:),'video',deblank(moviepath{i}),'TimeStamps',ds.timestamp(ind)));
         end
     otherwise
     % Right now, only AZFile is supported
