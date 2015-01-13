@@ -236,8 +236,7 @@ function self = fexc(varargin)
 %
 % (1) FEXC() creates an empty FEXC object, tow which you can add data and
 %     information using the method UPDATE.
-% (2) FEXC('-interactive') [NOT INTEGRATED YET] opens a UI that asks for
-%     the various arguments.
+% (2) FEXC('ui') opens a UI that assists in generating the object. 
 % (3) FEXC('data', datafile) or FEXC('data',datafile,'ArNam',ArVal,..)
 %     creates a FEXC object that was already processed with the FACET SDK.
 % (4) FEXC('video',videolist) or FEXC('video',videolist,'ArNam',ArVal,...),
@@ -266,12 +265,23 @@ function self = fexc(varargin)
 
 % handle function to read "varargin"
 readarg = @(arg)find(strcmp(varargin,arg));
-self = self.init();
-% NO ARGUMENT PROVIDED
+
 if isempty(varargin)
+% -----------------------------------------------------------
+% Generate empty FEXC object
+% -----------------------------------------------------------
+    self = self.init();
     return 
-% USE UI to 
 elseif strcmpi(varargin{1},'ui')
+% -----------------------------------------------------------
+% Import using UI
+% -----------------------------------------------------------
+% Fixme:
+% UI import method only works with json files. Other file formats should be
+% implemented.
+% Fixme:
+% The way in which I am adding missing frames in the Python script slows
+% down import option.
     h = fex_constructorui();
     if isempty(h)
         return
@@ -282,9 +292,9 @@ elseif strcmpi(varargin{1},'ui')
         self = cat(1,self,fex_imputil('Json',h.files{k},h.movies{k}));
         self(k).update('name',h.name{k});
         if k == 2
-            he = waitbar(k/length(h.files),sprintf('Object: %d / %d',k,length(h.files)));
+            he = waitbar(k/length(h.files),sprintf('Generating FEXC instance: %d / %d',k,length(h.files)));
         elseif k < length(h.files)
-            waitbar(k/length(h.files),he,sprintf('Object: %d / %d',k,length(h.files)));
+            waitbar(k/length(h.files),he,sprintf('Generating FEXC instance: %d / %d',k,length(h.files)));
         else
             delete(he)
         end

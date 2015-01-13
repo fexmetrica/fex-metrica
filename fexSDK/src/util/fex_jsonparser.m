@@ -95,8 +95,8 @@ else
         fclose(fid);
         dlmwrite(new_name,datat,'-append','delimiter',',');
         warning('on','stats:dataset:ModifiedVarnames')
-        for i = hdrc
-            data.(i{1}) = datat(:,1);
+        for i = 1:length(hdrc)
+            data.(hdrc{i}) = datat(:,i);
         end
     end
 end

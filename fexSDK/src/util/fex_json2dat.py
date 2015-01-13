@@ -128,12 +128,31 @@ total_tracks = np.size(data['output']['tracks'])
 track_id = 0
 X = get_all_frames(data['output']['tracks'][track_id],nodes,track_id)
 for i in np.arange(total_tracks-1):
-    X = np.concatenate((X,get_all_frames(data['output']['tracks'][i+1],nodes)),0)
+    X = np.concatenate((X,get_all_frames(data['output']['tracks'][i+1],nodes,i)),0)
+
+T = data['output']['frametimes']
+x = np.zeros((1,57))
+x[0,56] = -1
+for i in T:
+    #val =  abs(X[:,0]-i) < 10e-4
+    if min(abs(X[:,0]-i)) > 10e-4:
+        x[0,0] = i
+        X = np.concatenate((X,x),0)
+        
+# Add frame "without" faces
+# nts  = np.setdiff1d(np.array(data['output']['frametimes']),X[:,0])
+# nobs = np.concatenate((np.zeros((np.size(nts),56)),np.tile(-1,(np.size(nts),1))),1)
+# for i in range(np.size(nts)):
+#    nobs[i,0] = nts[i]
+# X = np.concatenate((X,nobs),0)
+
     
 # Insert frame size argument
 fsize = np.array([data["output"]["resolution"]["height"],data["output"]["resolution"]["width"]])
 fsize = np.tile(fsize,(np.size(X,0),1))
 X = np.concatenate((fsize,X),1)
+
+
 
 # Save json data to csv file
 if len(sys.argv) > 2:
