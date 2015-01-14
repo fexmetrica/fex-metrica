@@ -286,21 +286,54 @@ elseif strcmpi(varargin{1},'ui')
     if isempty(h)
         return
     else
-    self = fex_imputil('Json',h.files{1},h.movies{1});
-    self(1).update('name',h.name{1});
+    he = waitbar(0,sprintf('FEXC: 1 / %d',length(h.files)));
+    % self = fex_imputil('Json',h.files{1},h.movies{1});
+    self = h.export(1);
     for k = 2:length(h.files)
-        self = cat(1,self,fex_imputil('Json',h.files{k},h.movies{k}));
-        self(k).update('name',h.name{k});
-        if k == 2
-            he = waitbar(k/length(h.files),sprintf('Generating FEXC instance: %d / %d',k,length(h.files)));
-        elseif k < length(h.files)
-            waitbar(k/length(h.files),he,sprintf('Generating FEXC instance: %d / %d',k,length(h.files)));
-        else
-            delete(he)
-        end
+        % self = cat(1,self,fex_imputil('Json',h.files{k},h.movies{k}));
+        self = cat(1,self,h.export(k));
+        waitbar(k/length(h.files),he,sprintf('FEXC: %d / %d',k,length(h.files)));
     end
+    delete(he);
+    self.update('name',h.name);
     self.update('outdir',h.targetdir);
     end
+    return
+elseif isa(varargin{1},'struct')
+% -----------------------------------------------------------
+% Structure with arguments (FEXGEN.EXPORT)
+% -----------------------------------------------------------
+% Fixme: time and naninfo arguments.
+    warning('off','stats:dataset:subsasgn:DefaultValuesAdded');
+    args = varargin{1};
+    O = [];
+    load('fexheaders2.mat')
+    for k = 1:length(args)
+        obj = self.init();
+        for j = args(k).data.Properties.VarNames;
+            try
+                str = hdrs.map2(lower(j{1}));
+                obj.(hdrs.map1(lower(j{1}))).(str) = args(k).data.(j{1});
+            catch
+                fprintf('Ignored variable: %s.\n',j{1});
+            end
+        end
+        % Add video and video info
+        obj.video = args(k).video;
+        if ~isempty(obj.video)
+            obj.getvideoInfo();
+        end
+        % Modify time information
+        obj.time.FrameNumber = (1:size(obj.time,1))';
+        obj.time.StrTime = fex_strtime(obj.time.TimeStamps);
+        % Set descriptive stats and history
+        obj.descriptives();
+        obj.history.original = obj.clone();  
+        % Add obj to self
+        O = cat(1,O,obj);
+    end    
+    self = O;
+    warning('on','stats:dataset:subsasgn:DefaultValuesAdded');
     return
 % FIRST ARGUMENT IS A FEXPPOC OBJECT
 % elseif isa(varargin{1},'fexppoc')
@@ -2803,8 +2836,8 @@ function self = init(self)
 % Set default arguments
 load('fexheaders.mat');
 arg_init = struct('name','','video','','videoInfo',[],...
-       'functional',[],...
-       'structural',[],...
+       'functional',dataset([],'VarNames',{'AU1'}),...
+       'structural',dataset([],'VarNames',{'FrameRows'}),...
        'sentiments',dataset([],[],[],[],'VarNames',{'Winner','Positive','Negative','Combined'}),...
        'time',dataset([],[],[],'VarNames',{'FrameNumber','TimeStamps','StrTime'}),...
        'design',[],'outdir','','history',[],'tempkernel',[],...

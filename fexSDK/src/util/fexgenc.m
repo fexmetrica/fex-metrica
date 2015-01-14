@@ -20,7 +20,7 @@ classdef fexgenc < handle
 %
 % fexgenc - class constructor.
 % set - update class properties.
-% export - creates FEXC object.
+% export - export info for FEXC object.
 % add - add a new video/file to the existing FEXGENC
 %
 %
@@ -70,8 +70,7 @@ end
 properties(Access='public',Hidden)
     % NAME - name property for FEXC instance object. This is set to MOVIE
     % files without extension or path when provided. Otherwise, this is set
-    % to FILES name withou path or extension. When not provided, this
-    % argument is set to '101','102', ... .
+    % to FILES name withou path or extension.
     name
     % CHECKLIST - a set of 4 boolean values inidcating the status of the
     % properies: MOVIES, FILES, DESIGN and TIMEINFO.
@@ -82,11 +81,6 @@ properties(Access='public',Hidden)
     %
     % See also GET_ERROR.
     warnmsg
-    % GEN2FEX - structure whith the preliminar version of the FEXC object
-    % that will be generated.
-    %
-    % See also EXPORT, READ.
-    gen2fex
 end
 
 %------------------------------------------------------------------
@@ -193,7 +187,7 @@ end
 
 %------------------------------------------------------------------
 
-function [obj,name] = export(self)
+function [obj,name] = export(self,k)
 %
 % EXPORT - creates FEXC object.
 %
@@ -205,17 +199,26 @@ function [obj,name] = export(self)
 %
 % See also FEXC.
 
+% Update checklist
+for i = {'movies','files'}
+    if isempty(self.(i{1}))
+        self.checklist.(i{1}) = false;
+    else
+        self.checklist.(i{1}) = true;
+    end
+end
+
 % empty space for fexobj & saving name
-obj = [];
+obj  = [];
 name = sprintf('%s/fexobj.mat',self.targetdir);
 
 % Export the data -- check the flags
-if ~(self.checklist.file || self.checklist.file)
+if ~(self.checklist.files || self.checklist.movies)
 % No files, nor movies -- generate empty FEXC object.
     obj = fexc();
     name = 'not saved.';
     return
-elseif slef.checklist.movie && ~self.checklist.files
+elseif self.checklist.movies && ~self.checklist.files
 % Movies provided, but not files - ask permission to use FEX_FACETPROC: 
     act = questdlg('Do you want to use FACET SDK to process the videos?', ...
                    'Fex-Facet Processing', ...
@@ -224,16 +227,23 @@ elseif slef.checklist.movie && ~self.checklist.files
     % Run preprocessing with FEX_FACETPROC
         self.set('files',fex_facetproc(self.movies));
     end
-end 
-
-% Compile and save the FEXC object
-for k = 1:max(length(self.movies),length(self.files))
-    obj = cat(1,obj,fexc(self.gen2fex(k)));
 end
-save(name,'obj');
 
+% Export proper -- for each file, test existence create FEXC
+if ~exist('k','var')
+    NK = 1:max(length(self.movies),length(self.files));
+else
+    NK = k;
+end
+
+for k = NK
+    args = self.gen2fex(k);
+    obj = cat(1,obj,fexc(args));
+end
+% save(name,'obj');
 
 end
+
 
 %------------------------------------------------------------------
 
@@ -295,6 +305,7 @@ methods(Access = 'private')
 % INIT - initialization function for FEXGENC object.    
 % GET_ERROR - convert error Id code from READ into a message.
 % READ - helper function to parse and check provided arguments.
+% GEN2FEX - export to fex routine
 
 function self = init(self,varargin)
 %
@@ -388,6 +399,58 @@ end
 
 
 end
+
+%------------------------------------------------------------------
+
+function args = gen2fex(self,k)
+%
+% GEN2FEX - Creates the input argument for FEXC object
+
+% Tunr off some warning
+warning('off','MATLAB:codetools:ModifiedVarnames');
+warning('off','stats:dataset:ModifiedVarnames');
+
+% Empty output argument
+args = struct('data',[],'video',[]);
+
+% Get all relevant info
+fname = deblank(self.files{k});
+if ~exist(fname,'file')
+    warning('File %s does not exist.', fname);
+    return
+end
+[p,f,ex] = fileparts(fname);
+
+try
+    args.video = deblank(self.movies{k});
+catch
+    args.video = '';
+end
+
+% Test that the data file exists
+switch ex
+    case '.json'
+        data = fex_jsonparser(fname,[p,'/',f,'.csv'],false); 
+        ds = struct2dataset(data);
+        [~,ind] = sort(ds.timestamp);
+        args.data = ds(ind,:);
+    case '.txt'
+        args.data = dataset('File',fname,'Delimiter','\t');
+    case '.csv'
+        args.data = dataset('File',fname,'Delimiter',',');
+    case {'.xlsx','.xls'}
+        args.data = dataset('XLSFile',fname);
+    otherwise
+        warning('File %s not recognized.', fname);
+    return
+end
+
+% Reactivate warnings
+warning('on','MATLAB:codetools:ModifiedVarnames');
+warning('on','stats:dataset:ModifiedVarnames');
+
+end
+
 
 %------------------------------------------------------------------
 

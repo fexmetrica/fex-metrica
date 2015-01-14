@@ -87,7 +87,7 @@ end
 handles.const.set(prop,h);
 
 % Set active / inactive button export
-if isempty(handles.const.movies) && isempty(handles.const.movies)
+if isempty(handles.const.movies) && isempty(handles.const.files)
     set(handles.exportbutton,'Enable','off');
     set(handles.facetbutton,'Enable','off');
 elseif isempty(handles.const.movies) && ~isempty(handles.const.files)
