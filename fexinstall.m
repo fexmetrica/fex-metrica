@@ -24,11 +24,9 @@ fclose(fid);
 % Add path name permanently
 path(path,fileparts(init_name));
 savepath;
-status = fex_init;
-if status == 0
-    warning('I couldn''t add fex_init to Matlab search path.');
-    addpath(genpath(pwd));
-end
+
+% addpath(genpath(pwd));
+fex_init;
     
 % Set up some directories
 base = pwd;
