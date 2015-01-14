@@ -1,4 +1,4 @@
-function status = fex_init()
+function varargout = fex_init()
 %
 % FEX_INIT - initialization function for FEX-METRICA.
 %
@@ -18,9 +18,13 @@ FEXMETROOT = '/Users/filippo/Documents/code/GitHub/fex-metrica/fexSDK';
 
 if isempty(FEXMETROOT) || ~exist(FEXMETROOT,'dir')
     warning('Root directory was not set, use FEXINSTALL.');
-    status = 0;
+    s = 0;
 else
     addpath(genpath(FEXMETROOT))
-    status = 1;
-    fprintf('\n\nWelcome to Fex-Metrica (v1.0.1) ...\n');
+    s = 1;
+    fprintf('\n\nWelcome to Fex-Metrica (v1.0.1) ...\n\n\n');
+end
+
+if nargout > 0
+    varargout{1} = s;
 end
