@@ -16,3 +16,5 @@ fexSDK/dev
 
 # Ignore unpacked "samples"
 fexSDK/samples/data
+fexSDK/samples/fexwstreamermedia
+fexSDK/samples/__MACOSX
