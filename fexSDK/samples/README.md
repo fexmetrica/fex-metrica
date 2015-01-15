@@ -43,5 +43,5 @@ Note that Calling FEX_INIT adds **fex-metrica** to Matlab search path.
 If you have the movies, but not the files with facial expressions, the UI gives you the option to analyze the data by pressing the FACET button. For this option to work, you need to have a local copy of the Facet SDK installed. Additionallty, you need to run [fexinstall](../../fexinstall.m).
 
 
-![alt text](https://github.com/filipporss/fex-metrica/master/fexSDK/samples/constimg.png "Fexc Constructor UI")
+![alt text](https://github.com/filipporss/fex-metrica/blob/master/fexSDK/samples/docs/constimg.png "Fexc Constructor UI")
 
