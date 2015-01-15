@@ -69,7 +69,12 @@ switch class(list)
     case 'char'
         for i = 1:size(list,1)
            nlist{i,1} = deblank(list(i,:));
-           [~,name] = fileparts(nlist{i,1});
+           [d,name] = fileparts(nlist{i,1});
+           if ~isempty(find(strcmpi('dir',varargin),1))
+               SAVE_TO = varargin{find(strcmpi('dir',varargin)) + 1};
+           else
+               SAVE_TO = d;
+           end
            nlist{i,2} = sprintf('%s/%s.json',SAVE_TO,name);
         end
     case 'cell'
