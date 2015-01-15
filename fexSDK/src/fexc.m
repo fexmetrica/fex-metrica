@@ -276,12 +276,8 @@ elseif strcmpi(varargin{1},'ui')
 % -----------------------------------------------------------
 % Import using UI
 % -----------------------------------------------------------
-% Fixme:
-% UI import method only works with json files. Other file formats should be
-% implemented.
-% Fixme:
-% The way in which I am adding missing frames in the Python script slows
-% down import option.
+% Fixme: The way in which I am adding missing frames in the Python script
+% slows down import option.
     h = fex_constructorui();
     if isempty(h)
         return
@@ -326,6 +322,13 @@ elseif isa(varargin{1},'struct')
         % Modify time information
         obj.time.FrameNumber = (1:size(obj.time,1))';
         obj.time.StrTime = fex_strtime(obj.time.TimeStamps);
+        % Initialize nan information
+        X = obj.get('emotions','double');
+        bwidx = bwlabel(sum(X,2) == 0 | isnan(sum(X,2)));
+        obj.naninfo.tag = bwidx;
+        for i = 1:max(bwidx)
+            obj.naninfo.count(bwidx == i) = sum(bwidx == i);
+        end
         % Set descriptive stats and history
         obj.descriptives();
         obj.history.original = obj.clone();  
@@ -335,6 +338,10 @@ elseif isa(varargin{1},'struct')
     self = O;
     warning('on','stats:dataset:subsasgn:DefaultValuesAdded');
     return
+% --------------------------------------------------------------
+% Ignore from here on    
+% --------------------------------------------------------------
+    
 % FIRST ARGUMENT IS A FEXPPOC OBJECT
 % elseif isa(varargin{1},'fexppoc')
 %     self.video = varargin{1}.video;
@@ -547,6 +554,7 @@ newself(k).thrsemo     = self(k).thrsemo;
 newself(k).descrstats  = self(k).descrstats;
 newself(k).annotations = self(k).annotations;
 newself(k).coregparam  = self(k).coregparam;
+newself(k).naninfo     = self(k).naninfo;
 
 end
 
@@ -584,6 +592,8 @@ for k = 1:length(self)
     self(k).tempkernel  = self(k).history.prev.tempkernel;
     self(k).thrsemo     = self(k).history.prev.thrsemo;
     self(k).coregparam  = self(k).history.prev.coregparam;
+    self(k).descrstats  = self(k).history.prev.descrstats;
+    self(k).naninfo     = self(k).history.prev.naninfo;
     % Allow REDO - Now Prev is set to the FEXC object after the operation
     % that was just undone.
     self(k).history.prev = h;
@@ -713,10 +723,9 @@ end
 
 hdr = self(1).functional.Properties.VarNames;
 for k = 1:length(self)
-X   = double(self(k).functional);
-
-X(repmat(self(k).naninfo.count >= rule,[1,size(X,2)])) = nan;
-self(k).functional = mat2dataset(X,'VarNames',hdr);
+    X   = double(self(k).functional);
+    X(repmat(self(k).naninfo.count >= rule,[1,size(X,2)])) = nan;
+    self(k).functional = mat2dataset(X,'VarNames',hdr);
 end
 self.derivesentiments();
 end
@@ -767,6 +776,8 @@ for k = 1:length(self)
     self(k).tempkernel  = [];
     self(k).thrsemo     = 0;
     self(k).coregparam  = [];
+    % Fixme: not properly implemented.
+    self(k).naninfo     = [];
 end
 
 end
@@ -2613,10 +2624,9 @@ end
 
 % *************************************************************************
 
-
-% GRAPHIC METHODS *********************************************************
-% ---------------********************************************************** 
-
+% ---------------------------------------------
+% GRAPHIC METHODS 
+% ---------------------------------------------
 
 function self = viewer(self,varargin)
 % 
@@ -3003,8 +3013,9 @@ end
 
 end
 
-end
+%**************************************************************************
 
+end
 
 %**************************************************************************
 %**************************************************************************
