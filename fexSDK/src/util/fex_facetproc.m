@@ -120,9 +120,21 @@ setenv('DYLD_LIBRARY_PATH','/usr/local/bin:/usr/bin:/usr/local/sbin');
 
 % Run the preprocessing
 if size(nlist,1) > 1
+    % Add waitbar with cancel button
+    % he = waitbar(0,sprintf('Processing %d Videos',size(nlist,1)),...
+    %    'CreateCancelBtn','setappdata(gcbf,''canceling'',1)');
+    % setappdata(he,'canceling',0)
+    % fun = @(lf) double(exist(lf,'file')>0);
     parfor k = 1:size(nlist,1)
+        % if getappdata(he,'canceling')
+        % Allow to brake the processing loop
+        %   warning('Can''t return yet ...')
+        %   return
+        % end
         h{k} = system(sprintf('%s',cmd{k}));
+        % waitbar(mean(cellfun(fun,Y)),he);
     end
+    % delete(he)
 else
     h{1} = system(sprintf('%s',cmd{1}));
 end
