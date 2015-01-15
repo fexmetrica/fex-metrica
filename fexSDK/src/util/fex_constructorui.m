@@ -111,17 +111,6 @@ nv = get(handles.addfilecontroller,'Value') + 1;
 if nv <= length(k)
     set(handles.addfilecontroller,'Value',nv);
     update_text(handles);
-%     switch k{nv}
-%     case 'Movies'
-%         str = sprintf('\nSelect video files for the analysis by pressing the buttoon "Select".');
-%     case 'FACET Data'
-%         str = sprintf('\nSelect Facial Expressions files by pressing the buttoon "Select".');
-%     case 'Time Stamps'
-%         str = sprintf('\nProvide information on video timing by pressing the buttoon "Select".');
-%     case 'Design'
-%         str = sprintf('\nSelect Design files by pressing the buttoon "Select".');
-%     end
-%     set(handles.helpbox,'String',str);
 end
 
 % Update
@@ -155,9 +144,21 @@ if tests.exec == 0
     str = sprintf('\nSorry, you don''t appear to have installed the executable.');
     set(handles.helpbox,'String',str);
 else
-    for i = 1:length(handles.const.movies)
-    % TODO
+    str = sprintf('\nProcessing %d videos .... ',length(handles.const.movies));
+    set(handles.helpbox,'String',str);
+    pause(0.001)
+    folder_name = uigetdir(pwd,'Select FACET Output Directory');
+    if isempty(folder_name)
+        nm = fex_facetproc(char(handles.const.movies));
+    else
+        nm = fex_facetproc(char(handles.const.movies),'dir',folder_name);
     end
+    handles.const.set('files',nm);
+    set(handles.helpbox,'String',sprintf('%s Done.',str));
+    % Update UI
+    set(handles.exportbutton,'Enable','on');
+    set(handles.facetbutton,'Enable','on');
+    set(handles.expression_cb,'Value',1);
 end
 
 handles.output = handles.const;
@@ -191,17 +192,6 @@ function addfilecontroller_Callback(hObject, eventdata, handles)
 % k = get(handles.addfilecontroller,'String');
 % name = k{get(handles.addfilecontroller,'Value')};
 update_text(handles);
-% switch name
-%     case 'Movies'
-%         str = sprintf('\nSelect video files for the analysis by pressing the buttoon "Select".');
-%     case 'FACET Data'
-%         str = sprintf('\nSelect Facial Expressions files by pressing the buttoon "Select".');
-%     case 'Time Stamps'
-%         str = sprintf('\nProvide information on video timing by pressing the buttoon "Select".');
-%     case 'Design'
-%         str = sprintf('\nSelect Design files by pressing the buttoon "Select".');
-% end
-% set(handles.helpbox,'String',str);
 guidata(hObject, handles);
 
 
