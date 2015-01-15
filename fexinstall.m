@@ -3,15 +3,12 @@
 % Run this script to install fex-metrica. This script compiles the .cpp
 % files in fexSDK/facet/cppdir/osx. 
 
-% Installation is developped only for mac
-if ~strcmpi(computer, 'maci64');
-    warning('Install currently works on Mac only.');
-    return
-end
+% ---------------------------------------------------------------
+% Add path to fex-metrica
+% ---------------------------------------------------------------
 
-% Add path
-% addpath(genpath(pwd))
-% Permanently add fex_init to the search path
+fprintf('Adding "include" to search path (use fex_init from now on).\n');
+
 init_name = sprintf('%s/fexSDK/include/fex_init.m',pwd);
 cml = cellstr(importdata(init_name));
 ind = cellfun(@isempty,strfind(cml, 'FEXMETROOT = '));
@@ -24,10 +21,32 @@ fclose(fid);
 % Add path name permanently
 path(path,fileparts(init_name));
 savepath;
-
-% addpath(genpath(pwd));
 fex_init;
-    
+
+% ---------------------------------------------------------------
+% Unzip example
+% ---------------------------------------------------------------
+
+fprintf('Unpack sample data.\n');
+unzip('fexSDK/samples/data.zip','fexSDK/samples');
+
+% ---------------------------------------------------------------
+% Make *py script executable
+% ---------------------------------------------------------------
+
+system('chmod +x fexSDK/src/util/*py');
+
+% ---------------------------------------------------------------
+% Compiled files only for OSX
+% ---------------------------------------------------------------
+
+if ~strcmpi(computer, 'maci64');
+    warning('Install currently works on Mac only.');
+    return
+end
+
+fprintf('Select Facet SDK main directory.\n');
+
 % Set up some directories
 base = pwd;
 target_dir = sprintf('%s/fexSDK/src/facet/cpp/osx',pwd);
@@ -75,14 +94,12 @@ if FACET_DIR ~=0
 else
     warning('Installation failed.');
 end
-
 cd(base)
-% Make fex_json2dat.py executable
-system('chmod +x fexSDK/src/util/*py');
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%% INSTALLATION TESTS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% ---------------------------------------------------------------
+% Installation test
+% ---------------------------------------------------------------
 
 if h == 0
     fprintf('\nInstallation was successfull. \n\n');
