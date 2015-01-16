@@ -322,7 +322,7 @@ elseif isa(varargin{1},'struct')
         % Modify time information -- add timestamps
         if isempty(obj.time.TimeStamps)
             if ~isempty(obj.videoInfo)
-                obj.time.TimeStamps = (0:(1/(obj.videoInfo -1)):obj.videoInfo(2))';
+                obj.time.TimeStamps = (0:(1/(obj.videoInfo -1)):obj.videoInfo(3))';
             else
                 obj.time.TimeStamps = (0:size(obj.functional,1))';
             end
