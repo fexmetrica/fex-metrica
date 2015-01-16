@@ -110,11 +110,17 @@ There are three main visualization methods associated with **fexc** objects:
 3. VIEWER method with 'overlay' option: shows heat maps of emotions.
 
 
+Show
+----
+
 The SHOW method generates an image with time-series for 7 basic emotions, 2 advanced emotions (frustration and confusion) and sentiments. Note that sentiments are not the naive sentiments classifier chanels; instead they are computed using max-pooling with the DERIVESENTIMENTS method.
 
 ```Matlab
 fexobj(1).show();
 ```
+
+Viewer - Video and time series
+----
 
 The VIEWER method called without arguments displays the video and associated timeseries. The tools menu item allows you to focus on the face, and add visualize morphological property for the face displaied in each video.
 
@@ -128,6 +134,8 @@ The UI opened by the method VIEWER has several functionality that can be accesse
 help fexw_streamerui
 ```
 
+Viewer - Overlay display
+----
 
 [...]
 
