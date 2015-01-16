@@ -13,7 +13,7 @@ function fex_init()
 
 
 
-FEXMETROOT = '';
+FEXMETROOT = '/Users/filippo/Documents/code/GitHub/fex-metrica/fexSDK';
 
 
 if isempty(FEXMETROOT) || ~exist(FEXMETROOT,'dir')

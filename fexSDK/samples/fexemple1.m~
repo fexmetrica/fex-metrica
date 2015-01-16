@@ -9,7 +9,7 @@
 %
 % VERSION: 1.0.1 14-Jan-2015.
 
-%% Generate a Fexc object
+%% 1. Generate a Fexc object
 %
 % Fexc object is the main class used for the analysis, and can be generated
 % in several ways. The easiest way is to use the ui option. The UI let you
@@ -44,28 +44,10 @@ fexobj.coregister('fp',true,'threshold',2);
 % data from multiple videos, the method is applied to all videos, unless
 % you use indices (e.g. fexobj(1).coregister).
 
-%% Normalization
+%% Temporal processing
 %
-% These methods normalize the timeseries. The method SETBASELINE sets a
-% baseline for each timeseries independetly. You can use statistics such as
-% 'mean', 'median', 'q75' (i.e. 75th quantile).
+% These methods adjust the temporal properties of teh t
 
-fexobj.setbaseline('mean');
-
-% You can call SETBASELINE with the flag '-global' that is: 
-%
-% > fexobj.setbaseline('mean');
-% 
-% In this case, the statistics selected for normalization (i.e. 'mean') is
-% computed over all videos in the FEXC object. By default, the descriptive
-% statistics is computed video-wise.
-
-% The second step in normalization is "rectification," which involve
-% setting all facial expressions values lower than a threshold *t* to *t*:
-
-fexobj.rectification(-1);
-
-% In this example, the threshold is set to *t=-1*.
 
 
 
