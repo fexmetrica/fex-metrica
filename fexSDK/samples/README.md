@@ -12,10 +12,13 @@ This directory is organized as follow:
 
     
     data/                   directory for data
+        contempt.csv        csv file for contempt movie
         contempt.json       js file for contempt movie
         contempt.mov        movie with contempt expression
+        disgust.csv         csv file for disgust movie
         disgust.json        js file for disgust movie
         disgust.mov         movie with disgust expression
+        smile.csv           csv file for smile movie
         smile.json          js file for smile movie
         smile.mov           movie with smile expression
     fexemple1.m             main script for example
