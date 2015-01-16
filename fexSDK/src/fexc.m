@@ -319,7 +319,14 @@ elseif isa(varargin{1},'struct')
         if ~isempty(obj.video)
             obj.getvideoInfo();
         end
-        % Modify time information
+        % Modify time information -- add timestamps
+        if isempty(obj.time.TimeStamps)
+            if ~isempty(obj.videoInfo)
+                obj.time.TimeStamps = (0:(1/(obj.videoInfo -1)):obj.videoInfo(2))';
+            else
+                obj.time.TimeStamps = (0:size(obj.functional,1))';
+            end
+        end
         obj.time.FrameNumber = (1:size(obj.time,1))';
         obj.time.StrTime = fex_strtime(obj.time.TimeStamps);
         % Initialize nan information
