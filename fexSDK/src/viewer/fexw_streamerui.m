@@ -180,7 +180,9 @@ set(handles.figure1,'Name',sprintf('FexViewer 1.0.1 -- %s',fname));
 % again. Re-encoding is performed using ffmpeg. We I can't find the ffmpeg
 % executable, I use the original video ... Note that this could be very slow.
 [~,~,Ext] = fileparts(handles.video);
-if ~strcmp(Ext,'.avi')
+osstr = computer;
+% Fixme: this is a temporary patch for windows
+if ~strcmp(Ext,'.avi') && ~strcmpi(osstr(1:2), 'PC')
     handles.video = convert2mjpg(handles.video);
 end
 
