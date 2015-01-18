@@ -1,23 +1,61 @@
-DEVELOPMENT NOTE
+Development Notes
 ===============
 
-This files contains a list of scheduled updates planed on a wakly basis. 
+This files contains a list of scheduled updates planed on a wakly basis.
 
-Jan 19 - Jan 25
+Tags Description
+===============
+
+Each commitment is preceeded by a set of tags, which are described below:
+
+**SCOPE**: name of the **fex-metrica** module, to which commitment applies. Options include:
+
+[VIEW] -- Submissions that apply to **fex-metrica** viewer module;
+[OS]   -- Submissions which adds functionality for specific OS;
+[SRC]  -- This option indicates changes made to **fex-metrica** processing functions;
+[DOC]  -- Changes made to documentation and samples;
+[GLOB] -- Changes made to folder structure, and meta-data included. 
+
+**TYPE**: type of update provided, namely one of the following options:
+
+[NEW]  -- Add new functionality;
+[UP]   -- Upgrade of functionality for existing method of function;
+[BUG]  -- Fix existing issue.
+
+**METHOD**: name of the main FEXC method to which an update applies, or function modified by the submission.
+
+**STATUS**: indicates what is the status of the submission under consideration. Status can be one of the following:
+
+[W] -- [W]aiting status: submission is planned, but not yet implemented;
+[P] -- [P]artial submission: a planed change was partially committed, but not yet completed; 
+[D] -- [D]one: submission was completed.
+
+
+Update Tags
+===============
+
+Jan 18 - Jan 24
 ---------------
 
-1. UI capabilities:
-    * Add stack capability to .viewer and .show methods;
-    * Add interactive capability to .show;
-    * Add analytic tools to .viewer.
-2. Fexc bugs and limitations:
-    * Fix issues with .time and .naninfo in current importer;
-    * Add cell input type to importer;
-    * Add design importer and allignment;
-    % Update .fexport method for csv creation;
-    % Bug in .descriptives;
-    * Add .getmatrix method for exporting design matrix;
-    * 3-parameter version of derive sentimenst (+ interactive display).
-3. OS compatibility:
-    * Update .cpp files for Linux and Facet SDK v2.0.2;
-    * fexw_searcg.m: issues with "find" on windows.
+| Scope  | Type   | **fexc** method     | Description             | Status | Num  | Date   |
+| ------ | ------ | ------------------- | ----------------------- | ------ | ---- | ------ |
+| [DOC]  | [NEW]  | []                  | Add UPDATE.md file      |  [D]   | 1    |        |
+| [VIEW] | [UP]   | [.VIEWER]           | Make stackable          |  [P]   | 1    | 18-Jan |
+| [VIEW] | [UP]   | [.VIEWER]           | Add analytics tools     |  [W]   |      |        |
+| [VIEW] | [UP]   | [.SHOW]             | Make interactive        |  [W]   |      |        |
+| [SRC]  | [BUG]  | [.FEXC]             | time for constructor    |  [W]   |      |        |
+| [SRC]  | [BUG]  | [.FEXC]             | nan for constructor     |  [W]   |      |        |
+| [SRC]  | [BUG]  | [.FEXC]             | cell input option       |  [W]   |      |        |
+| [SRC]  | [UP]   | [.FEXC]             | design importer         |  [W]   |      |        |
+| [SRC]  | [BUG]  | [.FEXPORT]          | export to cvs option    |  [W]   |      |        |
+| [SRC]  | [BUG]  | [.DESCRIPTIVES]     | bug in derive stats     |  [W]   |      |        |
+| [SRC]  | [UP]   | [.GETMATRIX]        | matrix for regression   |  [W]   |      |        |
+| [SRC]  | [UP]   | [.DERIVESENTIMENTS] | asym 3-pram version     |  [W]   |      |        |
+| [OS]   | [UP]   | [FEX_FACERPROC]     | upgrade cpp for Linux   |  [W]   |      |        |
+| [OS]   | [BUG]  | [FEXW_SEARCHG]      | "find" issue on Windows |  [W]   |      |        |
+| ------ | ------ | ------------------- | ----------------------- | ------ | ---- | ------ |
+
+
+
+
+
