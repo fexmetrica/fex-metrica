@@ -1,4 +1,3 @@
-
 FEX METRICA 
 ===========
 
@@ -36,7 +35,7 @@ The project tree is organized as follows.
 ANALYTIC TOOLS
 ===========
 
-Analytic tools can be access using [fexc.m](fexSDK/src/fexc.m), the main object defined by **fex-metrica**. This class wraps the [Emotient, Inc](http://www.emotient.com) toolbox for video analysis, as well as generic video manipulation utilities, and timeseries transformations. A **FEXC_OBJECT** generated with [fexc.m](fexSDK/src/fexc.m) can also call the visualization tools described in the next section.
+Analytic tools can be access using [fexc.m](fexSDK/src/fexc.m), the main object defined by **fex-metrica**. This class wraps the [Emotient, Inc](http://www.emotient.com) toolbox for video analysis, as well as generic video manipulation utilities, and timeseries transformations. A **FEXC_OBJECT** generated with [fexc.m](fexSDK/src/fexc.m) can also call the visualization tools.
 
 The tools associated with **FEXC_OBJECTs** comprise:
 
