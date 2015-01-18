@@ -547,9 +547,10 @@ function newself = clone(self)
 % Clone can be used to modify properties of a FEXC object without
 % overwriting the existing data.
 
-newself = repmat(feval(class(self)),[length(self),1]);   
-p = properties(newself(1));
+newself = [];  
+p = properties(self(1));
 for k = 1:length(self)
+newself = cat(1,newself,fexc());
 % Copy all non-hidden properties.
 for i = 1:length(p)
     newself(k).(p{i}) = self(k).(p{i});
@@ -2683,13 +2684,13 @@ function self = viewer(self,varargin)
 
 % Check that (1) you have the video, and that (2) the video has the
 % correct estension:
-if ~exist(self.video,'file')
+if ~exist(self(1).video,'file')
     error('No video provided for streaming.');
 else
 % check video formats
     format = VideoReader.getFileFormats();
     format = get(format, 'Extension');
-    [~,~,cew] = fileparts(self.video);
+    [~,~,cew] = fileparts(self(1).video);
     if ~ismember(cew(2:end),format)
         error('Unsupported format. Use "VideoReader.getFileFormats" to see supported formats.');
     end
@@ -2709,7 +2710,9 @@ if use_ui == 1
     % Start FEXW_VIDEOSTREAMERUI
     N = fexw_streamerui(self.clone());
     % Add annotations when provided;
-    self.annotations = cat(1,self.annotations,N);
+    for k = 1:length(N)
+        self(k).annotations = cat(1,self(k).annotations,N{k});
+    end
 else
     % Start FEXW_OVERLAYUI
     fexw_overlayui(self.clone());

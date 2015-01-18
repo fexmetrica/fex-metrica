@@ -159,15 +159,29 @@ function fexw_streamerui_OpeningFcn(hObject, eventdata, handles, varargin)
 set(handles.figure1,'Name','FexViewer 1.0.1')
 handles.annotations = [];
 handles.annotation_flag = false;
-if length(varargin) == 1 && isa(varargin{1},'fexc')
+
+% if length(varargin) == 1 && isa(varargin{1},'fexc') && length(varargin{1}) > 1
+
+if length(varargin)  == 1 && isa(varargin{1},'fexc')
         
 % Generate handles argument for for fexc Object
-handles.fexc = varargin{1};
+handles.fexcnum = 1;
+handles.allfexc = varargin{1};
+handles.fexc = handles.allfexc(1);
 handles.video = handles.fexc.video;
     
 % Add video name to title
 [~,fname] = fileparts(handles.video);
 set(handles.figure1,'Name',sprintf('FexViewer 1.0.1 -- %s',fname));
+
+% Add menu items for selection
+% hmf = [];
+% for i = 1:length(handles.allfexc);
+%     [~,fname] = fileparts(handles.allfexc(i).video);
+%     hmf = cat(1,hmf,uimenu(handles.MainMenueOpen,'Label',fname,'Checked','off'));    
+% end
+% set(hmf(1),'Checked','on');
+
 
 % Check the video-format. Matlab is not very fast at reading from video
 % containers with elaborate compression. If the file is not an .avi file, I
@@ -180,9 +194,7 @@ set(handles.figure1,'Name',sprintf('FexViewer 1.0.1 -- %s',fname));
 % again. Re-encoding is performed using ffmpeg. We I can't find the ffmpeg
 % executable, I use the original video ... Note that this could be very slow.
 [~,~,Ext] = fileparts(handles.video);
-osstr = computer;
-% Fixme: this is a temporary patch for windows
-if ~strcmp(Ext,'.avi') && ~strcmpi(osstr(1:2), 'PC')
+if ~strcmp(Ext,'.avi')
     handles.video = convert2mjpg(handles.video);
 end
 
@@ -315,7 +327,7 @@ end
 % Annotation initialize: If the fexc object selected already has a set of
 % annotations, the new annotation will be added to the existing ones by
 % FEXC after you exited the viewer.
-handles.annotations = [];
+handles.annotations = cell(length(handles.allfexc),1);
 % if isempty(handles.fexc.get('notes'))
 %     handles.annotations = [];
 % else
@@ -337,6 +349,106 @@ guidata(hObject, handles);
 
 % UIWAIT makes fexnotes wait for user response (see UIRESUME)
 uiwait(handles.figure1);
+
+%-----------------------------------------------------
+% Initialization method
+%-----------------------------------------------------
+function handles = reinitialize(handles,k)
+%
+% INITIALIZE - function for initialization of the UI
+
+if ~exist('k','var')
+% k selects wich fexc object to be used from a stack
+    k = 1;
+end
+
+% Set handle argument for selected fexc object
+wb = waitbar(0,'Loading new fexc object');
+handles.fexc  = handles.allfexc(k);
+handles.video = handles.fexc.video;
+[~,fname] = fileparts(handles.video);
+set(handles.figure1,'Name',sprintf('FexViewer 1.0.1 -- %s',fname));
+
+% Check the video-format
+waitbar(0.25,wb,'Re-encoding video ...');
+[~,~,Ext] = fileparts(handles.video);
+if ~strcmp(Ext,'.avi')
+    handles.video = convert2mjpg(handles.video);
+end
+try 
+    handles.VideoFReader = VideoReader(handles.video);
+catch errorId
+    warning(errorId.message);
+    handles.video = convert2mjpg(handles.video);
+    handles.VideoFReader = VideoReader(handles.video);
+end
+img = FormatFrame(handles);
+imshow(img,'parent',handles.FrameAxis);
+
+% Gather information (face box, nans and sentiments)
+waitbar(0.50,wb,'Gathering structural information ...');
+handles.Landmarks = handles.fexc.get('Landmarks','double');
+facebox = get(handles.fexc,'Face');
+B = [facebox.FaceBoxX,facebox.FaceBoxY,facebox.FaceBoxW,facebox.FaceBoxH];
+handles.all_boxes = int32(B);
+B(:,3:4) = B(:,1:2) + B(:,3:4);
+handles.box = [min(B(:,1:2)), max(B(:,3:4)) - min(B(:,1:2))];
+nisnan_idx = ~isnan(sum(double(handles.fexc.functional),2));
+handles.time = handles.fexc.time.TimeStamps - handles.fexc.time.TimeStamps(1);
+handles.current_time = handles.time(1);
+strnowtime = fex_strtime(handles.current_time);
+set(handles.TimeSrtingUpdate,'String',strnowtime{1});
+% Set Time Slider Properties
+set(handles.TimeSlider,'Min',0,'Max',handles.time(end),'Value',0);
+set(handles.TimeSlider,'SliderStep',[1/length(handles.time),0.1]);
+% Initialize handle for x axes
+handles.xaxis = 1;
+for i = 1:length(handles.extents);
+    if handles.extents(i) > handles.time(end);
+        hx = findobj(handles.MT_xaxisextent,'Position',i);
+        set(hx,'Enable','off');
+    end
+end
+handles.frameCount = 1;
+handles.nframes = length(handles.time);
+handles.dfps = [];
+if isempty(handles.fexc.sentiments)
+    handles.fexc.derivesentiments(.25);
+end
+sidx = 3*ones(handles.nframes,1); % note that 4 is for nans
+sidx(nisnan_idx) = handles.fexc.sentiments.Winner;
+handles.sentimentcolor = zeros(handles.nframes,3);
+col =  fex_getcolors(3); col(2,:) = [1,1,1]; col = col([3,1,2],:);
+for i = 1:3
+   handles.sentimentcolor(sidx==i,:) = repmat(col(i,:),[sum(sidx == i),1]);
+end
+handles.sentimentidx = sidx;
+handles.sentimentlabels = {'Positive','Negative','Neutral'};
+
+% Set up timeseries related handles
+waitbar(0.75,wb,'Updating time series data ...');
+% Fixme: need to be implemented
+Y = handles.fexc.get('Emotions');
+N = Y.Properties.VarNames;
+Y = double(Y); Y(Y < -1) = -1;
+for i = 1:7
+    axes(handles.tsh(i));
+    ylabel(N{i});
+    xlim([handles.time(1),handles.time(end)]);
+    if i == 1
+        x = linspace(handles.time(1),handles.time(end),7);
+        set(gca,'XTick',x,'XTickLabel',fex_strtime(x,'short'),'XAxisLocation','Top');   
+    end
+    h = findobj(get(handles.tsh(i),'Children'),'Tag','tsplot');
+    set(h,'XData',handles.time,'YData',Y(:,i));
+    h = findobj(get(handles.tsh(i),'Children'),'Tag','');
+    set(h,'XData',linspace(handles.time(1),handles.time(end),100),'YData',zeros(1,100));
+end
+set(gca,'XTick',x,'XTickLabel',fex_strtime(x,'short'));
+set(findobj(handles.tsh,'Tag','tslp'),'XData',repmat(handles.current_time,[1,10]))
+
+% Change current image
+delete(wb)
 
 
 % --- Outputs from this function are returned to the command line.
@@ -410,7 +522,6 @@ for i = 1:length(features)
     end
 end
 
-
 function feature_select_callback(hObject,eventdata,handles)
 %
 % Update the feature displayed here
@@ -476,11 +587,12 @@ end
 % Resize to fit the scrren
 img = imresize(img,[340,310]);
 
-
-%+++++++++++++++++++++++++++++++++++++++++++++++ Video Re-encoding function
+% ----------------------------------------------
+% Video re-encoding
+% ----------------------------------------------
 function new_name = convert2mjpg(oldname)
 % 
-% Use ffmpeg to re-encode the video to .avi with mjpeg.
+% CONVERT2MJPG - Use ffmpeg to re-encode the video to .avi with mjpeg.
 
 if ~exist('fexwstreamermedia','dir')
     mkdir('fexwstreamermedia');
@@ -542,7 +654,7 @@ while flag && handles.frameCount < handles.nframes;
       N = streamernotesui(handles);
       % Store the note
       if ~isempty(N)
-         handles.annotations = cat(1,handles.annotations,N);
+         handles.annotations{handles.fexcnum} = cat(1,handles.annotations{handles.fexcnum},N);
       end
       % Restart the video if "flag" is set to true
       set(handles.PlayButton,'Enable','on');
@@ -619,9 +731,15 @@ function MainMenueClose_Callback(hObject, eventdata, handles)
 
 % --------------------------------------------------------------------
 function MainMenueOpen_Callback(hObject, eventdata, handles)
-% hObject    handle to MainMenueOpen (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+%
+% MAINMENUEOPEN_CALLBACK - allows to change FEXC stack object
+
+k = fexw_stackselectui(handles.allfexc,handles.fexcnum);
+if k ~= handles.fexcnum
+    handles.fexcnum = k;
+    handles = reinitialize(handles,handles.fexcnum);
+end
+guidata(hObject, handles);
 
 
 % --------------------------------------------------------------------
@@ -823,7 +941,7 @@ N = streamernotesui(handles);
 
 % Store the note
 if ~isempty(N)
-    handles.annotations = cat(1,handles.annotations,N);
+    handles.annotations{handles.fexcnum} = cat(1,handles.annotations{handles.fexcnum},N);
 end
 
 % Restart the video if "flag" is set to true
