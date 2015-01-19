@@ -3,12 +3,10 @@ function varargout = fexwsearchg(varargin)
 % FEXWSEARCHG - Fex Metrica & Fex Viewer multiple files selector UI.
 %
 %
-%
-%
 % Copyright (c) - 2014-2015 Filippo Rossi, Institute for Neural Computation,
 % University of California, San Diego. email: frossi@ucsd.edu
 %
-% VERSION: 1.0.1 11-Jan-2015.
+% VERSION: 1.0.1 18-Jan-2015.
 
 
 % Begin initialization code - DO NOT EDIT
@@ -30,11 +28,11 @@ else
 end
 % End initialization code - DO NOT EDIT
 
+% -------------------------------------------------------------------
 
-% --- Executes just before fexwsearchg is made visible.
 function fexwsearchg_OpeningFcn(hObject, eventdata, handles, varargin)
 % 
-% Initialization
+% OPENINGFCN - initialize the file search ui
 
 % Add title:
 if ~isempty(varargin)
@@ -49,34 +47,22 @@ handles.output = hObject;
 guidata(hObject, handles);
 uiwait(handles.figure1);
 
+% -------------------------------------------------------------------
 
-% --- Outputs from this function are returned to the command line.
 function varargout = fexwsearchg_OutputFcn(hObject, eventdata, handles) 
 %
-% Output function
+% OUTPUTFCN - Outputs from this function are returned to the command line.
 
-varargout{1} = get(handles.FileListEditable,'String');
+l = cellstr(get(handles.FileListEditable,'String'));
+ind = cellfun(@isempty,l);
+varargout{1} =  char(l(ind == 0));
 delete(handles.figure1);
 
+% -------------------------------------------------------------------
 
-% --- Executes during object creation, after setting all properties.
-function FileListEditable_CreateFcn(hObject, eventdata, handles)
-%
-%
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-function FileListEditable_Callback(hObject, eventdata, handles)
-%
-%
-guidata(hObject, handles);
-
-
-% --- Executes on button press in SearchButton.
 function SearchButton_Callback(hObject, eventdata, handles)
 %
-% Unix recursive search for a file with specific extensions.
+% SEARCHBUTTON - unix recursive search for a file with specific extensions.
 
 % Reinitialize list
 set(handles.FileListEditable,'String','');
@@ -94,9 +80,14 @@ if isempty(path_wch)
     set(handles.WildCharBox,'String',path_wch);
 end
 
-% Generate unix cmmand -- this won't work on windows 
-cmd = sprintf('find %s -name "%s" | sort',path_str,path_wch);
-[~,list] = unix(cmd);
+if ismember(upper(computer),{'MACI64','GLNXA64'})
+    cmd = sprintf('find %s -name "%s" | sort',path_str,path_wch);
+else
+% Fixme: this was not tested.
+    % cmd = sprintf('find "%s" %s',path_wch,path_str);
+    cmd = sprintf('dir %s %s',path_wch,path_str);
+end
+[~,list] = system(cmd);
 if ~isempty(list)
     set(handles.FileListEditable,'String',list);
     set(handles.FileListEditable,'Enable','on');
@@ -105,18 +96,11 @@ else
 end
 guidata(hObject, handles);
 
-
-% --- Executes during object creation, after setting all properties.
-function WildCharBox_CreateFcn(hObject, eventdata, handles)
-%
-%
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
+% -----------------------------------------------------------------
 
 function WildCharBox_Callback(hObject, eventdata, handles)
 %
-% Set wild char and update list automatically
+% WILDCHARBOX - set wild char and update list automatically
 
 path_str = get(handles.PathStringEdit,'String');
 if isempty(path_str)
@@ -141,44 +125,30 @@ if ~isempty(list)
 else
     set(handles.FileListEditable,'String','No file found ... ');
 end
-
 guidata(hObject, handles);
 
+% -----------------------------------------------------------------
 
-% --- Executes on button press in CancelSearch.
 function CancelSearch_Callback(hObject, eventdata, handles)
 %
-% Abort search.
+% CANCELSEARCH - 
+
 set(handles.FileListEditable,'String','');
 guidata(hObject, handles);
 uiresume(handles.figure1);
 
+% -----------------------------------------------------------------
 
-% --- Executes on button press in OpenFilesButton.
 function OpenFilesButton_Callback(hObject, eventdata, handles)
 %
-% Exit and save.
+% OPENFILES - use string selected and exit
 uiresume(handles.figure1);
 
+% -----------------------------------------------------------------
 
-% --- Executes during object creation, after setting all properties.
-function PathStringEdit_CreateFcn(hObject, eventdata, handles)
-%
-%
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-function PathStringEdit_Callback(hObject, eventdata, handles)
-% 
-% 
-guidata(hObject, handles);
-
-
-% --- Executes on button press in PathSearchButton.
 function PathSearchButton_Callback(hObject, eventdata, handles)
 %
-% Find main search directory
+% PATHSEARCHBUTTON - search path button.
 
 folder_name = uigetdir;
 if ~isempty(folder_name)
@@ -186,11 +156,11 @@ if ~isempty(folder_name)
 end
 guidata(hObject, handles);
 
-    
-% --- Executes when user attempts to close figure1.
+% -----------------------------------------------------------------
+
 function figure1_CloseRequestFcn(hObject, eventdata, handles)
 %
-% Closing procedure
+% CLOSEREQUESTFCN - Executes when user attempts to close figure1.
 
 if isequal(get(hObject,'waitstatus'),'waiting')
     uiresume(hObject);
