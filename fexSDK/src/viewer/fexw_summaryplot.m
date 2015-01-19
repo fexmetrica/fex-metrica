@@ -73,14 +73,14 @@ for k = 1:length(fexobj)
     h = figure('Units','inches','Position',args.position,'Visible','off');
     set(h,'Name','Emotions','NumberTitle','off');
     % Gather descriptives statistics
-   [D,P] = fexobj(k).descriptives();
+    [D,P] = fexobj(k).descriptives();
     D = double(D(:,emos));
     
     % pie 1 - Sentiments
     h1 = subplot(3,2,[1,3]);
     S   = P.Properties.VarNames(1:3);
     ind = double(P(1,S)) > args.thrs;
-    fexw_pie(double(P(1,1:3)),h1,'text',S(ind),'isLegend',false);
+    fexw_pie(double(P(1,ind)),h1,'text',S(ind),'isLegend',false);
     t = title('Distribution of Sentiments','fontsize',18);
     set(t,'Position',[0,1.5,1]);
 
@@ -104,7 +104,7 @@ for k = 1:length(fexobj)
     xlab = [1:7,8.25,9.5];
     for j = 1:length(xlab)
         bar(xlab(j),D(3,j),'FaceColor',col(j,:),'basevalue',-1);
-        errorbar(xlab(j),D(3,j),D(3,j)-D(5,j),D(3,j)+D(5,j),'x','LineWidth',2,'Color',col(j,:))
+        errorbar(xlab(j),D(3,j),0,D(5,j)-D(3,j),'x','LineWidth',2,'Color',col(j,:))
     end
     set(gca,'box','on','linewidth',2,'XTick',xlab,'XTickLabel',emos,'fontsize',12);
     xlim([.5,10.25]);
