@@ -1669,22 +1669,28 @@ for k = 1:length(self)
 
     % Get Conditional probabilities
     [~,emoidx] = ismember(emonames,vnamesX);
-    self(k).descrstats.perc   = mean(X(self(k).sentiments.Winner < 3,emoidx)>self(k).thrsemo); 
-    d = dummyvar([self(k).sentiments.Winner;3]);
-    self(k).descrstats.perc = [mean(d(1:end-1,:)),self(k).descrstats.perc];
-
+    self(k).descrstats.perc   = mean(X(self(k).sentiments.Winner < 3,emoidx)>self(k).thrsemo);
+    d = [];
+    for i = 1:3
+        d = cat(2,d,self(k).sentiments.Winner == i);
+    end
+    % d = dummyvar([self(k).sentiments.Winner;3]);
+    % self(k).descrstats.perc = [mean(d(1:end-1,:)),self(k).descrstats.perc];
+    self(k).descrstats.perc = [mean(d),self(k).descrstats.perc];
     % Combine data for global statistics
     XX = cat(1,XX,X);
-    PP = cat(1,PP,d(1:end-1,:));
+    PP = cat(1,PP,d);
 end
 
 % Add Global results
 G1 = [mean(XX);std(XX);median(XX);quantile(XX,.25);quantile(XX,.75)];
-if sum(PP(:,end)) == 0
-    G2 = [zeros(1,7),mean(PP(:,end-2:end))];
-else
-    G2 = [mean(PP(:,end-2:end)),mean(XX(PP(:,end) == 0,emoidx) > self(1).thrsemo)];
-end
+G2 = [mean(PP),mean(XX(PP(:,end) == 0,emoidx) > self(1).thrsemo)];
+G2(isnan(G2)) = 0;
+% if sum(PP(:,end)) == 0
+%     G2 = [zeros(1,7),mean(PP(:,end-2:end))];
+% else
+%     G2 = [mean(PP(:,end-2:end)),mean(XX(PP(:,end) == 0,emoidx) > self(1).thrsemo)];
+% end
 OBnames = {'mean','std','median','q25','q75'};
 for k = 1:length(self)
     self(k).descrstats.glob  = mat2dataset(G1,'VarNames',vnamesX,'ObsNames',OBnames);
