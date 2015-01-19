@@ -382,8 +382,6 @@ catch errorId
     handles.video = convert2mjpg(handles.video);
     handles.VideoFReader = VideoReader(handles.video);
 end
-img = FormatFrame(handles);
-imshow(img,'parent',handles.FrameAxis);
 
 % Gather information (face box, nans and sentiments)
 waitbar(0.50,wb,'Gathering structural information ...');
@@ -446,6 +444,10 @@ for i = 1:7
 end
 set(gca,'XTick',x,'XTickLabel',fex_strtime(x,'short'));
 set(findobj(handles.tsh,'Tag','tslp'),'XData',repmat(handles.current_time,[1,10]))
+
+% Image update
+img = FormatFrame(handles);
+imshow(img,'parent',handles.FrameAxis);
 
 % Change current image
 delete(wb)
