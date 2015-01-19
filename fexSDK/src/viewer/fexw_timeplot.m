@@ -49,6 +49,19 @@ else
     end
 end
 
+% Change color pattern when you save
+if sum(strcmpi('-save',varargin)) > 0
+    base_color = [1,1,1];
+    txt_color  = [0,0,0];
+    sent_color = {'m','b'};
+    line_color = '--k';
+else
+    base_color = [0,0,0];
+    txt_color  = [1,1,1];
+    sent_color = {'w','r'};
+    line_color = '--w';
+end
+
 % Gather the data needed for the plots.
 T = fexObj(k).time.TimeStamps;
 Y = get(fexObj(k),'emotions');
@@ -78,29 +91,29 @@ else
 end
 
 % Initialize the image with some costume properties
-pos = [0,0, 8.27 11.69];
+pos = [0,0, 9.27 11.69];
 h = figure('Units','inches','Position',pos,'Visible','off','Name',name);
-set(h,'Color',[0,0,0],'ToolBar','none','MenuBar','none','NumberTitle','off');
+set(h,'Color',base_color,'ToolBar','none','MenuBar','none','NumberTitle','off');
 axis tight
 
 % Generate the sentiments plot
 lims = max(2,max(abs(S.Combined)));
 subplot(7,2,1:4),hold on, box on    
-set(gca,'OuterPosition',[.025,.69,.994,.300],'Color',[0,0,0]); % [.001,.69,.994,.315]
-set(gca,'XColor',[1,1,1],'YColor',[1,1,1],'LineWidth',2,'fontsize',12);
+set(gca,'OuterPosition',[.025,.69,.994,.300],'Color',base_color); % [.001,.69,.994,.315]
+set(gca,'XColor',txt_color,'YColor',txt_color,'LineWidth',2,'fontsize',12);
 if size(T,1) < 1e4
-    hh1 = area(T,S.Positive,'FaceColor','w','LineWidth',2,'EdgeColor','w');
-    hh2 = area(T,-1*S.Negative,'FaceColor','r','LineWidth',2,'EdgeColor','r');
+    hh1 = area(T,S.Positive,'FaceColor',sent_color{1},'LineWidth',2,'EdgeColor',sent_color{1});
+    hh2 = area(T,-1*S.Negative,'FaceColor',sent_color{2},'LineWidth',2,'EdgeColor',sent_color{2});
     alpha(.4);
 else
-    hh1 = plot(T,S.Positive,'w','LineWidth',2);
-    hh2 = plot(T,-1*S.Negative,'r','LineWidth',2);
+    hh1 = plot(T,S.Positive,sent_color{1},'LineWidth',2);
+    hh2 = plot(T,-1*S.Negative,sent_color{2},'LineWidth',2);
 end
 
 ylim([-lims,lims]); xlim([T(1),T(end)]);    
 set(gca,'XTickLabel',fex_strtime(get(gca,'XTick'),'short'));
-ylabel('Sentiment Scores','fontsize',12,'Color','k');
-legend([hh1,hh2],{'Positive','Negative'},'TextColor',[1,1,1],'Box','off','Location','NorthEastOutside');
+ylabel('Sentiment Scores','fontsize',12,'Color',txt_color);
+legend([hh1,hh2],{'Positive','Negative'},'TextColor',txt_color,'Box','off','Location','NorthEastOutside');
 title('Sentiments','fontsize',18);
 
 % Generate the emotion plots
@@ -117,13 +130,13 @@ for n = 1:size(Y,2)
         plot(T,Y(:,n),'LineWidth',2,'Color',CLR(n,:));
     end
     ylim([lims(1),max(lims(2),2)]); xlim([T(1),T(end)]);
-    plot(T,zeros(size(T)),'--w','LineWidth',2);
-    ylabel(YHDR{n},'fontsize',12,'Color','w');
+    plot(T,zeros(size(T)),line_color,'LineWidth',2);
+    ylabel(YHDR{n},'fontsize',12,'Color',txt_color);
 end
 % Update common properties
 he = findobj(h,'Tag','EmoAx');
 x  = linspace(T(1),T(end),5);  
-set(he,'Color',[0,0,0],'XColor',[1,1,1],'YColor',[1,1,1],'XTick',...
+set(he,'Color',base_color,'XColor',txt_color,'YColor',txt_color,'XTick',...
     x,'XTickLabel',fex_strtime(x,'short'),'LineWidth',2);
 
 % Saving/Showing image step
