@@ -72,7 +72,6 @@ classdef fexc < handle
 % COMMENTS:
 %
 % Fixme: constructor - new constructor method;
-% Fixme: naninfo backup/reinitialize error;
 % Fixme: getband method;
 % Fixme: getmatrix;
 % Fixme: 3 parameters derive sentiments methods;
@@ -81,7 +80,6 @@ classdef fexc < handle
 % Fixme: descriptives bug;
 % Fixme: summary printout;
 % Fixme: verbose argument;
-% Fixme: add files to select from in viewers;
 % Fixme: time.TimeStamp(0) should be 0;
 % Fixme: show should be intereactive.
     
@@ -220,7 +218,7 @@ end
 methods
 function self = fexc(varargin)
 %
-% FEXC constructor routine.
+% FEXC - constructor routine.
 %
 % USAGE:
 %
@@ -231,11 +229,11 @@ function self = fexc(varargin)
 % fexObj = FEXC('video',videolist)
 % fexObj = FEXC('video',videolist,'ArgNam1',ArgVal1,...)
 %
-% Creates a FEXC object. There are three main methods to create a FEXC
+% Creates a FEXC object. There are four main methods to create a FEXC
 % object using this constructor:
 %
-% (1) FEXC() creates an empty FEXC object, tow which you can add data and
-%     information using the method UPDATE.
+% (1) FEXC() creates an empty FEXC object. You can add data and information
+%     using the method UPDATE.
 % (2) FEXC('ui') opens a UI that assists in generating the object. 
 % (3) FEXC('data', datafile) or FEXC('data',datafile,'ArNam',ArVal,..)
 %     creates a FEXC object that was already processed with the FACET SDK.
@@ -255,7 +253,6 @@ function self = fexc(varargin)
 %                is left empty. Alternative, TimeStamps can be a scalar,
 %                which indicates the number of frames per second.
 % design       - Dataset with design information.
-% diagnostics  - Track_id variable from FACET SDK.
 % outdir       - Output directory for the results.
 %
 %
@@ -264,7 +261,7 @@ function self = fexc(varargin)
 
 
 % handle function to read "varargin"
-readarg = @(arg)find(strcmp(varargin,arg));
+% readarg = @(arg)find(strcmp(varargin,arg));
 
 if isempty(varargin)
 % -----------------------------------------------------------
@@ -276,8 +273,6 @@ elseif strcmpi(varargin{1},'ui')
 % -----------------------------------------------------------
 % Import using UI
 % -----------------------------------------------------------
-% Fixme: The way in which I am adding missing frames in the Python script
-% slows down import option.
     h = fex_constructorui();
     if isempty(h)
         return
@@ -301,94 +296,110 @@ elseif isa(varargin{1},'struct')
 % -----------------------------------------------------------
 % Fixme: time and naninfo arguments.
     warning('off','stats:dataset:subsasgn:DefaultValuesAdded');
+%     load('fexheaders2.mat')
     args = varargin{1};
     O = [];
-    load('fexheaders2.mat')
     for k = 1:length(args)
         obj = self.init();
-        for j = args(k).data.Properties.VarNames;
-            try
-                str = hdrs.map2(lower(j{1}));
-                obj.(hdrs.map1(lower(j{1}))).(str) = args(k).data.(j{1});
-            catch
-                fprintf('Ignored variable: %s.\n',j{1});
-            end
-        end
-        % Add video and video info
+% for j = args(k).data.Properties.VarNames;
+%     try
+%         str = hdrs.map2(lower(j{1}));
+%         obj.(hdrs.map1(lower(j{1}))).(str) = args(k).data.(j{1});
+%     catch
+%         fprintf('Ignored variable: %s.\n',j{1});
+%     end
+% end
         obj.video = args(k).video;
-        if ~isempty(obj.video)
-            obj.getvideoInfo();
-        end
-        % Modify time information -- add timestamps
-        if isempty(obj.time.TimeStamps)
-            if ~isempty(obj.videoInfo)
-                obj.time.TimeStamps = (0:(1/(obj.videoInfo -1)):obj.videoInfo(3))';
-            else
-                obj.time.TimeStamps = (0:size(obj.functional,1))';
-            end
-        end
-        obj.time.FrameNumber = (1:size(obj.time,1))';
-        obj.time.StrTime = fex_strtime(obj.time.TimeStamps);
-        % Initialize nan information
-        X = obj.get('emotions','double');
-        bwidx = bwlabel(sum(X,2) == 0 | isnan(sum(X,2)));
-        obj.naninfo.tag = bwidx;
-        for i = 1:max(bwidx)
-            obj.naninfo.count(bwidx == i) = sum(bwidx == i);
-        end
-        % Set descriptive stats and history
+        obj.checkargs(args(k));
+        obj.derivesentiments();
         obj.descriptives();
         obj.history.original = obj.clone();  
-        % Add obj to self
         O = cat(1,O,obj);
+% obj.video = args(k).video;
+% if ~isempty(obj.video)
+%     obj.getvideoInfo();
+% end
+% % Modify time information -- add timestamps
+% if isempty(obj.time.TimeStamps)
+%     if ~isempty(obj.videoInfo)
+%         obj.time.TimeStamps = (0:(1/(obj.videoInfo -1)):obj.videoInfo(3))';
+%     else
+%         obj.time.TimeStamps = (0:size(obj.functional,1))';
+%     end
+% end
+% obj.time.FrameNumber = (1:size(obj.time,1))';
+% obj.time.StrTime = fex_strtime(obj.time.TimeStamps);
+% % Initialize nan information
+% X = obj.get('emotions','double');
+% bwidx = bwlabel(sum(X,2) == 0 | isnan(sum(X,2)));
+% obj.naninfo.tag = bwidx;
+% for i = 1:max(bwidx)
+%     obj.naninfo.count(bwidx == i) = sum(bwidx == i);
+% end
+        % Set descriptive stats and history
     end    
     self = O;
     warning('on','stats:dataset:subsasgn:DefaultValuesAdded');
-    return
+    return    
 % --------------------------------------------------------------
 % Ignore from here on    
-% --------------------------------------------------------------
-    
+% -------------------------------------------------------------- 
 % FIRST ARGUMENT IS A FEXPPOC OBJECT
 % elseif isa(varargin{1},'fexppoc')
 %     self.video = varargin{1}.video;
 %     self.videoInfo = varargin{1}.videoInfo;
 %     temp = importdata(varargin{1}.facetfile);
 % DATA ARE PROVIVED
-elseif ismember('data',varargin(1:2:end))
-    % Grab information from varargin
-    list = {'video','videoInfo'};
-    ind = cellfun(readarg,list,'UniformOutput',false);
-    for i = 1:length(ind)
-        if ~isempty(ind{i})
-            self.(list{i}) = varargin{ind{i}+1};
-        else
-            self.(list{i}) = '';
-        end
-    end
-    % Try to read video information
-    if ~isempty(self.video) && isempty(self.videoInfo)
-        self.getvideoInfo();
-    end
-    % Import the dataset                
-    try 
-        ind = find(strcmp(varargin,'data'));
-        if isa(varargin{ind+1},'dataset')
-            ttt = varargin{ind+1};
-            temp.colheaders = ttt.Properties.VarNames;
-            temp.data = double(ttt);
-        elseif isa(varargin{ind+1},'char')
-            temp = importdata(varargin{ind+1});
-        elseif isa(varargin{ind+1},'double')
-            error('Dataset must contain a column header.');
-        end
-    catch errorId
-        % data input argument not recognized
-        warning('"data" argument not recognized: %s.\n',errorId.message);
-    end
+% elseif ismember('data',varargin(1:2:end))
+%     % Grab information from varargin
+%     list = {'video','videoInfo'};
+%     ind = cellfun(readarg,list,'UniformOutput',false);
+%     for i = 1:length(ind)
+%         if ~isempty(ind{i})
+%             self.(list{i}) = varargin{ind{i}+1};
+%         else
+%             self.(list{i}) = '';
+%         end
+%     end
+%     % Try to read video information
+%     if ~isempty(self.video) && isempty(self.videoInfo)
+%         self.getvideoInfo();
+%     end
+%     % Import the dataset                
+%     try 
+%         ind = find(strcmp(varargin,'data'));
+%         if isa(varargin{ind+1},'dataset')
+%             ttt = varargin{ind+1};
+%             temp.colheaders = ttt.Properties.VarNames;
+%             temp.data = double(ttt);
+%         elseif isa(varargin{ind+1},'char')
+%             temp = importdata(varargin{ind+1});
+%         elseif isa(varargin{ind+1},'double')
+%             error('Dataset must contain a column header.');
+%         end
+%     catch errorId
+%         % data input argument not recognized
+%         warning('"data" argument not recognized: %s.\n',errorId.message);
+%     end
 else
-% ADD VIDEO ONLY CASE + JSON CONVERSION
+% --------------------------------------------------------------
+% Cell argument with data provided
+% --------------------------------------------------------------
+try
+    h = fexgenc(varargin);
+    he = waitbar(0,sprintf('FEXC: 1 / %d',length(h.files)));
+    self = h.export(1);
+    for k = 2:length(h.files)
+        self = cat(1,self,h.export(k));
+        waitbar(k/length(h.files),he,sprintf('FEXC: %d / %d',k,length(h.files)));
+    end
+    delete(he);
+    self.update('name',h.name);
+    self.update('outdir',h.targetdir);
     return
+catch
+    error('Wrong arguments provided. Try using "ui."');
+end
 end
 
 % Add file data: Note that the heaeder needs to have the name
@@ -2838,6 +2849,7 @@ methods (Access = private)
 % Private Methods:
 % 
 % init - initial constructor.
+% checkargs - check input arguments.
 % export2viewer - save data to .CSV file.
 % swhoannotations - display annotation.
 % beckupfex - creates a backup copy of current fexc.object.
@@ -2863,7 +2875,7 @@ arg_init = struct('name','','video','','videoInfo',[],...
        'design',[],'outdir','','history',[],'tempkernel',[],...
        'thrsemo',0,'descrstats',[],'annotations',[],'coregparam',[],...
        'naninfo',dataset([],[],[],'VarNames',{'count','tag','falsepositive'}),...
-       'diagnostics',[],'baseline',[],'verbose',true);   
+       'diagnostics',dataset([],'VarNames',{'track_id'}),'baseline',[],'verbose',true);   
 % Initialization of FEXC object
 fld = fieldnames(arg_init);
 for n = fld'
@@ -2871,6 +2883,95 @@ for n = fld'
 end
 
 end
+
+%**************************************************************************
+
+function self = checkargs(self,args)
+%
+% CHECKARGS - checks input arguments.
+%
+% USAGE:
+%
+% self.CHECKARGS()
+%
+% Handles property TIME, NANINFO, DIAGNOSTICS, and VIDEOINFO during
+% construction.
+
+% --------------------------------------
+% Functional, Structural & Diagnostics
+% --------------------------------------
+load('fexheaders2.mat')
+for j = args.data.Properties.VarNames;
+try
+    str = hdrs.map2(lower(j{1}));
+    self.(hdrs.map1(lower(j{1}))).(str) = args.data.(j{1});
+catch
+    fprintf('Ignored variable: %s.\n',j{1});
+end
+end
+
+% --------------------------------------
+% Grab video information 
+% --------------------------------------
+if ~isempty(self.video)
+    self.getvideoInfo();
+end
+
+% --------------------------------------
+% Set Time argument
+% --------------------------------------
+if isempty(self.time.TimeStamps) && isempty(self.videoInfo)
+    warning('No timestamp information provided. Use "UPDATE" method.');
+    t = 0:size(self.functional,1);
+    self.time.TimeStamps = t';
+elseif isempty(self.time.TimeStamps) && ~isempty(self.videoInfo)
+    t = linespace(self.videoInfo(1),self.videoInfo(2),self.videoInfo(3));
+    self.time.TimeStamps = t';
+end
+
+% --------------------------------------
+% Check for repeated frames
+% --------------------------------------
+indrep  = [diff(self.time.TimeStamps) < 10e-4;0];
+self.time.FrameNumber = zeros(size(self.time,1),1);
+self.time.FrameNumber(indrep == 0) = (1:sum(indrep == 0))';
+self.time.FrameNumber(indrep ~= 0) = nan;
+[bl,bn] = bwlabel(isnan(self.time.FrameNumber));
+for i = 1:bn
+    nfnind = find(bl == i,1,'first');
+    self.time.FrameNumber(bl == i) = self.time.FrameNumber(nfnind+1);
+end
+ind = isnan(sum(double(self.functional),2)) & bl(:) > 0;
+self.functional = self.functional(ind == 0,:);
+self.structural = self.structural(ind == 0,:);
+self.time = self.time(ind == 0,:);
+self.time.StrTime = fex_strtime(self.time.TimeStamps);
+
+% --------------------------------------
+% Nan Information
+% --------------------------------------
+X = self.get('emotions','double');
+bwidx = bwlabel(sum(X,2) == 0 | isnan(sum(X,2)));
+self.naninfo = mat2dataset(zeros(size(X,1),3),'VarNames',{'count','tag','falsepositive'});
+self.naninfo.tag = bwidx;
+for i = 1:max(bwidx)
+    self.naninfo.count(bwidx == i) = sum(bwidx == i);
+end
+self.nanset(1); % make sure that nans are nans and not 0s.
+
+% --------------------------------------
+% Diagnostics
+% --------------------------------------
+if isempty(self.diagnostics)
+    self.diagnostics.track_id = zeros(size(X,1),1) - self.naninfo.tag > 0;
+else
+    self.diagnostics= self.diagnostics(ind == 0,:);
+end
+    
+
+end
+
+%**************************************************************************
 
 function self = export2viewer(self,filename)
 %
