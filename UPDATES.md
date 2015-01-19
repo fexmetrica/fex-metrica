@@ -55,6 +55,7 @@ Jan 18 - Jan 24
 | [SRC]  | [UP]   | [.GETMATRIX]        | matrix for regression   |   [W]  |      |        |
 | [SRC]  | [UP]   | [.DERIVESENTIMENTS] | asym 3-pram version     |   [W]  |      |        |
 | [OS]   | [UP]   | [FEX_FACERPROC]     | upgrade cpp for Linux   |   [W]  |      |        |
+| [OS]   | [UP]   | []                  | .bashrc related issue   |   [P]  | 1    | 18-Jan |
 | [OS]   | [BUG]  | [FEXW_SEARCHG]      | "find" issue on Windows |   [P]  | 1    | 18-Jan |
 
 

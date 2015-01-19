@@ -611,6 +611,7 @@ end
 % This may not work if I can't find the ffmpeg executable.
 cmd = sprintf('ffmpeg -i %s -vcodec mjpeg -an -q 2 %s',oldname,new_name);
 [isError,output] = unix(sprintf('source ~/.bashrc && %s',cmd),'-echo');
+% [isError,output] = unix(sprintf('%s',cmd),'-echo');
 
 if isError ~= 0 
 % Something went wrong: print error, use the old video and leave.

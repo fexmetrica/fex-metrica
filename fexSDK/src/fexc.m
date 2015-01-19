@@ -916,6 +916,7 @@ if exist(self(k).video,'file')
     % Execute (-s 960x540 -vcodec libx264 -vpre medium)
     cmd = sprintf('ffmpeg -i %s -vcodec mjpeg -an -q 0 -filter:v "%s" %s',self(k).video,strc,new_name);
     [isError,output] = unix(sprintf('source ~/.bashrc && %s',cmd),'-echo');
+    % [isError,output] = unix(sprintf('%s',cmd),'-echo');
     % Something went wrong: print error and escape
     if isError ~= 0 
         warning(output);
