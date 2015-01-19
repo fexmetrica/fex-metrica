@@ -1491,9 +1491,9 @@ for k = 1:length(self)
         PoseName = Pose.Properties.VarNames;
         self(k).structural(:,PoseName) = mat2dataset(convn(double(Pose),kk2,'same'),'VarNames',PoseName);
 
-        % Update matrix shapes (I DON'T WANT TO CHANGE STRUCTURAL and
-        % COREGPARAM).
-        PropNames = {'functional','time','structural','coregparam','design'};
+        % Update matrix shapes
+        % Fixme: I DON'T WANT TO CHANGE STRUCTURAL and COREGPARAM.
+        PropNames = {'functional','time','structural','coregparam','design','diagnostics'};
         for j = PropNames
         % Check that the fields exist.
             if ~isempty(self(k).(j{1}))
@@ -2064,10 +2064,13 @@ if NofNans < 0.90
     [ndata,ntsp,nfr,nan_info] = ...
         fex_interpolate(self(k).functional,self(k).time.TimeStamps,...
         arg.fps,arg.rule);
-    % Update functional and structural data
-    self(k).structural = self(k).structural(nfr,:);
+    % Update functional
     self(k).functional = mat2dataset(ndata,'VarNames',VarNames);
-    
+    % Update structural
+    % self(k).structural = self(k).structural(nfr,:);
+    ndata = fex_interpolate(self(k).structural,self(k).time.TimeStamps,...
+        arg.fps,arg.rule);
+    self(k).structural = mat2dataset(ndata,'VarNames',self(k).structural.Properties.VarNames);
     % Update timestamp information
     self(k).time = self(k).time(nfr,:);
     self(k).time(:,{'OldTime'}) = mat2dataset(self(k).time.TimeStamps);
@@ -2929,11 +2932,19 @@ elseif isempty(self.time.TimeStamps) && ~isempty(self.videoInfo)
     t = linespace(self.videoInfo(1),self.videoInfo(2),self.videoInfo(3));
     self.time.TimeStamps = t';
 end
+% Fix order
+[~,ind] = sort(self.time.TimeStamps);
+for p = {'functional','structural','time'}
+    self.(p{1}) = self.(p{1})(ind,:);
+end
+if ~isempty(self.diagnostics)
+    self.diagnostics = self.diagnostics(ind,:);
+end
 
 % --------------------------------------
 % Check for repeated frames
 % --------------------------------------
-indrep  = [diff(self.time.TimeStamps) < 10e-4;0];
+indrep  = [diff(self.time.TimeStamps) < 10e-4; 0];
 self.time.FrameNumber = zeros(size(self.time,1),1);
 self.time.FrameNumber(indrep == 0) = (1:sum(indrep == 0))';
 self.time.FrameNumber(indrep ~= 0) = nan;
@@ -2942,7 +2953,7 @@ for i = 1:bn
     nfnind = find(bl == i,1,'first');
     self.time.FrameNumber(bl == i) = self.time.FrameNumber(nfnind+1);
 end
-ind = isnan(sum(double(self.functional),2)) & bl(:) > 0;
+ind = (isnan(sum(double(self.functional),2)) | sum(double(self.functional),2) == 0) & bl(:) > 0;
 self.functional = self.functional(ind == 0,:);
 self.structural = self.structural(ind == 0,:);
 self.time = self.time(ind == 0,:);
@@ -2966,10 +2977,9 @@ self.nanset(1); % make sure that nans are nans and not 0s.
 if isempty(self.diagnostics)
     self.diagnostics.track_id = zeros(size(X,1),1) - self.naninfo.tag > 0;
 else
-    self.diagnostics= self.diagnostics(ind == 0,:);
+    self.diagnostics = self.diagnostics(ind == 0,:);
 end
     
-
 end
 
 %**************************************************************************
