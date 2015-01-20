@@ -610,7 +610,10 @@ end
 
 % This may not work if I can't find the ffmpeg executable.
 cmd = sprintf('ffmpeg -i %s -vcodec mjpeg -an -q 2 %s',oldname,new_name);
-[isError,output] = unix(sprintf('source ~/.bashrc && %s',cmd),'-echo');
+if exist('~/.bashrc','file')
+    cmd = sprintf('source ~/.bashrc && %s',cmd);
+end
+[isError,output] = unix(cmd,'-echo');
 % [isError,output] = unix(sprintf('%s',cmd),'-echo');
 
 if isError ~= 0 

@@ -20,10 +20,10 @@ if isempty(FEXMETROOT) || ~exist(FEXMETROOT,'dir')
     warning('Root directory was not set, use FEXINSTALL.');
 else
     addpath(genpath(FEXMETROOT))
-    fprintf('\n\nWelcome to Fex-Metrica (v1.0.1) ...\n\n\n');
+    fprintf('\n\nWelcome to Fex-Metrica (v1.0.1) ...\n\n');
 end
 
 % Add .bashrc search to enviroment
 if strcmp(computer,'MACI64')
-    setenv('DYLD_LIBRARY_PATH',['/usr/local/bin:/usr/bin:/usr/local/sbin:/Library/Developer:',getenv('DYLD_LIBRARY_PATH')]);
+    setenv('DYLD_LIBRARY_PATH',['/usr/local/bin:/usr/bin:/usr/local/sbin:',getenv('DYLD_LIBRARY_PATH')]);
 end

@@ -55,6 +55,13 @@ cd(target_dir);
 % Find FACET SDK main directory
 FACET_DIR = uigetdir(pwd,'Select "FacetSDK" Directory');
 
+if FACET_DIR == 0
+    warning('No FACET SDK provided.');
+    fprintf('\nInstallation completed without SDK.\n');
+    cd(base);
+    return
+end
+
 % Add FACET SDK to CMakeList.txt
 cmakefilename = sprintf('%s/CMakeLists.txt',target_dir);
 confifilename = sprintf('%s/config.hpp',target_dir);
@@ -86,14 +93,13 @@ if exist('build','dir')
 end
 
 % Build executable files
-if FACET_DIR ~=0
-    mkdir('build'); cd('build')
-    cmd = 'cmake -G "Unix Makefiles" .. && make';
-    h = system(sprintf('source ~/.bashrc && %s',cmd));
-% Return to base
-else
-    warning('Installation failed.');
+mkdir('build'); cd('build')
+cmd = 'cmake -G "Unix Makefiles" .. && make';
+if exist('~/.bashrc','file')
+    cmd = sprintf('source ~/.bashrc && %s',cmd);
 end
+h = system(cmd);
+% Return to base
 cd(base)
 
 
