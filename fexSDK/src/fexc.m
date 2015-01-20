@@ -1030,12 +1030,13 @@ switch lower(ReqArg)
         for k = 1:length(self)
             X  = cat(1,X,self(k).structural(:,{'Roll','Pitch','Yaw'})); 
         end
+    case {'name','names'}
+        X = {};
+        for k = 1:length(self)
+            X = cat(1,X,self(k).name);
+        end
+        X = strtrim(X);
     case fieldnames(self(1).descrstats)
-%         if isempty(self(1).descrstats.(ReqArg))
-%         % Compute descriptives if they are missing. Note that the
-%         % computation here is applied to self(1), ... , self(K).
-%             self.descriptives();
-%         end
         self.descriptives();
         % look for global or local varibles.
         if strcmpi(Spec,'-global')
@@ -1045,6 +1046,14 @@ switch lower(ReqArg)
             for k = 1:length(self)
                 X = cat(1,X,self(k).descrstats.(ReqArg));
             end
+            % add headers
+            if strcmpi(ReqArg,'perc')
+                X = mat2dataset(X,'VarNames',self(k).descrstats.hdrs{2}{1});
+            else
+                X = mat2dataset(X,'VarNames',self(k).descrstats.hdrs{1}{1});
+            end
+            n = self.get('names');
+            X.Properties.ObsNames = n;
         end
     case {'naninfo','nan'}
     % Read naninfo private property
@@ -1276,7 +1285,7 @@ for k = 1:length(self)
             else
                 ds = self(k).get('annotations');
                 export(ds,'file',flist{k},'Delimiter',',');
-            end                
+            end
         otherwise
             error('Unrecognized SPEC argument: %s.',Spec);
     end  

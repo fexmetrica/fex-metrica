@@ -45,13 +45,13 @@ Jan 18 - Jan 24
 | [DOC]  | [NEW]  | []                  | Add UPDATE.md file      |   [D]  | 1    | 18-Jan |
 | [VIEW] | [UP]   | [.VIEWER]           | Make stackable          |   [P]  | 2    | 18-Jan |
 | [VIEW] | [UP]   | [.VIEWER]           | Add analytics tools     |   [W]  |      |        |
-| [VIEW] | [UP]   | [.SHOW]             | Make interactive        |   [W]  |      |        |
-| [SRC]  | [BUG]  | [.FEXC]             | time for constructor    |   [P]  | 1    | 18-Jan |
+| [VIEW] | [UP]   | [.SHOW]             | Make interactive        |   [P]  | 1    | 19-Jan |
+| [SRC]  | [BUG]  | [.FEXC]             | time for constructor    |   [P]  | 2    | 19-Jan |
 | [SRC]  | [BUG]  | [.FEXC]             | nan for constructor     |   [P]  | 1    | 18-Jan |
 | [SRC]  | [BUG]  | [.FEXC]             | cell input option       |   [P]  | 1    | 18-Jan |
 | [SRC]  | [UP]   | [.FEXC]             | design importer         |   [W]  |      |        |
 | [SRC]  | [BUG]  | [.FEXPORT]          | export to cvs option    |   [W]  |      |        |
-| [SRC]  | [BUG]  | [.DESCRIPTIVES]     | bug in derive stats     |   [W]  |      |        |
+| [SRC]  | [BUG]  | [.DESCRIPTIVES]     | bug in derive stats     |   [P]  | 2    | 20-Jan |
 | [SRC]  | [UP]   | [.GETMATRIX]        | matrix for regression   |   [W]  |      |        |
 | [SRC]  | [UP]   | [.DERIVESENTIMENTS] | asym 3-pram version     |   [W]  |      |        |
 | [OS]   | [UP]   | [FEX_FACERPROC]     | upgrade cpp for Linux   |   [W]  |      |        |
