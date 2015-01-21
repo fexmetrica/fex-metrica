@@ -80,9 +80,25 @@ The method FALSEPOSITIVE with 'method' set to 'position' finds multi-variate out
 
 The method COREGISTER uses procrustes analysis to register a face box and the associated face landmarks to a standardized face in the current video. This procedure can be used to identify "false positive." In particular, the sum of square error from the coregistration is z-scored, and then frames with error larger than the specified threshold are discarded.
 
+An additional correction can be done with the method **motioncorrect**, which uses pose information (pitch, roll and yaw) to regress out changes in signal due to motion of the subject in the video. You can run the following code for motion correction:
+
+```Matlab
+fexobj.motioncorrect('thrs',0.50,'normalize','-whiten');
+```
+All FUNCTIONAL features are regressed against the POSE features. The "thrs" argument indicates that only pose componets with |r| > 0.50 will be used in the regression model. The 'normalization' argument set to '-whiten' makes the pose variables independent and zero-mean.
+
 
 Temporal Processing
 ===========
+
+Temporal processing of facial expression data include several methods:
+
+**interpolate** - Interpolate timeseries & manages NaNs.  
+**downsample** - Reduced functional sampling rate to desired fps.
+**smooth** - Smooth time series using standard or costume kernel.
+**temporalfilt** - Apply low, high, or bandpass filter to FEXC.functional.
+
+
 
 ```Matlab
     [...]
@@ -113,6 +129,22 @@ fexobj.rectification(-1);
 ```
 
 In this example, the threshold is set to *t=-1*.
+
+
+Sentiments
+===========
+
+The [FACET SDK](http://www.emotient.com) output directly aggreagte scores for positive, negative and neutral sentiments. However, **fex-metrica** uses max-pooling to offer another aggregate measure of positive, negative and neutral sentiments. You can use the method **derivesentiments**, and the output is contained in the property **sentiments**.
+
+```Matlab
+fexobj.derivesentiments(0.00);
+```
+
+For each frame, the method **derivesentiments** gets a global negative score **N** (the maximum value between anger, contempt, disgust, sadness and fear). Additionally, it also computes a global positive score **P** (frame-wise maximum between joy and surprise). Each frame is then tagged as positive, negative or neutral based on the following formula:
+
+S_{f} = argmax(**P**_{f}*,**N**_{f}*,\xi)
+
+The variable "\xi" (set to 0.00 in the example above) is a margin used to define neutral frames. A frame is considered neutral if: max(**P**_{f}*,**N**_{f}*) <= \xi. Scores for positive and negative frames are set, respectively, to **P**, **N**  or \xi, based on which sentiment is more expressed.
 
 
 Visualization
@@ -158,8 +190,10 @@ Viewer - Overlay display
 **Note** that visualization methods require indices (this limitation will be removed).
 
 
+Save Files and Images
+===========
 
-
+...
 
 
 

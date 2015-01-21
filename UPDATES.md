@@ -43,6 +43,7 @@ Jan 18 - Jan 24
 | Scope  | Type   | **fexc** method     | Description             | Status | Num  | Date   | 
 | ------ | ------ | ------------------- | ----------------------- | ------ | ---- | ------ |
 | [DOC]  | [NEW]  | []                  | Add UPDATE.md file      |   [D]  | 1    | 18-Jan |
+| [DOC]  | [UP]   | []                  | Add documentation       |   [D]  | 1    | 21-Jan |
 | [VIEW] | [UP]   | [.VIEWER]           | Make stackable          |   [P]  | 2    | 18-Jan |
 | [VIEW] | [UP]   | [.VIEWER]           | Add analytics tools     |   [W]  |      |        |
 | [VIEW] | [UP]   | [.SHOW]             | Make interactive        |   [P]  | 1    | 19-Jan |
