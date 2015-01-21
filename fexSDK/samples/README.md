@@ -1,4 +1,3 @@
-
 FexMetrica Examples Folder
 ===========
 
@@ -142,7 +141,7 @@ fexobj.derivesentiments(0.00);
 
 For each frame, the method **derivesentiments** gets a global negative score **N** (the maximum value between anger, contempt, disgust, sadness and fear). Additionally, it also computes a global positive score **P** (frame-wise maximum between joy and surprise). Each frame is then tagged as positive, negative or neutral based on the following formula:
 
-$S_{f} = argmax(P_{f},N_{f}*,\xi)$
+![equation]($S_{f} = argmax(P_{f},N_{f}*,\xi)$)
 
 The variable "$\xi$" (set to 0.00 in the example above) is a margin used to define neutral frames. A frame is considered neutral if: max(P_{f},N_{f}) <= $\xi$. Scores for positive and negative frames are set, respectively, to **P**, **N**  or $\xi$, based on which sentiment is more expressed.
 
