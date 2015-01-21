@@ -7,7 +7,7 @@
 % FEXINSTALL.m
 %
 %
-% VERSION: 1.0.1 14-Jan-2015.
+% VERSION: 1.0.1 21-Jan-2015.
 
 %% Generate a Fexc object
 %
@@ -27,6 +27,16 @@ fexobj = fexc('ui');
 % If you have the movies, but not the files with facial expressions, the UI
 % gives you the option to analyze the data. For this option to work, you
 % need to have a local copy of the Facet SDK installed.
+% 
+% --------------------------------
+%
+% An alternative way of creating a fexc object is to use "varargin" input
+% structure:
+% 
+% vlist  = fexwsearchg(); % Select the .mov files with the ui;
+% dlist  = fexwsearchg(); % Select either .json or .csv files with the ui.
+% fexobj = fexc('video',vlist,'data',dlist,'outdir',[pwd '/output']);
+
 
 
 %% Spatial Processing 

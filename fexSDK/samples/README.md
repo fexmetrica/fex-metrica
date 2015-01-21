@@ -48,6 +48,18 @@ If you have the movies, but not the files with facial expressions, the UI gives 
 
 ![alt text](https://github.com/filipporss/fex-metrica/blob/master/fexSDK/samples/docs/constimg.png "Fexc Constructor UI")
 
+===========
+
+An alternative way to create a **fexc** object is to use "varargin" input structure:
+
+```Matlab
+vlist  = fexwsearchg(); % Select the .mov files with the ui;
+dlist  = fexwsearchg(); % Select either .json or .csv files with the ui.
+fexobj = fexc('video',vlist,'data',dlist,'outdir',[pwd '/output']);
+```
+
+The function **fexwsearchg** opens a ui that allows you to select a set of files. If you enter the files manually, they can be either a char object or a cell.
+
 
 Spatial Processing
 ===========

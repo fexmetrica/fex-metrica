@@ -294,98 +294,26 @@ elseif isa(varargin{1},'struct')
 % -----------------------------------------------------------
 % Structure with arguments (FEXGEN.EXPORT)
 % -----------------------------------------------------------
-% Fixme: time and naninfo arguments.
     warning('off','stats:dataset:subsasgn:DefaultValuesAdded');
-%     load('fexheaders2.mat')
     args = varargin{1};
     O = [];
     for k = 1:length(args)
         obj = self.init();
-% for j = args(k).data.Properties.VarNames;
-%     try
-%         str = hdrs.map2(lower(j{1}));
-%         obj.(hdrs.map1(lower(j{1}))).(str) = args(k).data.(j{1});
-%     catch
-%         fprintf('Ignored variable: %s.\n',j{1});
-%     end
-% end
         obj.video = args(k).video;
         obj.checkargs(args(k));
         obj.derivesentiments();
         obj.descriptives();
         obj.history.original = obj.clone();  
         O = cat(1,O,obj);
-% obj.video = args(k).video;
-% if ~isempty(obj.video)
-%     obj.getvideoInfo();
-% end
-% % Modify time information -- add timestamps
-% if isempty(obj.time.TimeStamps)
-%     if ~isempty(obj.videoInfo)
-%         obj.time.TimeStamps = (0:(1/(obj.videoInfo -1)):obj.videoInfo(3))';
-%     else
-%         obj.time.TimeStamps = (0:size(obj.functional,1))';
-%     end
-% end
-% obj.time.FrameNumber = (1:size(obj.time,1))';
-% obj.time.StrTime = fex_strtime(obj.time.TimeStamps);
-% % Initialize nan information
-% X = obj.get('emotions','double');
-% bwidx = bwlabel(sum(X,2) == 0 | isnan(sum(X,2)));
-% obj.naninfo.tag = bwidx;
-% for i = 1:max(bwidx)
-%     obj.naninfo.count(bwidx == i) = sum(bwidx == i);
-% end
-        % Set descriptive stats and history
     end    
     self = O;
     warning('on','stats:dataset:subsasgn:DefaultValuesAdded');
-    return    
-% --------------------------------------------------------------
-% Ignore from here on    
-% -------------------------------------------------------------- 
-% FIRST ARGUMENT IS A FEXPPOC OBJECT
-% elseif isa(varargin{1},'fexppoc')
-%     self.video = varargin{1}.video;
-%     self.videoInfo = varargin{1}.videoInfo;
-%     temp = importdata(varargin{1}.facetfile);
-% DATA ARE PROVIVED
-% elseif ismember('data',varargin(1:2:end))
-%     % Grab information from varargin
-%     list = {'video','videoInfo'};
-%     ind = cellfun(readarg,list,'UniformOutput',false);
-%     for i = 1:length(ind)
-%         if ~isempty(ind{i})
-%             self.(list{i}) = varargin{ind{i}+1};
-%         else
-%             self.(list{i}) = '';
-%         end
-%     end
-%     % Try to read video information
-%     if ~isempty(self.video) && isempty(self.videoInfo)
-%         self.getvideoInfo();
-%     end
-%     % Import the dataset                
-%     try 
-%         ind = find(strcmp(varargin,'data'));
-%         if isa(varargin{ind+1},'dataset')
-%             ttt = varargin{ind+1};
-%             temp.colheaders = ttt.Properties.VarNames;
-%             temp.data = double(ttt);
-%         elseif isa(varargin{ind+1},'char')
-%             temp = importdata(varargin{ind+1});
-%         elseif isa(varargin{ind+1},'double')
-%             error('Dataset must contain a column header.');
-%         end
-%     catch errorId
-%         % data input argument not recognized
-%         warning('"data" argument not recognized: %s.\n',errorId.message);
-%     end
+    return 
 else
 % --------------------------------------------------------------
 % Cell argument with data provided
 % --------------------------------------------------------------
-try
+% try
     h = fexgenc(varargin);
     he = waitbar(0,sprintf('FEXC: 1 / %d',length(h.files)));
     self = h.export(1);
@@ -397,150 +325,10 @@ try
     self.update('name',h.name);
     self.update('outdir',h.targetdir);
     return
-catch
-    error('Wrong arguments provided. Try using "ui."');
-end
-end
-
-% Add file data: Note that the heaeder needs to have the name
-% given by the fexfacet code (load a structure named 'hdrs')
-load('fexheaders.mat');
-if isfield(temp,'textdata');
-    if length(temp.textdata) == 1
-        thdr = strsplit(temp.textdata{1});
-    else
-       thdr = temp.textdata;
-    end
-else
-  thdr = temp.colheaders(1,:);
-end
-
-% Add frames numbers & timestamps if provided (this get's added latter)
-% self.time = mat2dataset(nan(size(temp.data,1),2),'VarNames',{'FrameNumber','TimeStamps'});
-self.time = struct('FrameNumber',[],'TimeStamps',[],'StrTime',[]);
-if ismember(thdr,'FrameNumber')
-    self.time.FrameNumber = temp.data(:,ismember(thdr,'FrameNumber'));
-else
-    self.time.FrameNumber = nan;
-end
-
-% Add timestamps -- this can be part of data, or specified using
-% timestamps. If there is a timestamp-like field in data, but you specify
-% the 'TimeStamps' argument, the latter is used.
-indts = find(strcmpi(varargin,'TimeStamps'));
-if ~isempty(indts)
-    t = varargin{indts+1};
-    if length(t) == 1
-    % Assuming equally spaced timestamps
-        n = length(self.time.TimeStamps);
-        t = linspace(1/t,n/t,n)';
-    end
-    self.time.TimeStamps = t;
-    % self.time(:,{'StrTime'}) = ...
-    % mat2dataset(fex_strtime(self.time.TimeStamps));
-else
-    [~,indts] = ismember({'timestamp','timestamps','time'},lower(thdr));
-    if isempty(indts)
-        warning('No TimeStamps provided.');
-        self.time.TimeStamps = nan;
-    else
-        self.time.TimeStamps = temp.data(indts(1));
-    end
-end    
-
-% Add structural image information
-[~,ind] = ismember(hdrs.structural,thdr);
-if ~sum(ind)==0
-    ind = ind(ind > 0);
-    self.structural = mat2dataset(temp.data(:,ind),'VarNames',thdr(ind));
-end
-
-% Add functional image information
-[~,ind] = ismember(hdrs.functional,thdr);
-if ~sum(ind)==0
-    self.functional = mat2dataset(temp.data(:,ind(ind > 0)),'VarNames',thdr(ind(ind > 0)));   
-end
-
-% THIS NEEDS TO BE Updated ========================================
-% Add design information when provided as dataset
-ind = find(strcmpi(varargin,'design'));
-if ~isempty(ind) && isa(varargin{ind+1},'dataset')
-    self.design = varargin{ind+1};
-elseif ~isempty(ind) && ~isa(varargin{ind+1},'dataset')
-    % Add an header
-    vnames = {'Var01'};
-    for ivd = 2:size(varargin{ind+1},2)
-        vnames = cat(2,vnames,sprintf('Var%.2d',ivd));
-    end
-    self.design = mat2dataset(varargin{ind+1},'VarNames',vnames);
-else
-    self.design = [];
-end
-
-% Add diagnostic information
-ind = find(strcmpi(varargin,'diagnostics'));
-if ~isempty(ind)
-    self.diagnostics = varargin{ind+1};
-end
-% Setup naninfo
-self.naninfo = mat2dataset(zeros(size(self.functional,1),3),'VarNames',{'count','tag','falsepositive'});
-
-% Add output matrix 
-ind = find(strcmp(varargin,'outdir'));
-if ~isempty(ind)
-    self.outdir = varargin{ind+1};
-end
-
-% Add frame size when it is not included in the data file
-if ~ismember('FrameRows',self.structural.Properties.VarNames) && ~isempty(self.videoInfo)
-    fsinfo = repmat(self.videoInfo([5,4]),[size(self.structural,1),1]);
-    fsinfo = mat2dataset(fsinfo,'VarNames',{'FrameRows','FrameCols'});
-    self.structural = [fsinfo,self.structural];
-end
-
-% 2. THERE ARE FRAMES THAT CONTAIN MULTIPLE FACES -- THE INPUT DOES
-% NOT CONTAIN FRAMES NUMBER, BUT TIMESTAMPS WHERE PROVIDED
-if ~isnan(self.time.TimeStamps(1)) && isnan(self.time.FrameNumber(1))
-% Find repeated frames (there is gonna be some error in the
-% timestamp, so I am setting 10e-4 as threshold (... which would
-% imply 1000 frames per second.
-    indrep  = [diff(self.time.TimeStamps) < 10e-4;0];
-    self.time.FrameNumber(indrep == 0) = (1:sum(indrep == 0))';
-    self.time.FrameNumber(indrep ~= 0) = nan;
-    self.time.FrameNumber = self.time.FrameNumber(:)';
-    [bl,bn] = bwlabel(isnan(self.time.FrameNumber));
-    for i = 1:bn
-        nfnind = find(bl == i,1,'first');
-        self.time.FrameNumber(bl == i) = self.time.FrameNumber(nfnind+1);
-    end
-% If a frames repeats and there are nans in there, remove them.
-    ind = isnan(sum(double(self.functional),2)) & bl(:) > 0;
-    self.functional = self.functional(ind == 0,:);
-    self.structural = self.structural(ind == 0,:);
-    self.naninfo    = self.naninfo(ind == 0,:);
-    if ~isempty(self.diagnostics)
-        self.diagnostics = self.diagnostics(ind == 0,:);
-    end
-    self.time.TimeStamps = self.time.TimeStamps(ind == 0,:);
-    self.time.FrameNumber = self.time.FrameNumber(ind == 0)';
-end
-
-% Convert time
-self.time.StrTime = fex_strtime(self.time.TimeStamps);
-if isa(self.time,'struct')
-    self.time = struct2dataset(self.time);
-end
-% if isa(self.time,'dataset')
-%     self.time = dataset2struct(self.time);
+% catch
+%     error('Wrong arguments provided. Try using "ui."');
 % end
-
-% Set some more properties
-self.thrsemo = 0;
-self.descriptives();
-self.history.original = self.clone();  
-% Filed for "undu clone"  
-self.history.prev = [];
-
+end
 
 end
 
@@ -2998,6 +2786,15 @@ else
     self.diagnostics = self.diagnostics(ind == 0,:);
 end
     
+% --------------------------------------
+% Design
+% --------------------------------------
+self.design = args.design;
+if size(self.design,1) ~= size(self.functional,1) && ~isempty(self.design)
+    warning('The design matrix and data have different sizes.');
+end
+
+
 end
 
 %**************************************************************************

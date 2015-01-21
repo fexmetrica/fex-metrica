@@ -40,12 +40,13 @@ Updates are scheduled on a weekly basis.
 Jan 18 - Jan 24
 ---------------
 
-| Scope  | Type   | **fexc** method     | Description             | Status | Num  | Date   |
+| Scope  | Type   | **fexc** method     | Description             | Status | Num  | Date   | 
 | ------ | ------ | ------------------- | ----------------------- | ------ | ---- | ------ |
 | [DOC]  | [NEW]  | []                  | Add UPDATE.md file      |   [D]  | 1    | 18-Jan |
 | [VIEW] | [UP]   | [.VIEWER]           | Make stackable          |   [P]  | 2    | 18-Jan |
 | [VIEW] | [UP]   | [.VIEWER]           | Add analytics tools     |   [W]  |      |        |
 | [VIEW] | [UP]   | [.SHOW]             | Make interactive        |   [P]  | 1    | 19-Jan |
+| [SRC]  | [UP]   | [.FEXC]             | Add varargin construct  |   [P]  | 1    | 21-Jan |
 | [SRC]  | [BUG]  | [.FEXC]             | time for constructor    |   [P]  | 2    | 19-Jan |
 | [SRC]  | [BUG]  | [.FEXC]             | nan for constructor     |   [P]  | 1    | 18-Jan |
 | [SRC]  | [BUG]  | [.FEXC]             | cell input option       |   [P]  | 1    | 18-Jan |

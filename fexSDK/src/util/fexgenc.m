@@ -124,16 +124,30 @@ self.init();
 if isempty(varargin)
 % Generate empty object
     return
-elseif ~isempty(varargin) && ~strcmpi(varargin{1},'ui')
-% Initialize with provided arguments
-    self.set(varargin);
 elseif strcmpi(varargin{1},'ui')
-% No argument provided - use the UI.
+% Initialize with provided arguments
     fex_constructorui(self);
 else
-% Generate empty object
-    return    
+% Initialize using provided arguments
+    if length(varargin) == 1 && isa(varargin{1},'cell')
+        % Unpack
+        varargin = varargin{:};
+    end
+    self.set(varargin);
 end
+    
+
+% 
+% elseif sum(strcmpi(varargin{1},'ui')) == 0
+% % Initialize with provided arguments
+%     self.set(varargin);
+% elseif strcmpi(varargin{1},'ui')
+% % No argument provided - use the UI.
+%     fex_constructorui(self);
+% else
+% % Generate empty object
+%     return    
+% end
 
 end
     
@@ -154,6 +168,16 @@ function self = set(self,varargin)
 %
 % See also FEXGENC, INIT, READ.
 
+% --------------------------------------------
+% Change varargin when enherited 
+if length(varargin) == 1
+    if isa(varargin{:},'cell')
+        varargin = varargin{:};
+    end
+end
+
+% --------------------------------------------
+% Check argument structure
 if length(varargin) < 1
     error('Not enough input arguments.');
 elseif length(varargin) > 1 &&  mod(length(varargin),2) == 1
@@ -161,20 +185,36 @@ elseif length(varargin) > 1 &&  mod(length(varargin),2) == 1
 elseif length(varargin) == 1
 % Reinitialize property 
     self.init(varargin{1});
-else
+    return
+end
+
+% --------------------------------------------
+% Add some options for varargin names
+keys = {'video','videos','movies','movie',...
+        'data','file','files',...
+        'design',...
+        'outdir','dirout','targetdir','targetdirs'};
+vals = [repmat({'movies'},[1,4]),repmat({'files'},[1,3]),{'design'},repmat({'targetdir'},[1,4])];
+map = containers.Map(keys,vals);
+
+% --------------------------------------------
 % Update properies / check for errors
-    varargin(1:2:end) = lower(varargin(1:2:end));
-    for i = 1:2:length(varargin)
-        [flag,arg] = self.read(varargin{i},varargin{i+1});
+varargin(1:2:end) = lower(varargin(1:2:end));
+for i = 1:2:length(varargin)
+    if map.isKey(varargin{i});
+        [flag,arg] = self.read(map(varargin{i}),varargin{i+1});
         if flag == 0
-            self.(varargin{i}) = arg;
+            self.(map(varargin{i})) = arg;
         else
             warning(self.get_error(flag));
         end
+    else
+        warning('Unrecognized argument: %s.',varargin{i});
     end
 end
 
-% Update checklist -- 
+% --------------------------------------------
+% Update checklist 
 for i = fieldnames(self.checklist)'
     if isempty(self.(i{1}))
         slef.checklist.(i{1}) = 0;
@@ -267,7 +307,9 @@ end
 
 methods
 %
-% GETTER METHODS
+% Getter Methods:
+%
+% NAME - get name from file path
 
 function H = get.name(self)
 % 
@@ -411,7 +453,7 @@ warning('off','MATLAB:codetools:ModifiedVarnames');
 warning('off','stats:dataset:ModifiedVarnames');
 
 % Empty output argument
-args = struct('data',[],'video',[]);
+args = struct('data',[],'video',[],'design',[]);
 
 % Get all relevant info
 fname = deblank(self.files{k});
@@ -444,6 +486,24 @@ switch ex
         warning('File %s not recognized.', fname);
     return
 end
+
+% Try to import a design
+if size(self.design,1) >= k
+% Test whether the design file exists
+[~,~,ex] = fileparts(self.design{k});
+switch ex
+    case '.txt'
+        args.design = dataset('File',self.design{k},'Delimiter','\t');
+    case '.csv'
+        args.design = dataset('File',self.design{k},'Delimiter',',');
+    case {'.xlsx','.xls'}
+        args.design = dataset('XLSFile',self.design{k});
+    otherwise
+        warning('File %s not recognized.', self.design{k});
+    return
+end
+end
+
 
 % Reactivate warnings
 warning('on','MATLAB:codetools:ModifiedVarnames');
