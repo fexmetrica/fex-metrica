@@ -1,24 +1,26 @@
 function varargout = feximportdg(varargin)
 %
-% datadesc = feximportdg;
-% datadesc = feximportdg('file',filename);
-% datadesc = feximportdg('file',filename,'importcmd',importcmd);
+% FEXIMPORTDG - UI for importing design matrix
 %
 %
-%__________________________________________________________________________
-% 
+% USAGE:
 %
-% Generated with GUIDE v2.5 07-Aug-2014 14:53:48
-% Copiright: Filippo Rossi, Institute for Neural Computation, University
-% of California, San Diego.
+% desc = feximportdg;
+% desc = feximportdg('file',filename);
+% desc = feximportdg('file',filename,'importcmd',importcmd);
 %
-% email: frossi@ucsd.edu
 %
-% Version: 08/10/14.
+% FEXIMPORTDG help you to import a dataset.
+%
+%
+%
+% Copyright (c) - 2014-2015 Filippo Rossi, Institute for Neural Computation,
+% University of California, San Diego. email: frossi@ucsd.edu
+%
+% VERSION: 1.0.1 10-Jan-2015.
 
 
-
-% Begin initialization code - DO NOT EDIT
+% ---------------------------------------------------
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
@@ -37,26 +39,28 @@ else
 end
 
 
-% End initialization code - DO NOT EDIT
-
-% *************************************************************************
-% --- Executes just before feximportdg is made visible.
+% ---------------------------------------------------
+% Constructor
+% ---------------------------------------------------
 function feximportdg_OpeningFcn(hObject, eventdata, handles, varargin)
 % 
-% Read varargin and initialize the fex handles. 
 %
+% OPENINGFCN - operation exectuted before opening the UI
+
 
 ind1 = find(strcmp('file',varargin));
 ind2 = find(strcmp('importcmd',varargin));
 
 % Import the dataset
 if ~isempty(ind1) && ~isempty(ind2)
+    % Try using custome function handle
     try
         data = varargin{ind2+1}(varargin{ind1+1});
     catch errorID
         warning('Could''t import data, error %s.',errorID.message);
     end
 elseif ~isempty(ind1) && isempty(ind2)
+    % Import dataset using IMPORTDATASET method
     try
         data = importasdataset(varargin{ind1+1});
     catch errorID
@@ -64,7 +68,7 @@ elseif ~isempty(ind1) && isempty(ind2)
     end
 end
 
-% Set up gui
+% Initialize ui propery
 if exist('data','var')
     handles.fex = initializefex(data);
     % Set import command if provided
@@ -422,13 +426,12 @@ handles.output = hObject;
 guidata(hObject, handles);
 
 
-% +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-% UPDATE VARIABLE
-
-
+% -------------------------------------------------------
+% Update Variables
+% -------------------------------------------------------
 function submittvarbutton_Callback(hObject, eventdata, handles)
 %
-% Submitt change and reinitialize gui.
+% SUBMITTVARBUTTON - Update variable view
 
 % Update table
 idx  = handles.fex.use;
@@ -436,10 +439,10 @@ set(handles.table, 'Data', dat2tab(handles.fex.data(:,idx == 1)));
 set(handles.table, 'ColumnName',handles.fex.hdr(idx == 1));
 
 % Reser Variable Select, name and usage
-set(handles.usecmd,'Value',1);
+% set(handles.usecmd,'Value',1);
 set(handles.variableselect,'String',['Variable Name',handles.fex.hdr]);
 set(handles.variableselect,'Value',1);
-set(handles.variabletype,'Value',1);
+% set(handles.variabletype,'Value',1);
 set(handles.newname,'String','');
 
 % Inactivate DV/IV box
@@ -453,17 +456,40 @@ handles.output = hObject;
 guidata(hObject, handles);
 
 
-% +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-% HELPER FUNCTIONS
+% --- Executes on button press in reset_button.
+function reset_button_Callback(hObject, eventdata, handles)
+% hObject    handle to reset_button (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
 
+
+% --- Executes on button press in select_vars.
+function select_vars_Callback(hObject, eventdata, handles)
+% hObject    handle to select_vars (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in select_time.
+function select_time_Callback(hObject, eventdata, handles)
+% hObject    handle to select_time (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+
+% -------------------------------------------------------
+% Helper Functions
+% -------------------------------------------------------
 function [C,H] = dat2tab(data)
 %
-% -------------------------------------------------------------------------
 % 
-% Helper function transforms a dataset array into a table -- for some
-% reason, 2014a does not have this function, despite advertized.
+% DAT2TAB - Convert dataset into table
 %
-% -------------------------------------------------------------------------
+%
+% NOTE: for some reason, 2014a does not have this function, despite
+% advertized.
+
 
 H  = data.Properties.VarNames;
 cl = datasetfun(@class,data,'UniformOutput',false); 
@@ -479,43 +505,47 @@ else
     end
 end
 
-
+% -------------------------------------------------------
 function data = importasdataset(name)
 %
-% -------------------------------------------------------------------------
-% 
-% Helper function import file as dataset -- or tries to ... 
-%
-% -------------------------------------------------------------------------
+% IMPORTDATASET - Helper function for importing design matrix
 
-
-[~,~,e] = fileparts(name);
-try 
-   if strcmp(e,'mat') 
-       temp   = load(name);
-       fnames = fieldnames(temp);
-       for i = 1:length(fnames)
-           if isa(temp.(fnames{i}),'dataset')
-               data = temp.(fnames{i});
-           end
-       end
-       if ~exist('data','var');
-           error('No dataset found in your .mat file.')
-       end
-   else
-       data = dataset('File',name);
-   end
-catch errorID
-    error('Import failed: %s.',errorID.message);
+if isa(name,'dataset')
+    data = name;
+elseif ~exist(name,'file');
+    error('File provided does not exists.')
+else
+    [~,~,e] = fileparts(name);
+    switch e
+        case '.mat'
+            temp   = importdata(name);
+            if isa(temp,'struct')
+                data = str2dataset(temp);
+            elseif isa(temp,'double')
+                data = mat2dataset(temp);
+            elseif isa(temp,'dataset')
+                data = temp;
+            else
+                error('Couldn''t import the dataset.');
+            end
+                
+            %fnames = fieldnames(temp);  
+        case '.txt'
+            data = dataset('File',name,'Delimiter','\t');
+        case '.csv'
+            data = dataset('File',name,'Delimiter',',');
+        case {'.xlsx','.xls'}
+            data = dataset('XLSFile',fname);
+        otherwise
+            warning('File %s not recognized.', fname);
+            return
+    end
 end
 
+% -------------------------------------------------------
 function fex = initializefex(data)
 %
-% -------------------------------------------------------------------------
-% 
-% Helper function initialize "fex" handle
-%
-% -------------------------------------------------------------------------
+% INITIALIZEFEX - Helper function for design handle
 
 fex = struct('importcmd','','data',[],'ndata',[],'type',[],'rot',[],'use',[],'hdr',{});
 fex(1).data = data;                         % imported dataset
@@ -524,6 +554,4 @@ fex(1).type = 2*ones(1,size(data,2));       % set everything to IV/DV
 fex(1).use  = ones(1,size(data,2));         % set everything to 'use'
 fex(1).rot  = nan(1,size(data,2));          % No rate of change provided
 fex(1).hdr  = data.Properties.VarNames;     % use existing VarNames
-
-
 

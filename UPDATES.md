@@ -51,7 +51,7 @@ Jan 18 - Jan 24
 | [SRC]  | [BUG]  | [.FEXC]             | time for constructor    |   [P]  | 2    | 19-Jan |
 | [SRC]  | [BUG]  | [.FEXC]             | nan for constructor     |   [P]  | 1    | 18-Jan |
 | [SRC]  | [BUG]  | [.FEXC]             | cell input option       |   [P]  | 1    | 18-Jan |
-| [SRC]  | [UP]   | [.FEXC]             | design importer         |   [W]  |      |        |
+| [SRC]  | [UP]   | [.FEXC]             | design importer         |   [P]  | 1    | 22-Jan |
 | [SRC]  | [BUG]  | [.FEXPORT]          | export to cvs option    |   [W]  |      |        |
 | [SRC]  | [BUG]  | [.DESCRIPTIVES]     | bug in derive stats     |   [P]  | 2    | 20-Jan |
 | [SRC]  | [UP]   | [.GETMATRIX]        | matrix for regression   |   [W]  |      |        |
