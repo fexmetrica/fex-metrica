@@ -1251,7 +1251,7 @@ self.beckupfex();
 if ~exist('fps','var')
     error('DOWNSAMPLE needs argument FPS.\n');
 end
-% Check that FPS is provided
+% Check that RULE is provided
 if ~exist('rule','var')
     rule = 0;
 elseif 0 > rule || rule > 1
@@ -1308,7 +1308,9 @@ for k = 1:length(self)
         tempnaninfo = cat(2,tempnaninfo,fp(idx));
         self(k).naninfo = mat2dataset(tempnaninfo,'VarNames',{'count','tag','falsepositive'});
         % Apply new nans based on argument RULE
-        self(k).nanset(max(round(nfps*(1-rule)),1));
+        if rule > 0
+            self(k).nanset(max(round(nfps*(1-rule)),1));
+        end
     end
 end
 self(k).derivesentiments();
@@ -1320,14 +1322,14 @@ end
 % *************************************************************************          
        
 
-function self = setbaseline(self,StatName,StatSource)
+function self = setbaseline(self,StatName,StatSource,renew)
 %
 % SETBASELINE normalizes the data using a BASELINE.
 %
 % SYNTAX:
 %
 % self.SETBASELINE(StatName)
-% self.SETBASELINE(StatName,'-global')
+% self.SETBASELINE(StatName,'-global',renew)
 %
 % 
 % SETBASELINE is an alternative to NORMALIZE to normalize the data. This
@@ -1352,6 +1354,9 @@ function self = setbaseline(self,StatName,StatSource)
 % objects in self.
 %
 %
+% RENEW: a boolean value, which indicates whether to recompute descriptive
+% statistics use for baselining. Default: true.
+%
 % NOTE: THIS METHODS NEEDS TO INCLUDE AN OPTION TO IMPORT BASELINE DATA
 % FROM A DIFFERENT DATA OR FEXC OBJECT.
 %
@@ -1370,8 +1375,13 @@ elseif sum(strcmpi(StatName,optstats)) == 0;
     error('Not recognized descriptive: %d.\n',StatName);
 end
 
-% Refresh descriptive statistics
-self.descriptives();
+% Refresh descriptive statistics -- default is refresh
+if ~exist('renew','var') && ~isempty(self(1).descrstats)
+    renew = true;
+end
+if renew
+    self.descriptives();
+end
 
 if ~exist('StatSource','var')
    StatSource = '-local';
@@ -1527,7 +1537,7 @@ function self = motioncorrect(self,varargin)
 % -  THRS: a scalar, indicating the absolute Pearson correlation
 %    coefficient used to select the independent variables to use in the
 %    regression. No pose feature with absolute PCC smaller than the
-%    provided threshold is included**. Default |r| = 0.25.
+%    provided threshold is included**. Default |r| = 0.00.
 %
 % - '-WHITHEN': a string indicating whether the POSE features are
 %   gonna be pre-whitened before running the regression. Default: '-none'.
@@ -1547,7 +1557,7 @@ function self = motioncorrect(self,varargin)
 % Add backup for undo
 self.beckupfex();
 
-args = struct('thrs',0.25,'normalize','-none');
+args = struct('thrs',0.00,'normalize','-none');
 if ~isempty(varargin)
     ind1 = cellfun(@isnumeric,varargin);
     ind2 = cellfun(@ischar,varargin);
