@@ -1059,8 +1059,8 @@ for k = 1:length(self)
             % GENDER NEEDS TO BE IMPLEMENTED
             X.Is_male = ones(n,1);
             % Face X,Y coordinates
-            X.location_x = self(k).structural.FaceBoxX;
-            X.location_y = self(k).structural.FaceBoxY;
+            % X.location_x = self(k).structural.FaceBoxX;
+            % X.location_y = self(k).structural.FaceBoxY;
             % Add pose
             X = cat(2,X,self(k).get('Pose'), self(k).functional(:,{'positive','negative','neutral'}));
             X = cat(2,X,self(k).get('Emotions'),self(k).get('AUs'));
@@ -1286,7 +1286,11 @@ for k = 1:length(self)
         idx = ceil(nfps/2):nfps-1:size(I,1);
         % Convolve functional data and Pose -- YOU NEED TO FIX THE POSE
         % ARGUMENT.
-        self(k).update('functional',convn(double(self(k).functional),kk2,'same'));
+        kk1 = normpdf(linspace(-2,2,nfps),0,.5)';
+        kk1 = kk1./sum(kk1);
+        U = convn(convn(double(self(k).functional),kk1,'same'),kk2,'same');
+        self(k).update('functional',U);
+        % self(k).update('functional',convn(double(self(k).functional),kk2,'same'));
         Pose  = self(k).get('pose');
         PoseName = Pose.Properties.VarNames;
         self(k).structural(:,PoseName) = mat2dataset(convn(double(Pose),kk2,'same'),'VarNames',PoseName);
@@ -1344,7 +1348,7 @@ function self = setbaseline(self,StatName,StatSource,renew)
 % using DESCRIPTIVES and normalization is performed by subtracting the
 % statistics to variables in self.FUNCTIONAL.
 %
-% STATSOURCE: [optiona] This string determines the source of the
+% STATSOURCE: [optional] This string determines the source of the
 % descriptive statistic use for normalization. Options are:
 %
 % '-local': [default] Statistics are computed on FUNCTIONAL data from the
@@ -2345,37 +2349,108 @@ function self = normalize(self,varargin)
 %
 % See also FEX_NORMALIZE.
 
+% ---------------------------------------
 % Add backup for undo
+% ---------------------------------------
+
 self.beckupfex();
 
-% Set defaults
-scale = {'method','c',...
-         'outliers','off',...
-         'threshold',2.5};
+% ---------------------------------------
+% Read arguments
+% ---------------------------------------
 
-% Read optional arguments
-for i = 1:2:length(varargin)
-    idx = strcmpi(scale,varargin{i});
-    idx = find(idx == 1);
-    if idx
-        scale{idx+1} = varargin{i+1};
+if isempty(varargin)
+    % Case 0: not enough input arguments
+    error('Not enough input argument.');
+elseif isa(varargin{1},'dataset') || isa(varargin{1},'double')
+    % Case 1: dataset, vector or matrix provided
+    flag = 1;
+    if isa(varargin{1},'dataset') 
+        [~,ind] = ismember(self(1).functional.Properties.VarNames,...
+               varargin{1}.Properties.VarNames);
+        B = double(varargin{1}(:,ind));
+    end
+    % Test number of columns
+    if size(B,2) ~= size(self(1).functional,2)
+        error('Baseline column size mispecification.');
+    end
+    % Test number of rows
+    if size(B,1) == 1
+        B = repmat(B,[length(self),1]);
+    elseif size(B,1) > 1 && size(B,1) ~= length(self)
+        error('Baseline row size mispecification.');
+    end
+elseif sum(strcmpi(varargin{1},{'mean','median','q25','q75'})) > 0    
+    % Case 2: Use SETBASELINE method
+    flag = 2;
+    StatName = varargin{1};
+    try
+        StatSource = varargin{2};
+    catch
+        StatSource = '-local';
+    end
+else
+    % Case 3: fex_normalize
+    flag = 3;
+    % Set defaults
+    scale = {'method','c','outliers','off','threshold',2.5};
+    for i = 1:2:length(varargin)
+        idx = strcmpi(scale,varargin{i});
+        idx = find(idx == 1);
+        if idx
+            scale{idx+1} = varargin{i+1};
+        end
     end
 end
 
-h = waitbar(0,'Normalization ... ');
-% Execute normalization method
-for k = 1:length(self)
-   fprintf('Normalizing fexc %d of %d.\n',k,length(self));
-   if strcmpi(varargin{1},'baseline')
-   % Baseline normalization: this is only partially implemented.
-       X = repmat(mean(double(self(k).baseline),1),[length(self(k).functional),1]);
-       self(k).update('functional', double(self(k).functional) - X);
-   else
-       self(k).update('functional',fex_normalize(double(self(k).functional),scale{:}));
-   end
-   waitbar(k/length(self));
+% ---------------------------------------
+% Execute normalization 
+% ---------------------------------------
+
+switch flag
+   case 1
+       h = waitbar(0,'Normalization ... ');
+       bvn = self(1).functional.Properties.VarNames;
+       for k = 1:length(self)
+           fprintf('Normalizing fexc %d of %d.\n',k,length(self));
+           BB = repmat(B(k,:),[length(self(k).functional),1]);
+           self(k).update('functional', double(self(k).functional) - BB);
+           self(k).baseline = mat2dataset(B(k,:),'VarNames',bvn);
+           waitbar(k/length(self));
+       end
+       self.derivesentiments(StatName,StatSource);
+       delete(h);
+   case 2
+       self.setbaseline()
+   case 3
+       h = waitbar(0,'Normalization ... ');
+       for k = 1:length(self)
+           fprintf('Normalizing fexc %d of %d.\n',k,length(self));
+           self(k).update('functional',fex_normalize(double(self(k).functional),scale{:}));
+           waitbar(k/length(self));
+       end
+       self.derivesentiments();
+       delete(h);
+   otherwise
+       error('Unable to normalize the data.');
 end
-delete(h);
+
+%    if strcmpi(varargin{1},'baseline')
+%    % Baseline normalization: this is only partially implemented.
+%        X = repmat(mean(double(self(k).baseline),1),[length(self(k).functional),1]);
+%        self(k).update('functional', double(self(k).functional) - X);
+%    elseif isa(varargin{1},'dataset')
+%        % Provide a vector
+%        X = repmat(double(varargin{1}),[length(self(k).functional),1]);
+%        self(k).update('functional', double(self(k).functional) - X);
+%    else
+%        self(k).update('functional',fex_normalize(double(self(k).functional),scale{:}));
+%    end
+%    waitbar(k/length(self));
+% end
+% delete(h);
+% 
+% end
 
 end
 

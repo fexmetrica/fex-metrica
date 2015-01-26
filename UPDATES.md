@@ -52,7 +52,7 @@ Jan 18 - Jan 24
 | [SRC]  | [BUG]  | [.FEXC]             | nan for constructor     |   [P]  | 1    | 18-Jan |
 | [SRC]  | [BUG]  | [.FEXC]             | cell input option       |   [P]  | 1    | 18-Jan |
 | [SRC]  | [UP]   | [.FEXC]             | design importer         |   [P]  | 1    | 22-Jan |
-| [SRC]  | [BUG]  | [.FEXPORT]          | export to cvs option    |   [W]  |      |        |
+| [SRC]  | [BUG]  | [.FEXPORT]          | export to cvs option    |   [W]  | 1    | 18-Jan |
 | [SRC]  | [BUG]  | [.DESCRIPTIVES]     | bug in derive stats     |   [P]  | 2    | 20-Jan |
 | [SRC]  | [UP]   | [.GETMATRIX]        | matrix for regression   |   [W]  |      |        |
 | [SRC]  | [UP]   | [.DERIVESENTIMENTS] | asym 3-pram version     |   [W]  |      |        |
@@ -64,4 +64,32 @@ Jan 18 - Jan 24
 Jan 25 - Jan 31
 ---------------
 
-...
+| Scope  | Type   | **fexc** method     | Description             | Status | Num  | Date   | 
+| ------ | ------ | ------------------- | ----------------------- | ------ | ---- | ------ |
+| [SRC]  | [UP]   | [.NORMALIZE]        | Combine with SETBASLINE |   [P]  | 1    | 26-Jan |
+
+
+
+List of planned updates for this period -- 
+
+* Design and get matrix;
+* Statistical methods^{1,2};
+* Fit a response -- plot of response;
+
+* Add catch path in importer;
+* Add demographic info;
+* Add summary method;
+
+* Bug with fexc viewer overlay;
+* Add saving files part;
+* Add selct file overlay viewer;
+* Prevent overlay from creating a movie;
+* Add preproc from the viewer;
+
+^{1} Rregression, classification, sparse solution and cross validation^{1}.
+^{2} Decide for the stats output.
+
+
+Feb 1 - Feb 7
+---------------
+

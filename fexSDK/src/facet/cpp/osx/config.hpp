@@ -2,7 +2,7 @@
 #define CONFIG_HPP
 
 #ifndef FACETSDIR
-#define FACETSDIR ("/Users/filippo/src/emotient/Dec2014/FACET/FacetSDK/facets")
+#define FACETSDIR ("/Users/filippo/src/emotient/Facet4.0FP/FACET/FacetSDK/facets")
 #endif  // FACETSDIR
 
 #endif // CONFIG_HPP
