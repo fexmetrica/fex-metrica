@@ -204,8 +204,14 @@ properties (Access = protected)
     % generate a waiting bar. Default: True. This property can be changed
     % using the method UBDATE.
     %
-    % See also UPDATE
+    % See also UPDATE.
     verbose
+    % DEMOGRAPHICS: field contaning demographic information. For now, the
+    % only field in DEMOGRAPHICS is "isMale", a real vlaue score, which is
+    % positive for male, and negative for female.
+    %
+    % See also GET.
+    demographics
 end
 
 
@@ -2770,7 +2776,8 @@ arg_init = struct('name','','video','','videoInfo',[],...
        'design',[],'outdir','','history',[],'tempkernel',[],...
        'thrsemo',0,'descrstats',[],'annotations',[],'coregparam',[],...
        'naninfo',dataset([],[],[],'VarNames',{'count','tag','falsepositive'}),...
-       'diagnostics',dataset([],'VarNames',{'track_id'}),'baseline',[],'verbose',true);   
+       'diagnostics',dataset([],'VarNames',{'track_id'}),'baseline',[],'verbose',true,...
+       'demographics',struct('isMale',[]));   
 % Initialization of FEXC object
 fld = fieldnames(arg_init);
 for n = fld'
@@ -2803,6 +2810,13 @@ try
 catch
     fprintf('Ignored variable: %s.\n',j{1});
 end
+end
+
+% -------------------------------------
+% Fix Demographic information
+% -------------------------------------
+if ~isempty(self.demographics.isMale)
+    self.demographics.isMale = nanmean(self.demographics.isMale);
 end
 
 % --------------------------------------
