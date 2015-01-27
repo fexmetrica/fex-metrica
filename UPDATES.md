@@ -69,7 +69,7 @@ Jan 25 - Jan 31
 | [SRC]  | [UP]   | [.NORMALIZE]        | Combine with SETBASLINE |  [P]   | 1    | 26-Jan |
 | [SRC]  | [UP]   | [.FEXC]             | Demographics info       |  [D]   | 1    | 26-Jan |
 | [SRC]  | [NEW]  | [.SUMMARY]          | Print summary info      |  [D]   | 1    | 26-Jan |
-
+| [GLOB] | [UP]   | [fex_init.m]        | Improve set up          |  [D]   | 1    | 27-Jan |  
 
 
 

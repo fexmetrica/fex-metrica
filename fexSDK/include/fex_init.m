@@ -19,7 +19,10 @@ FEXMETROOT = '/Users/filippo/Documents/code/GitHub/fex-metrica/fexSDK';
 if isempty(FEXMETROOT) || ~exist(FEXMETROOT,'dir')
     warning('Root directory was not set, use FEXINSTALL.');
 else
-    addpath(genpath(FEXMETROOT))
+% This excludes the 'dev' folder
+    for j = {'external','include','samples','shared','src','test'};
+        addpath(genpath([FEXMETROOT,'/',j{1}]))
+    end
     fprintf('\n\nWelcome to Fex-Metrica (v1.0.1) ...\n\n');
 end
 

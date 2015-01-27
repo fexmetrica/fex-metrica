@@ -2,9 +2,15 @@
 #
 # Version 10-Jan-2015.
 
+# Ignore fex_init file
+# fexSDK/include/*
+
+
 # Ignore build files
 fexSDK/src/facet/cpp/osx/build
 fexSDK/src/facet/cpp/osx/fexfacetexec
+fexSDK/src/facet/cpp/osx/CMakeLists.txt
+fexSDK/src/facet/cpp/osx/config.hpp
 
 # Ignore test files
 fexSDK/test/test.json
@@ -15,7 +21,13 @@ fexSDK/test/fextest_report.mat
 fexSDK/dev
 
 # Ignore unpacked "samples"
-fexSDK/samples/data
-fexSDK/samples/fexwstreamermedia
-fexSDK/samples/__MACOSX
-fexSDK/samples/oldnotes.txt
+fexSDK/samples/*
+!fexSDK/samples/data.zip
+!fexSDK/samples/docs
+fexSDK/samples/docs/.*
+!fexSDK/samples/fexemple1.m
+!fexSDK/samples/README.md
+# fexSDK/samples/data
+# fexSDK/samples/fexwstreamermedia
+# fexSDK/samples/__MACOSX
+# fexSDK/samples/oldnotes.txt
