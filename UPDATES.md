@@ -66,7 +66,10 @@ Jan 25 - Jan 31
 
 | Scope  | Type   | **fexc** method     | Description             | Status | Num  | Date   | 
 | ------ | ------ | ------------------- | ----------------------- | ------ | ---- | ------ |
-| [SRC]  | [UP]   | [.NORMALIZE]        | Combine with SETBASLINE |   [P]  | 1    | 26-Jan |
+| [SRC]  | [UP]   | [.NORMALIZE]        | Combine with SETBASLINE |  [P]   | 1    | 26-Jan |
+| [SRC]  | [UP]   | [.FEXC]             | Demographics info       |  [D]   | 1    | 26-Jan |
+| [SRC]  | [NEW]  | [.SUMMARY]          | Print summary info      |  [D]   | 1    | 26-Jan |
+
 
 
 

@@ -22,6 +22,7 @@ classdef fexc < handle
 % FEXC - FEXC constructor method.
 %
 % UTILITIES:
+% summary - Print information about current FEXC object.
 % clone	- Make a copy of FEXC object(s), i.e. new handle.
 % reinitialize - Reinitialize the FEXC object to construction stage. 
 % update - Changes FEXC fields.
@@ -340,6 +341,39 @@ end
 
 % CLASS UTILITIES**********************************************************
 % ---------------**********************************************************          
+
+function summary(self)
+%
+% SUMMARY - print information about current FEXC object.
+%
+% USAGE:
+%
+% self.summary();
+%
+% See also GET.
+
+tabinfo.Id       = [];
+tabinfo.Name     = self.get('names');
+tabinfo.Gender   = self.get('gender');
+tabinfo.Duration = [];
+tabinfo.PercentNullObs  = [];
+
+for k = 1:length(self)
+tabinfo.Id = cat(1,tabinfo.Id,k);
+tabinfo.Duration = cat(1,tabinfo.Duration,self(k).time.TimeStamps(end));
+fp = sum(isnan(sum(self(k).get('emotions','double'),2)));
+fp = round(100*fp./size(self(k).functional,1));
+tabinfo.PercentNullObs = cat(1,fp,tabinfo.PercentNullObs);
+end
+tabinfo.Duration = char(fex_strtime(tabinfo.Duration,'short'));
+
+fprintf('\n%d-dimension FEXC object with the following properties:\n\n',length(self));
+disp(struct2table(tabinfo));
+    
+    
+end
+
+% *************************************************************************
 
 function newself = clone(self)
 %    
@@ -876,6 +910,16 @@ switch lower(ReqArg)
         if length(X) == 1
             X = char(X);
         end
+    case 'gender'
+        X = {};
+        for k = 1:length(self)
+            if self(k).demographics.isMale > 0
+                X = cat(1,X,{'Male'});
+            else
+                X = cat(1,X,{'Female'});
+            end
+            X = char(X);
+        end 
     otherwise
     % Error message
         warning('Unrecognized argument %s.',ReqArg);
