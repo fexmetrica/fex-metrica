@@ -1971,6 +1971,7 @@ else
 end
 
 end
+self.derivesentiments();
 if v
     delete(h);
 end
