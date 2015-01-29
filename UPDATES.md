@@ -68,29 +68,33 @@ Jan 25 - Jan 31
 | ------ | ------ | ------------------- | ----------------------- | ------ | ---- | ------ |
 | [SRC]  | [UP]   | [.NORMALIZE]        | Combine with SETBASLINE |  [P]   | 1    | 26-Jan |
 | [SRC]  | [UP]   | [.FEXC]             | Demographics info       |  [D]   | 1    | 26-Jan |
-| [SRC]  | [NEW]  | [.SUMMARY]          | Print summary info      |  [D]   | 1    | 26-Jan |
+| [SRC]  | [NEW]  | [.SUMMARY]          | Print summary info      |  [P]   | 2    | 29-Jan |
 | [GLOB] | [UP]   | [fex_init.m]        | Improve set up          |  [D]   | 1    | 27-Jan |  
 
 
 
-List of planned updates for this period -- 
+List of planned updates for this period:
 
-* Design and get matrix;
-* Statistical methods^{1,2};
-* Fit a response -- plot of response;
+* ~~Add summary method~~;            [SRC][NEW][.FEXC]
+* Summary Sentiments percentage;     [SRC][UP][.FEXC]
+* Video cropping ui -- util.         [SRC][NEW][UTIL]
+* Update .gitignore.                 [GLOB][UP]
+* Design and get matrix;             [SRC][UP][.DESIGN,.GETMATRIX]
+* Statistical methods<sup>1,2</sup>; [SRC][NEW][?]
+* Fit a response & plot;             [SRC][NEW][?]
+* Add catch path in importer;        [SRC][UP][.FEXC]
+* ~~Add demographic info~~.          [SRC][NEW][.FEXC]
+* Bug with fexc viewer overlay;      [VIEW][UP][.VIEWER]
+* Add saving files part;             [VIEW][BUG][.VIEWER]
+* Add selct file overlay viewer;     [VIEW][UP][.VIEWER]
+* NO overlay movie (??);             [VIEW][BUG][.VIEWER]
 
-* Add catch path in importer;
-* Add demographic info;
-* Add summary method;
+This is a broad update, which I need to brake down:
 
-* Bug with fexc viewer overlay;
-* Add saving files part;
-* Add selct file overlay viewer;
-* Prevent overlay from creating a movie;
-* Add preproc from the viewer;
+* Add preproc from the viewer.      [SRC,VIEW][NEW][.VIEWER]
 
-^{1} Rregression, classification, sparse solution and cross validation^{1}.
-^{2} Decide for the stats output.
+<sup>1</sup>Rregression, classification, sparse solution and cross validation.
+<sup>2</sup>Decide for the stats output.
 
 
 Feb 1 - Feb 7

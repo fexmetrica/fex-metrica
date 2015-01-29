@@ -554,4 +554,3 @@ fex(1).type = 2*ones(1,size(data,2));       % set everything to IV/DV
 fex(1).use  = ones(1,size(data,2));         % set everything to 'use'
 fex(1).rot  = nan(1,size(data,2));          % No rate of change provided
 fex(1).hdr  = data.Properties.VarNames;     % use existing VarNames
-
