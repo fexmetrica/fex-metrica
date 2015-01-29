@@ -359,11 +359,12 @@ tabinfo.Duration = [];
 tabinfo.PercentNullObs  = [];
 
 for k = 1:length(self)
-tabinfo.Id = cat(1,tabinfo.Id,k);
-tabinfo.Duration = cat(1,tabinfo.Duration,self(k).time.TimeStamps(end));
-fp = sum(isnan(sum(self(k).get('emotions','double'),2)));
-fp = round(100*fp./size(self(k).functional,1));
-tabinfo.PercentNullObs = cat(1,fp,tabinfo.PercentNullObs);
+    tabinfo.Id = cat(1,tabinfo.Id,k);
+    tabinfo.Duration = cat(1,tabinfo.Duration,self(k).time.TimeStamps(end));
+    fp = sum(isnan(sum(self(k).get('emotions','double'),2)));
+    fp = round(100*fp./size(self(k).functional,1));
+    % fp = fp/size(self(k).functional,1);
+    tabinfo.PercentNullObs = cat(1,tabinfo.PercentNullObs,fp);
 end
 tabinfo.Duration = char(fex_strtime(tabinfo.Duration,'short'));
 
@@ -517,20 +518,21 @@ switch lower(arg)
             end
         end
     case 'design'
-        if isa(val,'char')
-            val = cellstr(val);
-            for k = 1:length(self)
-                try
-                    self(k).design = dataset('File',val{k});
-                catch errormsg
-                    warning(errormsg.message);
-                end
-            end
-        elseif ~isa(val,'char') && length(self) == 1
-            self.design = val;
-        else
-            error('Mispecified design argument.');                
-        end
+        self.fixdesign();
+%         if isa(val,'char')
+%             val = cellstr(val);
+%             for k = 1:length(self)
+%                 try
+%                     self(k).design = dataset('File',val{k});
+%                 catch errormsg
+%                     warning(errormsg.message);
+%                 end
+%             end
+%         elseif ~isa(val,'char') && length(self) == 1
+%             self.design = val;
+%         else
+%             error('Mispecified design argument.');                
+%         end
     case 'verbose'
         for k = 1:length(self)
             if val
