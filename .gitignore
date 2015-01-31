@@ -25,7 +25,8 @@ fexSDK/samples/*
 !fexSDK/samples/data.zip
 !fexSDK/samples/docs
 fexSDK/samples/docs/.*
-!fexSDK/samples/fexemple1.m
+!fexSDK/samples/fexemple_proc.m
+!fexSDK/samples/fexemple_server.m
 !fexSDK/samples/README.md
 # fexSDK/samples/data
 # fexSDK/samples/fexwstreamermedia

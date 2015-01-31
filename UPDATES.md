@@ -72,7 +72,7 @@ Jan 25 - Jan 31
 | [GLOB] | [UP]   | [fex_init.m]        | Improve set up          |  [D]   | 1    | 27-Jan |  
 | [SRC]  | [UP]   | [.DESIGN]           | Design UI               |  [P]   | 1    | 29-Jan |  
 | [SRC]  | [UP]   | [FEX_FACETPROC.m]   | min size for facet cmd  |  [P]   | 1    | 29-Jan |  
-
+| [DOC]  | [UP]   | [FEXEMPLE_SERVER]   | Add example of server   |  [P]   | 1    | 30-Jan |
 
 
 List of planned updates for this period:
