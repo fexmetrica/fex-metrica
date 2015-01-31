@@ -80,7 +80,7 @@ switch class(list)
     case 'cell'
         for i = 1:length(list)
            nlist{i,1} = list{i};
-           [d,name] = fileparts(list(i,:));
+           [d,name] = fileparts(list{i});
            if ~isempty(find(strcmpi('dir',varargin),1))
                SAVE_TO = varargin{find(strcmpi('dir',varargin)) + 1};
            else
@@ -112,7 +112,7 @@ Y = nlist(:,2);
 h = cell(size(nlist,1),1);
 cmd = cell(size(h));
 for k = 1:size(nlist,1)
-    cmd{k} = sprintf('%s -f %s -o %s -s 25',FACET_EXEC,nlist{k,1},Y{k});
+    cmd{k} = sprintf('%s -f %s -o %s',FACET_EXEC,nlist{k,1},Y{k});
 end
 % Update envirnoment (! temporararely)
 env1 = getenv('DYLD_LIBRARY_PATH');
