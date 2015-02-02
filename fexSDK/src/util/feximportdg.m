@@ -1,23 +1,71 @@
 function varargout = feximportdg(varargin)
 %
-% FEXIMPORTDG - UI for importing design matrix
+% FEXIMPORTDG - UI for importing design matrix.
 %
 %
 % USAGE:
 %
 % desc = feximportdg;
 % desc = feximportdg('file',filename);
-% desc = feximportdg('file',filename,'importcmd',importcmd);
 %
 %
-% FEXIMPORTDG help you to import a dataset.
+% FEXIMPORTDG help you to import design file for a FEXC object. You can
+% call the UI specifying a file path or a dataset, or you can import a
+% dataset at a second time, uising the Menu item "Open."
 %
+% 
+% FILE MENU:
+% ===========
+%
+% The FILE MENU contains three items:
+%
+% "Open"   [cmd+O]: Opens a UI that lets you select a file;
+% "Export" [cmd+E]: Close the UI and exports the FEXDESIGNC object to the
+%                   command line.
+% "RESET"  [cmd+R]: Deletes all changes made up to that point.
+%
+% Note: the shortcuts on Linux use "ctrl" instead of "cmd." 
+%
+%
+% UI OBJECTS:
+% ============
+%
+% "Rename Variable": Select from the scroll down menu a variable to rename.
+% Once a variable is selected, an editable text box appears, and you can
+% type the desired variable name. Press enter when you are done.
+% 
+% "Time Variable": This scroll down object allows you to indicate which
+% variable contains timing information. If in the original dataset the
+% variable has one of the default names (e.g. "Time"), this variable is
+% identified automatically, and you don't have anything to do.
+%
+% "Select Variables": When you press this button, a list with the name of
+% all the variables appear. You can select the variable that you want to
+% delete and press "delete" (or backspace). If you press the button again
+% (now labeled "Hide"), the variable list disappear and the tabled dataset
+% is expanded.
+%
+% "Cancel": This button closes the UI and return an empty argument.
+%
+% "Export": Close the UI and exports the FEXDESIGNC object to the command
+% line.
+%
+%
+% TABLE WITH DATA:
+% =================
+% 
+% The table is meant to give an overview of the dataset. Only the first
+% 20 lines are displayed.
+%
+% 
+% See also FEXDESIGNC, FEXC, FEX_CONSTRUCTORUI.
 %
 %
 % Copyright (c) - 2014-2015 Filippo Rossi, Institute for Neural Computation,
 % University of California, San Diego. email: frossi@ucsd.edu
 %
-% VERSION: 1.0.1 10-Jan-2015.
+% VERSION: 1.0.1 2-Feb-2015.
+
 
 
 % ---------------------------------------------------
@@ -28,6 +76,7 @@ gui_State = struct('gui_Name',       mfilename, ...
                    'gui_OutputFcn',  @feximportdg_OutputFcn, ...
                    'gui_LayoutFcn',  [] , ...
                    'gui_Callback',   []);
+
 if nargin && ischar(varargin{1})
     gui_State.gui_Callback = str2func(varargin{1});
 end
@@ -39,461 +88,346 @@ else
 end
 
 
-% ---------------------------------------------------
+% ************************************************************************
 % Constructor
-% ---------------------------------------------------
+% ************************************************************************
 function feximportdg_OpeningFcn(hObject, eventdata, handles, varargin)
 % 
 %
 % OPENINGFCN - operation exectuted before opening the UI
 
 
+set(handles.figure1,'Name','Fex Design Import');
+
+% ----------------------------------
+% Read optional arguments
+% ---------------------------------- 
 ind1 = find(strcmp('file',varargin));
 ind2 = find(strcmp('importcmd',varargin));
 
-% Import the dataset
+% ----------------------------------
+% Import dataset when provided
+% ---------------------------------- 
 if ~isempty(ind1) && ~isempty(ind2)
     % Try using custome function handle
     try
         data = varargin{ind2+1}(varargin{ind1+1});
+        handles.fexd = fexdesignc(data);
     catch errorID
         warning('Could''t import data, error %s.',errorID.message);
     end
 elseif ~isempty(ind1) && isempty(ind2)
     % Import dataset using IMPORTDATASET method
     try
-        data = importasdataset(varargin{ind1+1});
+        handles.fexd = fexdesignc(varargin{ind1+1});
+        % data = importasdataset(varargin{ind1+1});
     catch errorID
        warning('Could''t import data, error %s.',errorID.message);
     end
 end
 
-% Initialize ui propery
-if exist('data','var')
-    handles.fex = initializefex(data);
+% ----------------------------------
+% Initialize Ui properties
+% ---------------------------------- 
+if isfield(handles,'fexd')
+    % handles.fex = initializefex();
     % Set import command if provided
     if ~isempty(ind2)
        handles.fex(1).importcmd = varargin{ind2+1};
     end
-    % Initialize GUI
-    % Make the dataset visible (transform in table)
-    set(handles.table, 'Data', dat2tab(data));
-    set(handles.table, 'ColumnName', data.Properties.VarNames);
+    set(handles.table, 'Data', dat2tab(handles.fexd.X));
+    set(handles.table, 'ColumnName',handles.fexd.X.Properties.VarNames);
     set(handles.table,'Visible','on');
 
     % Update the variable names
-    set(handles.variableselect,'String',['Variable Name',data.Properties.VarNames]);
-
-    % Inintialize the fex object that will be popultated with data information
-    handles.fex = struct('data',[],'ndata',[],'type',[],'rot',[],'use',[],'hdr',{});
-
-    handles.fex(1).data = data;                     % imported dataset
-    handles.fex(1).ndata = data;                    % modified dataset
-    handles.fex(1).type = 2*ones(1,size(data,2));   % set everything to IV/DV
-    handles.fex(1).use  = ones(1,size(data,2));     % set everything to 'use'
-    handles.fex(1).rot  = nan(1,size(data,2));      % No rate of change provided
-    handles.fex(1).hdr  = data.Properties.VarNames; % use existing VarNames  
-end
-
-handles.output = hObject;
-guidata(hObject, handles);
-
-% UIWAIT makes feximportdg wait for user response (see UIRESUME)
-% uiwait(handles.figure1);
-
-
-% --- Outputs from this function are returned to the command line.
-function varargout = feximportdg_OutputFcn(hObject, eventdata, handles) 
-
-if isfield(handles,'fex')
-    varargout{1} = handles.fex;
+    set(handles.variableselect,'String',['Rename Variable',handles.fexd.X.Properties.VarNames]);
+    set(handles.timetagselect,'String', ['Time Variable:',handles.fexd.X.Properties.VarNames]);
+    set(handles.list_select_var,'String',handles.fexd.X.Properties.VarNames);
+    set(handles.list_select_var,'Visible','off');
+    % Test whether time was identified:
+    if ~isempty(handles.fexd.timetag)
+        ind = find(strcmpi(handles.fexd.timetag,handles.fexd.X.Properties.VarNames));
+        set(handles.timetagselect,'Value',ind+1);
+    end
 else
-   varargout{1} = '';
+    handles.fexd = '';
 end
 
-% +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-% MENUE FUNCTIONS
+handles.output = handles.fexd;
+guidata(hObject, handles);
+uiwait(handles.figure1);
 
-% --------------------------------------------------------------------
-function m1_Callback(hObject, eventdata, handles)
-% hObject    handle to m1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
-% --------------------------------------------------------------------
+% ************************************************************************
+% Close Request
+% ************************************************************************
+function figure1_CloseRequestFcn(hObject, eventdata, handles)
+%
+% CLOSEREQUEST - closes the ui.
+
+if isequal(get(handles.figure1,'waitstatus'),'waiting')
+    uiresume(hObject);
+else
+    delete(hObject);
+end
+
+% ************************************************************************
+% Select Output 
+% ************************************************************************
+function varargout = feximportdg_OutputFcn(hObject, eventdata, handles) 
+%
+% OUTPUTFCN - Select command line output.
+
+handles.fexd.include = ones(1,size(handles.fexd.X,2));
+varargout{1} = handles.fexd;
+delete(handles.figure1);
+
+
+% ************************************************************************
+% Menu import dataset
+% ************************************************************************
 function impdataset_Callback(hObject, eventdata, handles)
 %
-% Open dialog window to import dataset. If succesfull, generate the main
-% table for display. Update list of variables names.
-%
+% IMPDATASET - Opens ui to import a dataset.
 
-% File selection and attempt to import the file
+% -------------------------------------------------
+% File selection 
+% -------------------------------------------------
 [f,p] = uigetfile('*','DialogTitle','Select Dataset');
 try
-    data = importasdataset(sprintf('%s%s',p,f));
+    handles.fexd = fexdesignc(sprintf('%s%s',p,f));
 catch errorID
     error('Import failed: %s.',errorID.message);
 end
 
-% Make the dataset visible (transform in table)
-set(handles.table, 'Data', dat2tab(data));
-set(handles.table, 'ColumnName', data.Properties.VarNames);
+% -------------------------------------------------
+% Show design matrix as table
+% -------------------------------------------------
+set(handles.table, 'Data', dat2tab(handles.fexd.X));
+set(handles.table, 'ColumnName',handles.fexd.X.Properties.VarNames);
 set(handles.table,'Visible','on');
 
-% Update the variable names
-set(handles.variableselect,'String',['Variable Name',data.Properties.VarNames]);
+% -------------------------------------------------
+% Update variables names
+% -------------------------------------------------
+set(handles.variableselect,'String',['Rename Variable',handles.fexd.X.Properties.VarNames]);
+set(handles.timetagselect,'String', ['Time Variable:',handles.fexd.X.Properties.VarNames]);
+if ~isempty(handles.fexd.timetag)
+    ind = find(strcmpi(handles.fexd.timetag,handles.fexd.X.Properties.VarNames));
+    set(handles.timetagselect,'Value',ind+1);
+end
+set(handles.list_select_var,'String',handles.fexd.X.Properties.VarNames);
+set(handles.list_select_var,'Visible','off');
 
-% Inintialize the fex object that will be popultated with data information
-handles.fex = initializefex(data);
-
-handles.output = hObject;
+% -------------------------------------------------
+% Update all
+% -------------------------------------------------
+handles.output = handles.fexd;
 guidata(hObject, handles);
 
 
-% --------------------------------------------------------------------
-function importspecial_Callback(hObject, eventdata, handles)
-%
-% Import special allows you to specify more complex commands that can be
-% used to import the dataset.
-
-warning('Not implemented. No action performed.');
-fprintf('\nThis is not implemented yet. Sorry.\n');
-fprintf('If you are having problem loading the dataset:\n');
-fprintf('\t(1) create a function handle that works for your dataset;\n');
-fprintf('\t(2) call: >> feximportdg(''importcmd'',cmd).\n\n');
-fprintf('\tNOTE that cmd is a function handle.\n');
-
-% --------------------------------------------------------------------
+% ************************************************************************
+% Menu Reset Changes
+% ************************************************************************
 function resetchanges_Callback(hObject, eventdata, handles)
 % 
-% Restore initial dataset from the given file: all changes will be lost.
-%
+% RESETCHANGES - remove all changes made to dataset
 
-if isfield(handles,'fex')
-    % Make the dataset visible (transform in table)
-    data = handles.fex(1).data;
-    set(handles.table, 'Data', dat2tab(data));
-    set(handles.table, 'ColumnName', data.Properties.VarNames);
+% -------------------------------------------------
+% Reset FEXD field
+% -------------------------------------------------
+if isa(handles.fexd,'fexdesignc')
+    handles.fexd.reset();
+    set(handles.table,'Data', dat2tab(handles.fexd.X));
+    set(handles.table,'ColumnName',handles.fexd.X.Properties.VarNames);
     set(handles.table,'Visible','on');
-
-    % Update the variable names
-    set(handles.variableselect,'String',['Variable Name',data.Properties.VarNames]);
-
-    % Inintialize the fex object that will be popultated with data information
-    handles.fex = initializefex(data);    
+    set(handles.variableselect,'String',['Rename Variable',handles.fexd.X.Properties.VarNames]);
+    set(handles.list_select_var,'String',handles.fexd.X.Properties.VarNames);
+    % Reset Time Variables
+    set(handles.timetagselect,'String', ['Time Variable:',handles.fexd.X.Properties.VarNames]);
+    % Reset fexd
+    handles.fexd.include = [];
+    handles.timetag = '';
 else
     warning('Nothing to reset.');
 end
 
-handles.output = hObject;
-guidata(hObject, handles);  
+% -------------------------------------------------
+% Update all
+% -------------------------------------------------
+handles.output = handles.fexd;
+guidata(hObject, handles);
 
 
-% --------------------------------------------------------------------
-function helpm_Callback(hObject, eventdata, handles)
-% hObject    handle to helpm (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% ************************************************************************
+% Menu Export Changes
+% ************************************************************************
+function exportmenu_Callback(hObject, eventdata, handles)
+%
+% EXPORTMENU - export FEXDESIGNC object.
+
+handles.output = handles.fexd;
+guidata(hObject, handles);
+figure1_CloseRequestFcn(handles.figure1,[],handles)
 
 
-% --------------------------------------------------------------------
-function helpdocs_Callback(hObject, eventdata, handles)
-% 
-% Add here opening comand for the manual in .pdf.
-
-
-
-
-% +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-% VARIABLES SELECTION & USAGE
-
-% --- Executes during object creation, after setting all properties.
-function variableselect_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to variableselect (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
+% ************************************************************************
+% Select variables button for renaming
+% ************************************************************************
 function variableselect_Callback(hObject, eventdata, handles)
-% hObject    handle to variableselect (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns variableselect contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from variableselect
-
-ind = get(handles.variableselect,'Value');
-if ind > 1
-    % If the variable is not used, matrk as such
-    set(handles.usecmd,'Value',handles.fex.use(ind-1));
-end
-
-
-handles.output = hObject;
-guidata(hObject, handles);
-
-
-% --- Executes on button press in usecmd.
-function usecmd_Callback(hObject, eventdata, handles)
 %
-% Use/Not use a variable
+% VARIABLESELECT - select a subset of variables.
 
-ind = get(handles.variableselect,'Value');
-val = get(handles.usecmd,'Value');
-
-if ind > 1;
-   handles.fex(1).use(ind - 1) = val;
-else
-    warning('You need to select a variable.');
-end
-
-handles.output = hObject;
-guidata(hObject, handles);
-
-
-% +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-% VARIABLES RENAME
-
-
-% --- Executes during object creation, after setting all properties.
-function newname_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to newname (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-function newname_Callback(hObject, eventdata, handles)
-% hObject    handle to newname (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of newname as text
-%        str2double(get(hObject,'String')) returns contents of newname as a double
-
-
-ind = get(handles.variableselect,'Value');
-val  = get(handles.newname,'String');
-
-if ind > 1;
-   handles.fex(1).hdr{ind - 1} = val;
-else
-    warning('You need to select a variable.');
-end
-
-handles.output = hObject;
-guidata(hObject, handles);
-
-
-% +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-% VARIABLES TYPE DETERMINATION
-
-
-% --- Executes during object creation, after setting all properties.
-function variabletype_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to variabletype (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-% --- Executes on selection change in variabletype.
-function variabletype_Callback(hObject, eventdata, handles)
-% hObject    handle to variabletype (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns variabletype contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from variabletype
-
-
-ind = get(handles.variableselect,'Value');
-val = get(handles.variabletype,'Value');
-
-if ind > 1
-   switch val
-       case 1
-           warning('You need to indicate a variable type.');
-           return
-       case 2
-           handles.fex(1).type(ind-1) = val;
-           set(handles.rotselect,'Enable','on');
-       case {3,4,5,6,7}
-           handles.fex(1).type(ind-1) = val;
-       otherwise
-           warning('Returning without actions')
-           return
-   end
-else
-    warning('You need to select a variable.');
-end
-
-handles.output = hObject;
-guidata(hObject, handles);
-
-
-% +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-% OPERATIONS ON DV/IV
-
-% --- Executes during object creation, after setting all properties.
-function rotselect_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to rotselect (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-% --- Executes on selection change in rotselect.
-function rotselect_Callback(hObject, eventdata, handles)
-% hObject    handle to rotselect (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns rotselect contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from rotselect
-
-ind = get(handles.variableselect,'Value');
-val = get(handles.rotselect,'Value');
-
-% update value
-if val > 1
-    handles.fex.rot(ind-1) = val-1;
-end
-% activate stage selector if set to stage:
-
-if val == 5
-    set(handles.stagenumselect,'Enable','on');
-end
-
-handles.output = hObject;
-guidata(hObject, handles);
-
-
-% --- Executes during object creation, after setting all properties.
-function stagenumselect_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to stagenumselect (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-% --- Executes on selection change in stagenumselect.
-function stagenumselect_Callback(hObject, eventdata, handles)
-% hObject    handle to stagenumselect (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns stagenumselect contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from stagenumselect
-
-ind = get(handles.variableselect,'Value');
-val = get(handles.stagenumselect,'Value');
-
-% update value
-if val > 1
-    handles.fex.stage(ind-1) = val-1;
-end
-
-% Update all
-handles.output = hObject;
-guidata(hObject, handles);
-
-
-% -------------------------------------------------------
-% Update Variables
-% -------------------------------------------------------
-function submittvarbutton_Callback(hObject, eventdata, handles)
-%
-% SUBMITTVARBUTTON - Update variable view
-
-% Update table
-idx  = handles.fex.use;
-set(handles.table, 'Data', dat2tab(handles.fex.data(:,idx == 1)));
-set(handles.table, 'ColumnName',handles.fex.hdr(idx == 1));
-
-% Reser Variable Select, name and usage
-% set(handles.usecmd,'Value',1);
-set(handles.variableselect,'String',['Variable Name',handles.fex.hdr]);
-set(handles.variableselect,'Value',1);
-% set(handles.variabletype,'Value',1);
+% -------------------------------------------------
+% Clean name when changing variable
+% -------------------------------------------------
 set(handles.newname,'String','');
+ind  = get(handles.variableselect,'Value');
+if ind == 1
+   set(handles.newname,'BackgroundColor',[0,0,0]); 
+else
+   set(handles.newname,'BackgroundColor',[1,1,1]);
+end
 
-% Inactivate DV/IV box
-set(handles.rotselect,'Value',1);
-set(handles.rotselect,'Enable','off');
-set(handles.stagenumselect,'Value',1);
-set(handles.stagenumselect,'Enable','off');
-
+% -------------------------------------------------
 % Update all
-handles.output = hObject;
+% -------------------------------------------------
+handles.output = handles.fexd;
 guidata(hObject, handles);
 
 
-% --- Executes on button press in reset_button.
-function reset_button_Callback(hObject, eventdata, handles)
-% hObject    handle to reset_button (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% ************************************************************************
+% Renaming procedure
+% ************************************************************************
+function newname_Callback(hObject, eventdata, handles)
+%
+% NEWNAME - CHANGE NAME CALLBACK
+
+ind  = get(handles.variableselect,'Value');
+new_name = get(handles.newname,'String');
+
+if ind > 1;
+    old_name = handles.fexd.X.Properties.VarNames{ind-1};
+    handles.fexd.rename(old_name,new_name);
+    set(handles.table,'Data', dat2tab(handles.fexd.X));
+    set(handles.table,'ColumnName',handles.fexd.X.Properties.VarNames);
+    set(handles.variableselect,'String',['Rename Variable:',handles.fexd.X.Properties.VarNames]);
+    set(handles.timetagselect,'String', ['Time Variable:',handles.fexd.X.Properties.VarNames]);
+    set(handles.list_select_var,'String',handles.fexd.X.Properties.VarNames);
+    % Return to init position
+    set(handles.variableselect,'Value',1);
+    set(handles.newname,'BackgroundColor',[0,0,0]); 
+    set(handles.newname,'String','');
+    % Look for time when not set
+    if isempty(handles.fexd.timetag)
+        opt_name = {'time','timestamp','timestamps','timetag'};
+        ind = ismember(lower(handles.fexd.X.Properties.VarNames),opt_name);
+        if sum(ind) > 1
+            warning('Multiple possible "timetag" found.');
+            handles.fexd.timetag = handles.fexd.X.Properties.VarNames(ind == 1);
+        elseif sum(ind) == 1
+            handles.fexd.timetag = handles.fexd.X.Properties.VarNames{ind == 1};
+        end   
+        ind = find(strcmpi(handles.fexd.timetag,handles.fexd.X.Properties.VarNames));
+        set(handles.timetagselect,'Value',ind+1);
+    end    
+else
+    warning('You need to select a variable.');
+end
+
+% -------------------------------------------------
+% Update all
+% -------------------------------------------------
+handles.output = handles.fexd;
+guidata(hObject, handles);
 
 
-% --- Executes on button press in select_vars.
+% ************************************************************************
+% Select variables 
+% ************************************************************************
 function select_vars_Callback(hObject, eventdata, handles)
-% hObject    handle to select_vars (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% 
+% SELECT_VARS - Select variables to be used.
+
+% -------------------------------------------------
+% Activate Deactivate Select Variables
+% -------------------------------------------------
+if strcmp(get(handles.select_vars,'String'),'Select Variables')
+    set(handles.select_vars,'String','Hide');
+    set(handles.list_select_var,'Visible','on');
+    set(handles.table,'Position',[4,1.426,77.5,29.923]);
+else
+    set(handles.select_vars,'String','Select Variables');
+    set(handles.list_select_var,'Visible','off'); 
+    set(handles.table,'Position',[4,1.426,104.667,29.923]);
+end
+
+% -------------------------------------------------
+% Update all
+% -------------------------------------------------
+handles.output = handles.fexd;
+guidata(hObject, handles);
+
+% ************************************************************************
+% Select Timetag variable
+% ************************************************************************
+function timetagselect_Callback(hObject, eventdata, handles)
+% 
+% TIMETAGSELECT - Select variable with timing information
+
+ind  = get(handles.timetagselect,'Value');
+str  = get(handles.timetagselect,'String');
+if ind > 1
+    handles.fexd.timetag = str{ind};
+else
+    handles.fexd.timetag = '';
+end
+
+handles.output = handles.fexd;
+guidata(hObject, handles);
 
 
-% --- Executes on button press in select_time.
-function select_time_Callback(hObject, eventdata, handles)
-% hObject    handle to select_time (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+
+% ************************************************************************
+% Export FEXDESIGNC object
+% ************************************************************************
+function exportbutton_Callback(hObject, eventdata, handles)
+% 
+% EXPORTBUTTON - export FEXDESIGNC object.
+
+handles.output = handles.fexd;
+guidata(hObject, handles);
+figure1_CloseRequestFcn(handles.figure1,[],handles)
 
 
+% ************************************************************************
+% Cancel UI operation
+% ************************************************************************
+function cancelbutton_Callback(hObject, eventdata, handles)
+%
+% CANCELBUTTON - cancel UI operations.
 
-% -------------------------------------------------------
-% Helper Functions
-% -------------------------------------------------------
+handles.fexd = '';
+handles.output = handles.fexd;
+guidata(hObject, handles);
+figure1_CloseRequestFcn(handles.figure1,[],handles)
+
+
+% ************************************************************************
+% Helper functions
+% ************************************************************************
 function [C,H] = dat2tab(data)
 %
 % 
-% DAT2TAB - Convert dataset into table
+% DAT2TAB - Convert dataset into table for display.
 %
 %
 % NOTE: for some reason, 2014a does not have this function, despite
 % advertized.
 
-
 H  = data.Properties.VarNames;
 cl = datasetfun(@class,data,'UniformOutput',false); 
-I  = min(size(data,1),10);
+I  = min(size(data,1),50);
 
 if sum(strcmp('double',cl)) == size(data,2)
     C = double(data(1:I,:));
@@ -505,52 +439,68 @@ else
     end
 end
 
-% -------------------------------------------------------
-function data = importasdataset(name)
-%
-% IMPORTDATASET - Helper function for importing design matrix
 
-if isa(name,'dataset')
-    data = name;
-elseif ~exist(name,'file');
-    error('File provided does not exists.')
-else
-    [~,~,e] = fileparts(name);
-    switch e
-        case '.mat'
-            temp   = importdata(name);
-            if isa(temp,'struct')
-                data = str2dataset(temp);
-            elseif isa(temp,'double')
-                data = mat2dataset(temp);
-            elseif isa(temp,'dataset')
-                data = temp;
-            else
-                error('Couldn''t import the dataset.');
-            end
-                
-            %fnames = fieldnames(temp);  
-        case '.txt'
-            data = dataset('File',name,'Delimiter','\t');
-        case '.csv'
-            data = dataset('File',name,'Delimiter',',');
-        case {'.xlsx','.xls'}
-            data = dataset('XLSFile',fname);
-        otherwise
-            warning('File %s not recognized.', fname);
-            return
-    end
+% --- Executes on selection change in variableslistbox.
+function variableslistbox_Callback(hObject, eventdata, handles)
+% hObject    handle to variableslistbox (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns variableslistbox contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from variableslistbox
+
+
+% --- Executes on selection change in list_select_var.
+function list_select_var_Callback(hObject, eventdata, handles)
+% hObject    handle to list_select_var (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns list_select_var contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from list_select_var
+
+
+% --- Executes on key press with focus on list_select_var and none of its controls.
+function list_select_var_KeyPressFcn(hObject, eventdata, handles)
+%
+% LIST_SELECT_VAR_KEYPRESSFCN - Exclude variables.
+
+str = get(handles.list_select_var,'String');
+ind = get(handles.list_select_var,'Value');
+
+if strcmp(eventdata.Key,'backspace')
+% ------------------------------------------------
+% Do not allow to delete time
+% ------------------------------------------------ 
+if strcmpi(handles.fexd.timetag,str{ind})
+   warning('Can''t delete time variable.');
+   return
+end
+% ------------------------------------------------
+% SELECT & UPDATE all
+% ------------------------------------------------ 
+handles.fexd.select(str{ind},0);
+set(handles.table,'Data', dat2tab(handles.fexd.X));
+set(handles.table,'ColumnName',handles.fexd.X.Properties.VarNames);
+set(handles.variableselect,'String',['Rename Variable:',handles.fexd.X.Properties.VarNames]);
+set(handles.timetagselect,'String', ['Time Variable:',handles.fexd.X.Properties.VarNames]);
+
+% ------------------------------------------------
+% Adjust TimeTag Variable
+% ------------------------------------------------ 
+if ~isempty(handles.fexd.timetag)
+    indt = find(strcmpi(handles.fexd.timetag,handles.fexd.X.Properties.VarNames));
+    set(handles.timetagselect,'Value',indt+1);
+end
+% ------------------------------------------------
+% Update List of variables
+% ------------------------------------------------
+set(handles.list_select_var,'String',handles.fexd.X.Properties.VarNames);
+set(handles.list_select_var,'Value',min(ind,length(str)));
 end
 
-% -------------------------------------------------------
-function fex = initializefex(data)
-%
-% INITIALIZEFEX - Helper function for design handle
-
-fex = struct('importcmd','','data',[],'ndata',[],'type',[],'rot',[],'use',[],'hdr',{});
-fex(1).data = data;                         % imported dataset
-fex(1).ndata = data;                        % modified dataset
-fex(1).type = 2*ones(1,size(data,2));       % set everything to IV/DV
-fex(1).use  = ones(1,size(data,2));         % set everything to 'use'
-fex(1).rot  = nan(1,size(data,2));          % No rate of change provided
-fex(1).hdr  = data.Properties.VarNames;     % use existing VarNames
+% ------------------------------------------------
+% UPDATE
+% ------------------------------------------------ 
+handles.output = handles.fexd;
+guidata(hObject, handles);
