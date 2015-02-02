@@ -78,6 +78,8 @@ Jan 25 - Jan 31
 Feb 1 - Feb 7
 ---------------
 
+| Scope  | Type   | **fexc** method     | Description             | Status | Num  | Date   | 
+| ------ | ------ | ------------------- | ----------------------- | ------ | ---- | ------ |
 | [SRC]  | [NEW]  | [FEXDESIGNC]  | Helper design class         |  [P]   | 1    | 2-Feb |
 | [SRC]  | [UP]   | [FEXDESIGNC]  | UI wrapper for design class |  [P]   | 1    | 2-Feb |
 | [SRC]  | [UP]   | [.SUMMARY]    | Add sentiments to summary   |  [D]   | 1    | 2-Feb |
