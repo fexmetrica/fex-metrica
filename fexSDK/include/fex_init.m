@@ -23,7 +23,9 @@ else
     for j = {'external','include','samples','shared','src','test'};
         addpath(genpath([FEXMETROOT,'/',j{1}]))
     end
-    fprintf('\n\nWelcome to Fex-Metrica (v1.0.1) ...\n\n');
+    clc
+    disp(' ');
+    disp('  *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*');
     disp(' ');
     disp(' ');
     disp('  ...............     ...............     ......           ......   ');
@@ -43,6 +45,10 @@ else
     disp('  .....               ................    ......           ......    ');
     disp('  .....               ...............    ......             ......   ');
     disp(' ');
+    disp(' ');
+    disp('  *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*');
+    fprintf('\n\nWelcome to Fex-Metrica (v1.0.1) ...\n\n');
+
 end
 
 % Add .bashrc search to enviroment

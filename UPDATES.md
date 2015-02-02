@@ -73,14 +73,23 @@ Jan 25 - Jan 31
 | [SRC]  | [UP]   | [.DESIGN]           | Design UI               |  [P]   | 1    | 29-Jan |  
 | [SRC]  | [UP]   | [FEX_FACETPROC.m]   | min size for facet cmd  |  [P]   | 1    | 29-Jan |  
 | [DOC]  | [UP]   | [FEXEMPLE_SERVER]   | Add example of server   |  [P]   | 1    | 30-Jan |
+| [SRC]  | [NEW]  | [FEX_VIDEOCROP]     | Cropping video util     |  [P]   | 1    | 30-Jan |
+
+Feb 1 - Feb 7
+---------------
+
+| [SRC]  | [NEW]  | [FEXDESIGNC]  | Helper design class         |  [P]   | 1    | 2-Feb |
+| [SRC]  | [UP]   | [FEXDESIGNC]  | UI wrapper for design class |  [P]   | 1    | 2-Feb |
+| [SRC]  | [UP]   | [.SUMMARY]    | Add sentiments to summary   |  [D]   | 1    | 2-Feb |
 
 
-List of planned updates for this period:
+List of planned updates
+================
 
 * ~~Add summary method~~;            [SRC][NEW][.FEXC]
-* Summary Sentiments percentage;     [SRC][UP][.FEXC]
-* Video cropping ui -- util.         [SRC][NEW][UTIL]
-* Update .gitignore.                 [GLOB][UP]
+* ~~Summary Sentiments percentage~~; [SRC][UP][.FEXC]
+* ~~Video cropping util~~;           [SRC][NEW][UTIL]
+* Update .gitignore;                 [GLOB][UP]
 * Design and get matrix;             [SRC][UP][.DESIGN,.GETMATRIX]
 * Statistical methods<sup>1,2</sup>; [SRC][NEW][?]
 * Fit a response & plot;             [SRC][NEW][?]
@@ -91,14 +100,12 @@ List of planned updates for this period:
 * Add selct file overlay viewer;     [VIEW][UP][.VIEWER]
 * NO overlay movie (??);             [VIEW][BUG][.VIEWER]
 
-This is a broad update, which I need to brake down:
-
-* Add preproc from the viewer.      [SRC,VIEW][NEW][.VIEWER]
-
 <sup>1</sup>Rregression, classification, sparse solution and cross validation.
 <sup>2</sup>Decide for the stats output.
 
+The next one is a broad update, which needs to be broken down into sub-task:
 
-Feb 1 - Feb 7
----------------
+* Add preproc from the viewer.      [SRC,VIEW][NEW][.VIEWER]
+
+
 

@@ -356,15 +356,18 @@ tabinfo.Id       = [];
 tabinfo.Name     = self.get('names');
 tabinfo.Gender   = self.get('gender');
 tabinfo.Duration = [];
-tabinfo.PercentNullObs  = [];
+tabinfo.NullObs  = [];
+tabinfo.Positive = [];
+tabinfo.Negative = [];
 
 for k = 1:length(self)
     tabinfo.Id = cat(1,tabinfo.Id,k);
     tabinfo.Duration = cat(1,tabinfo.Duration,self(k).time.TimeStamps(end));
     fp = sum(isnan(sum(self(k).get('emotions','double'),2)));
     fp = round(100*fp./size(self(k).functional,1));
-    % fp = fp/size(self(k).functional,1);
-    tabinfo.PercentNullObs = cat(1,tabinfo.PercentNullObs,fp);
+    tabinfo.NullObs = cat(1,tabinfo.NullObs,fp);
+    tabinfo.Positive = cat(1,tabinfo.Positive,mean(self(k).sentiments.Winner == 1));
+    tabinfo.Negative = cat(1,tabinfo.Negative,mean(self(k).sentiments.Winner == 2));
 end
 tabinfo.Duration = char(fex_strtime(tabinfo.Duration,'short'));
 
