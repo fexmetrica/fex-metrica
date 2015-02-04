@@ -45,7 +45,6 @@ Jan 18 - Jan 24
 | [DOC]  | [NEW]  | []                  | Add UPDATE.md file      |   [D]  | 1    | 18-Jan |
 | [DOC]  | [UP]   | []                  | Add documentation       |   [D]  | 1    | 21-Jan |
 | [VIEW] | [UP]   | [.VIEWER]           | Make stackable          |   [P]  | 2    | 18-Jan |
-| [VIEW] | [UP]   | [.VIEWER]           | Add analytics tools     |   [W]  |      |        |
 | [VIEW] | [UP]   | [.SHOW]             | Make interactive        |   [P]  | 1    | 19-Jan |
 | [SRC]  | [UP]   | [.FEXC]             | Add varargin construct  |   [P]  | 1    | 21-Jan |
 | [SRC]  | [BUG]  | [.FEXC]             | time for constructor    |   [P]  | 2    | 19-Jan |
@@ -54,9 +53,6 @@ Jan 18 - Jan 24
 | [SRC]  | [UP]   | [.FEXC]             | design importer         |   [P]  | 1    | 22-Jan |
 | [SRC]  | [BUG]  | [.FEXPORT]          | export to cvs option    |   [W]  | 1    | 18-Jan |
 | [SRC]  | [BUG]  | [.DESCRIPTIVES]     | bug in derive stats     |   [P]  | 2    | 20-Jan |
-| [SRC]  | [UP]   | [.GETMATRIX]        | matrix for regression   |   [W]  |      |        |
-| [SRC]  | [UP]   | [.DERIVESENTIMENTS] | asym 3-pram version     |   [W]  |      |        |
-| [OS]   | [UP]   | [FEX_FACERPROC]     | upgrade cpp for Linux   |   [W]  |      |        |
 | [OS]   | [UP]   | []                  | .bashrc related issue   |   [P]  | 1    | 18-Jan |
 | [OS]   | [BUG]  | [FEXW_SEARCHG]      | "find" issue on Windows |   [P]  | 1    | 18-Jan |
 
@@ -80,21 +76,72 @@ Feb 1 - Feb 7
 
 | Scope  | Type   | **fexc** method     | Description             | Status | Num  | Date   | 
 | ------ | ------ | ------------------- | ----------------------- | ------ | ---- | ------ |
-| [SRC]  | [NEW]  | [FEXDESIGNC]  | Helper design class         |  [P]   | 1    | 2-Feb |
-| [SRC]  | [UP]   | [FEXDESIGNC]  | UI wrapper for design class |  [P]   | 1    | 2-Feb |
-| [SRC]  | [UP]   | [.SUMMARY]    | Add sentiments to summary   |  [D]   | 1    | 2-Feb |
+| [SRC]  | [NEW]  | [FEXDESIGNC]        | Helper design class     |  [P]   | 1    | 2-Feb  |
+| [SRC]  | [UP]   | [FEXDESIGNC]        | UI wrapper for design   |  [P]   | 1    | 2-Feb  |
+| [SRC]  | [UP]   | [.SUMMARY]          | Sentiments for summary  |  [D]   | 1    | 2-Feb  |
+| [SRC]  | [UP]   | [.FEXC]             | Wrap FEXCDESIGNC        |  [P]   | 1    | 4-Feb  |
+| [DOC]  | [UP]   |                     | Add FEXC TODO list      |  [D]   | 1    | 4-Feb  |
+
+
+List of issues with **FEXC** object
+================
+
+| Method                   | Description                     | isDone? |
+| ------------------------ | ------------------------------- | ------- |
+| .FEXC                    | Update documentation            |    0    |
+| .UPDATE                  | Update documentation            |    0    |
+|                          | Add multiple args               |    0    |
+|                          | .DESIGN & .DESIGNINIT           |    0    |
+| .REINITIALIZE            | Use defaults                    |    0    |
+|                          | FEXDESIGNC.RESET                |    0    |
+| .GETVIDEOINFO            | Getter property                 |    0    |
+|                          | VideoReader warning             |    0    |
+| .VIDEOUTIL<sup>1</sup>   | Make Linux compatible           |    0    |
+|                          | Add modification for structural |    0    |
+| .FEXPORT                 | Clean code                      |    0    |
+|                          | Remove method "data1"           |    0    |
+| .DERIVESENTIMENTS        | Make Sentiments a getter func   |    0    |
+|                          | Set .thrsemo as structure       |    0    |
+|                          | Add two thresold method         |    0    |
+|                          | Backup non thresholded emotions |    0    |
+| .DOWNSAMPLE              | Fix structural & video          |    0    |
+|                          | Gaussian kernel option          |    0    |
+| .SETBASELINE             | Make a private property         |    0    |
+| .DESCRIPTIVES            | Clean method                    |    0    |
+| .MOTIONCORRECT           | Matrix size with structural     |    0    |
+|                          | Add translation parameters      |    0    |
+| .INTERPOLATE             | Clean Method                    |    0    |
+|                          | Matrix size with structural     |    0    |
+|                          | Update design & designinit      |    0    |
+| .GETMATRIX               | Implement as MATRIX             |    0    |
+| .GETBAND                 | Implement                       |    0    |
+| .NORMALIZE               | Update documentation            |    0    |
+| .VIEWER<sup>2</sup>      | Single vieweer method           |    0    |
+| .SHOW                    | Make interactive                |    0    |
+|                          | Add sentiments parameters       |    0    |
+| .INIT                    | Add INIT to fex_defaults        |    0    |
+| .CHECKARGS               | Fix DESIGN & DESIGNINIT         |    0    |
+| .FEXEXPORT2VIEWER        | Remove                          |    0    |
+| .SHOWANNOTATION          | Make stakable in GET            |    0    |
+| ------------------------ | ------------------------------- | ------- |
+
+
+<sup>**1**</sup> This may be implemented as a class instead.
+<sup>**2**</sup> Viewer has more specific updates needed.
 
 
 List of planned updates
 ================
 
+* Add a default file for FEXC        [SRC][NEW][.FEXC]
 * ~~Add summary method~~;            [SRC][NEW][.FEXC]
 * ~~Summary Sentiments percentage~~; [SRC][UP][.FEXC]
 * ~~Video cropping util~~;           [SRC][NEW][UTIL]
-* Update .gitignore;                 [GLOB][UP]
-* Design and get matrix;             [SRC][UP][.DESIGN,.GETMATRIX]
-* Statistical methods<sup>1,2</sup>; [SRC][NEW][?]
-* Fit a response & plot;             [SRC][NEW][?]
+* Update .gitignore;                 [GLOB][UP][]
+* Design import and edit;            [SRC][UP][.DESIGN] 
+* GETMATRIX method;                  [SRC][UP][.GETMATRIX]
+* Statistical methods<sup>1,2</sup>; [SRC][NEW][]
+* Fit a response & plot;             [SRC][NEW][]
 * Add catch path in importer;        [SRC][UP][.FEXC]
 * ~~Add demographic info~~.          [SRC][NEW][.FEXC]
 * Bug with fexc viewer overlay;      [VIEW][UP][.VIEWER]
