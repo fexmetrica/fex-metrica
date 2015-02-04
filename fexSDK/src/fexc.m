@@ -68,21 +68,8 @@ classdef fexc < handle
 % Copyright (c) - 2014-2015 Filippo Rossi, Institute for Neural Computation,
 % University of California, San Diego. email: frossi@ucsd.edu
 %
-% VERSION: 1.0.1 10-Jan-2015.
-%
-% COMMENTS:
-%
-% Fixme: constructor - new constructor method;
-% Fixme: getband method;
-% Fixme: getmatrix;
-% Fixme: 3 parameters derive sentiments methods;
-% Fixme: internal copy of structural or indices for matching;
-% Fixme: smoothing, temporalfilt, and interpolate nans handling;
-% Fixme: descriptives bug;
-% Fixme: summary printout;
-% Fixme: verbose argument;
-% Fixme: time.TimeStamp(0) should be 0;
-% Fixme: show should be intereactive.
+% VERSION: 1.0.1 4-Feb-2015.
+
     
 properties
     % NAME: a string containing a descriptive name for the video, e.g.
@@ -213,6 +200,11 @@ properties (Access = protected)
     %
     % See also GET.
     demographics
+    % DESIGNINIT: Internal FEXDESIGNC object used for handling design
+    % transformation and import.
+    %
+    % See also FEXDESIGNC.
+    designinit
 end
 
 
@@ -285,10 +277,8 @@ elseif strcmpi(varargin{1},'ui')
         return
     else
     he = waitbar(0,sprintf('FEXC: 1 / %d',length(h.files)));
-    % self = fex_imputil('Json',h.files{1},h.movies{1});
     self = h.export(1);
     for k = 2:length(h.files)
-        % self = cat(1,self,fex_imputil('Json',h.files{k},h.movies{k}));
         self = cat(1,self,h.export(k));
         waitbar(k/length(h.files),he,sprintf('FEXC: %d / %d',k,length(h.files)));
     end
@@ -320,7 +310,6 @@ else
 % --------------------------------------------------------------
 % Cell argument with data provided
 % --------------------------------------------------------------
-% try
     h = fexgenc(varargin);
     he = waitbar(0,sprintf('FEXC: 1 / %d',length(h.files)));
     self = h.export(1);
@@ -332,15 +321,13 @@ else
     self.update('name',h.name);
     self.update('outdir',h.targetdir);
     return
-% catch
-%     error('Wrong arguments provided. Try using "ui."');
-% end
 end
 
 end
 
-% CLASS UTILITIES**********************************************************
-% ---------------**********************************************************          
+% ================================================================
+% CLASS UTILITIES
+% ================================================================
 
 function summary(self)
 %
@@ -406,6 +393,7 @@ newself(k).descrstats  = self(k).descrstats;
 newself(k).annotations = self(k).annotations;
 newself(k).coregparam  = self(k).coregparam;
 newself(k).naninfo     = self(k).naninfo;
+newself(k).designinit  = self(k).designinit;
 
 end
 
@@ -445,6 +433,7 @@ for k = 1:length(self)
     self(k).coregparam  = self(k).history.prev.coregparam;
     self(k).descrstats  = self(k).history.prev.descrstats;
     self(k).naninfo     = self(k).history.prev.naninfo;
+    self(k).designinit  = self(k).history.prev.designinit;
     % Allow REDO - Now Prev is set to the FEXC object after the operation
     % that was just undone.
     self(k).history.prev = h;
@@ -454,7 +443,6 @@ for k = 1:length(self)
 end
 
 end
-
 
 % *************************************************************************
 
@@ -521,7 +509,10 @@ switch lower(arg)
             end
         end
     case 'design'
-        self.fixdesign();
+        fprintf('TODO.\n')
+        % Fixme: call update design with ui -- select data and specify
+        % operations. Alteratively, specify action: include/exclude,
+        % spec_time, reallign.
 %         if isa(val,'char')
 %             val = cellstr(val);
 %             for k = 1:length(self)
@@ -562,7 +553,8 @@ function self = nanset(self,rule)
 % NANSET Reintroduces null observation in FEXC.functional using
 % information from self.naninfo. This is used in case all nans where
 % interpolated out for preprocessing. RULE is a scalar the number of
-% consecutie NaN which will be considered reset to NaN.
+% consecutie NaN which will be considered reset to NaN. Default for RULE is
+% 15 frames.
 % 
 % See also INTERPOLATE, DOWNSAMPLE.
 
@@ -630,6 +622,7 @@ for k = 1:length(self)
     self(k).coregparam  = [];
     % Fixme: not properly implemented.
     self(k).naninfo     = [];
+    % Fixme: designinit and design
 end
 
 end
@@ -978,6 +971,7 @@ if ~exist('type','var')
     type = 'all';
 end
 
+% Fixme: use dictionary instead.
 c = dataset('File','fexchannels.txt');
 switch lower(type)
     case {'primary','p','pe'}
@@ -1343,6 +1337,8 @@ for k = 1:length(self)
         % ARGUMENT.
         kk1 = normpdf(linspace(-2,2,nfps),0,.5)';
         kk1 = kk1./sum(kk1);
+        % Fixme: gaussian should be optional -- also implement with singel
+        % convolution step.
         U = convn(convn(double(self(k).functional),kk1,'same'),kk2,'same');
         self(k).update('functional',U);
         % self(k).update('functional',convn(double(self(k).functional),kk2,'same'));
@@ -1961,6 +1957,7 @@ if NofNans < 0.90
     end
     % Update design if it exists
     if ~isempty(self(k).design)
+        % Fixme: add designinit
         self(k).design = self(k).design(nfr,:);
     end
     % Update diagnostocs if present
@@ -2823,7 +2820,7 @@ arg_init = struct('name','','video','','videoInfo',[],...
        'structural',dataset([],'VarNames',{'FrameRows'}),...
        'sentiments',dataset([],[],[],[],'VarNames',{'Winner','Positive','Negative','Combined'}),...
        'time',dataset([],[],[],'VarNames',{'FrameNumber','TimeStamps','StrTime'}),...
-       'design',[],'outdir','','history',[],'tempkernel',[],...
+       'design',[],'designinit',[],'outdir','','history',[],'tempkernel',[],...
        'thrsemo',0,'descrstats',[],'annotations',[],'coregparam',[],...
        'naninfo',dataset([],[],[],'VarNames',{'count','tag','falsepositive'}),...
        'diagnostics',dataset([],'VarNames',{'track_id'}),'baseline',[],'verbose',true,...
@@ -2938,6 +2935,7 @@ end
 % --------------------------------------
 % Design
 % --------------------------------------
+% Fixme use designinit
 self.design = args.design;
 if size(self.design,1) ~= size(self.functional,1) && ~isempty(self.design)
     warning('The design matrix and data have different sizes.');
@@ -2968,6 +2966,7 @@ function self = export2viewer(self,filename)
 
 
 % Get the helper dictionrary
+% Fixme: use headers files (REMOVE?)
 dict = dataset('XLSFile','eviewerhdrs.xlsx');
 
 % Add action units (set the correct order)

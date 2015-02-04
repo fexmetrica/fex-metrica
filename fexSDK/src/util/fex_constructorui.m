@@ -229,5 +229,3 @@ switch name
         str = sprintf('\nSelect Design files by pressing the buttoon "Select".');
 end
 set(handles.helpbox,'String',str);
-
-
