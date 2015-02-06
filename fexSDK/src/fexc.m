@@ -121,12 +121,10 @@ properties
     %
     % See also FEX_STRTIME.
     time
-    % DESIGN: Dataset with design information. Design must have the same
-    % number of rows as FUNCTIONAL. If entered with FEXC constructor, and
-    % the dimensions are consistent, the size of DESIGN will be updated by
-    % methods that change FUNCTIONAL numebr of rows.
+    % DESIGN: Dataset with design information. NOTE: DESIGN property is
+    % only partially implemented.
     %
-    % NOTE: DESIGN property is only partially implemented.
+    % See also DESIGNINIT.
     design
 end
     
@@ -2935,8 +2933,10 @@ end
 % --------------------------------------
 % Design
 % --------------------------------------
-% Fixme use designinit
-self.design = args.design;
+self.designinit = args.design;
+if isa(self.designinit,'fexdesignc')
+    self.design = self.designinit.X;
+end
 if size(self.design,1) ~= size(self.functional,1) && ~isempty(self.design)
     warning('The design matrix and data have different sizes.');
 end

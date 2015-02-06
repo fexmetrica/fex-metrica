@@ -1,12 +1,7 @@
 Development Notes
 ===============
 
-This files contains a list of scheduled updates planed on a wakly basis.
-
-Tags Description
-===============
-
-Each commitment is preceeded by a set of tags, which are described below:
+This files contains a list of scheduled updates and a log of the update committed. Each commitment is preceeded by a set of tags, which are described below:
 
 **SCOPE**: name of the **fex-metrica** module, to which commitment applies. Options include:
 
@@ -31,10 +26,8 @@ Each commitment is preceeded by a set of tags, which are described below:
 * [D] -- [D]one: submission was completed.
 
 
-Update Tags
+Updates Log
 ===============
-
-Updates are scheduled on a weekly basis. 
 
 
 Jan 18 - Jan 24
@@ -74,13 +67,16 @@ Jan 25 - Jan 31
 Feb 1 - Feb 7
 ---------------
 
-| Scope  | Type   | **fexc** method     | Description             | Status | Num  | Date   | 
-| ------ | ------ | ------------------- | ----------------------- | ------ | ---- | ------ |
-| [SRC]  | [NEW]  | [FEXDESIGNC]        | Helper design class     |  [P]   | 1    | 2-Feb  |
-| [SRC]  | [UP]   | [FEXDESIGNC]        | UI wrapper for design   |  [P]   | 1    | 2-Feb  |
-| [SRC]  | [UP]   | [.SUMMARY]          | Sentiments for summary  |  [D]   | 1    | 2-Feb  |
-| [SRC]  | [UP]   | [.FEXC]             | Wrap FEXCDESIGNC        |  [P]   | 1    | 4-Feb  |
-| [DOC]  | [UP]   |                     | Add FEXC TODO list      |  [D]   | 1    | 4-Feb  |
+| Scope  | Type   | **fexc** method     | Description               | Status | Num  | Date   | 
+| ------ | ------ | ------------------- | ------------------------- | ------ | ---- | ------ |
+| [SRC]  | [NEW]  | [FEXDESIGNC]        | Helper design class       |  [P]   | 1    | 2-Feb  |
+| [SRC]  | [UP]   | [FEXDESIGNC]        | UI wrapper for design     |  [P]   | 1    | 2-Feb  |
+| [SRC]  | [UP]   | [.SUMMARY]          | Sentiments for summary    |  [D]   | 1    | 2-Feb  |
+| [SRC]  | [UP]   | [.FEXC]             | Wrap FEXCDESIGNC          |  [P]   | 2    | 6-Feb  |
+| [DOC]  | [UP]   |                     | Add FEXC TODO list        |  [D]   | 1    | 4-Feb  |
+| [SRC]  | [BUG]  | [FEXDESIGNC]        | .RENAME,.INCLUDE,.CONVERT |  [D]   | 1    | 6-Feb  |
+| [SRC]  | [UP]   | [FEXIMPORTDG]       | Update UI wrap FEXDESIGNC |  [D]   | 1    | 6-Feb  |
+| [SRC]  | [UP]   | [FEXGENC]           | Use FEXDESIGNC            |  [D]   | 1    | 6-Feb  |
 
 
 List of issues with **FEXC** object
@@ -120,10 +116,9 @@ List of issues with **FEXC** object
 | .SHOW                    | Make interactive                |    0    |
 |                          | Add sentiments parameters       |    0    |
 | .INIT                    | Add INIT to fex_defaults        |    0    |
-| .CHECKARGS               | Fix DESIGN & DESIGNINIT         |    0    |
+| .CHECKARGS               | Fix DESIGN & DESIGNINIT         |    P    |
 | .FEXEXPORT2VIEWER        | Remove                          |    0    |
 | .SHOWANNOTATION          | Make stakable in GET            |    0    |
-| ------------------------ | ------------------------------- | ------- |
 
 
 <sup>**1**</sup> This may be implemented as a class instead.
@@ -133,28 +128,25 @@ List of issues with **FEXC** object
 List of planned updates
 ================
 
-* Add a default file for FEXC        [SRC][NEW][.FEXC]
-* ~~Add summary method~~;            [SRC][NEW][.FEXC]
-* ~~Summary Sentiments percentage~~; [SRC][UP][.FEXC]
-* ~~Video cropping util~~;           [SRC][NEW][UTIL]
-* Update .gitignore;                 [GLOB][UP][]
-* Design import and edit;            [SRC][UP][.DESIGN] 
-* GETMATRIX method;                  [SRC][UP][.GETMATRIX]
-* Statistical methods<sup>1,2</sup>; [SRC][NEW][]
-* Fit a response & plot;             [SRC][NEW][]
-* Add catch path in importer;        [SRC][UP][.FEXC]
-* ~~Add demographic info~~.          [SRC][NEW][.FEXC]
-* Bug with fexc viewer overlay;      [VIEW][UP][.VIEWER]
-* Add saving files part;             [VIEW][BUG][.VIEWER]
-* Add selct file overlay viewer;     [VIEW][UP][.VIEWER]
-* NO overlay movie (??);             [VIEW][BUG][.VIEWER]
+* Add a default file for FEXC ............ [SRC][NEW][.FEXC]
+* ~~Add summary method~~ ................. [SRC][NEW][.FEXC]
+* ~~Summary Sentiments percentage~~ ...... [SRC][UP][.FEXC]
+* ~~Video cropping util~~ ................ [SRC][NEW][UTIL]
+* Update .gitignore ...................... [GLOB][UP][]
+* Design import and edit ................. [SRC][UP][.DESIGN] 
+* GETMATRIX method ....................... [SRC][UP][.GETMATRIX]
+* Statistical methods<sup>1,2</sup> ...... [SRC][NEW][]
+* Fit a response & plot .................. [SRC][NEW][]
+* Add catch path in importer ............. [SRC][UP][.FEXC]
+* ~~Add demographic info~~ ............... [SRC][NEW][.FEXC]
+* Bug with fexc viewer overlay ........... [VIEW][UP][.VIEWER]
+* Add saving files part .................. [VIEW][BUG][.VIEWER]
+* Add selct file overlay viewer .......... [VIEW][UP][.VIEWER]
+* NO overlay movie (??) .................. [VIEW][BUG][.VIEWER]
+* Add preproc from the viewer ............ [SRC,VIEW][NEW][.VIEWER]
 
 <sup>1</sup>Rregression, classification, sparse solution and cross validation.
 <sup>2</sup>Decide for the stats output.
-
-The next one is a broad update, which needs to be broken down into sub-task:
-
-* Add preproc from the viewer.      [SRC,VIEW][NEW][.VIEWER]
 
 
 
