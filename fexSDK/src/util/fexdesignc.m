@@ -13,24 +13,25 @@ classdef fexdesignc < handle
 %
 % Properties for FEXDESIGNC:
 % 
-% X - 
-% TIMETAG - 
-% INCLUDE - 
+% X - Current matrix.
+% TIMETAG - Name of the time-tag variable.
+% INCLUDE - Indices of variables to include w.r.t. original data.
 %
 % Methods for FEXDESIGNC:
 %
-% FEXDESIGNC - 
-% RESET - 
-% RENAME - 
-% SELECT - 
+% FEXDESIGNC - Constructor metod for FEXDESIGNC.
+% RESET - Reinitialize FEXDESIGNC.
+% RENAME - Change variables names.
+% SELECT - Select variables to be used.
+% CONVERT - Converts a file using the transformations applied to SELF.
 %
 %
 % Copyright (c) - 2014 - 2015 Filippo Rossi, Institute for Neural Computation,
 % University of California, San Diego. email: frossi@ucsd.edu
 %
 % VERSION: 1.0.1 1-Feb-2015.
-
-
+%
+% Fixme: Add safe check which won't allow to exclude Time.
 
 properties
     % X: a dataset with the design. The name of the variables are specified
@@ -61,6 +62,11 @@ properties (Access = protected)
     %
     % See also FEXC.TIME.
     fextime
+    % DICT: object of containers.Map class which converts current names
+    % from self.X in indices for self.INIT.
+    %
+    % See also RENAME, SELECT, INCLUDE.
+    dict
 end
 
 
@@ -78,11 +84,26 @@ function self = fexdesignc(design,varargin)
 % self = FEXDESIGNC(design);
 % self = FEXDESIGNC(design,'ArgName1',ArgVal1, ... );
 %
-% [...]
+% FEXDESIGNC is a helper class for handling a matrix with design
+% information associated with a FEXC object. The only required argument is
+% DESIGN.
 %
-% design matrix/dataset or path
-% 'timetag'
-% 'include'
+% Arguments:
+%
+% DESIGN: This can be the path to file (in which case it will be imported),
+% a matrix, or a dataset.
+%
+% TIMETAG: A string with the name of the variable with timing information.
+% If this variable is not provided, FEXDESIGNC looks for possible
+% candidaes, such as variables labeled "time", "timestamps" etc. If one of
+% these variables names if fund, it will be used as timetag. Otherwise,
+% this property is left empty. TIMETAG is required when alligning the
+% design matrix with the facial expressions timeseries.
+%
+% INCLUDE: a list of indices, indicating which variables to include, with
+% respect to the origianl dataset imported.
+% 
+% See also FEXIMPORTDG, FEXC. 
 
 
 % ----------------------------------------------
@@ -108,17 +129,22 @@ for i = 1:2:length(varargin)
 end
 
 % ----------------------------------------------
+%  Add dictionary
+% ----------------------------------------------
+VarNames  = self.X.Properties.VarNames;
+self.dict = containers.Map(lower(VarNames),1:length(VarNames));
+
+% ----------------------------------------------
+%  Apply / Convert include
+% ----------------------------------------------
+if ~isempty(self.include)
+    self.select(self.include);
+end
+% ----------------------------------------------
 %  Look for timetag variable
 % ----------------------------------------------
 if isempty(self.timetag)
-    opt_name = {'time','timestamp','timestamps','timetag'};
-    ind = ismember(lower(self.X.Properties.VarNames),opt_name);
-    if sum(ind) > 1
-        warning('Multiple possible "timetag" found.');
-        self.timetag = self.X.Properties.VarNames(ind == 1);
-    elseif sum(ind) == 1
-        self.timetag = self.X.Properties.VarNames{ind == 1};
-    end
+    self.seaktime();
 end
 
 end
@@ -139,7 +165,12 @@ function self = reset(self)
 % See also IMPORTDATASET.
 
 self.X = self.init;
+VarNames  = self.X.Properties.VarNames;
+self.dict = containers.Map(lower(VarNames),1:length(VarNames));
+self.seaktime();
+self.include = [];
    
+
 end
 
 % ------------------------------------------------------
@@ -155,6 +186,8 @@ function self = rename(self,varargin)
 % 'OldName' is a string with a variable name in X, and 'NewName' is the new
 % variable name that will be used. If the "timetag" variable name is
 % changed, the property TIMETAG is automatically updated.
+%
+% See also DICT.
 
 
 % -----------------------------------------------------
@@ -167,14 +200,19 @@ elseif mod(length(varargin),2) ~=0
     error('Mismatch between old and new names');
 end
 % -----------------------------------------------------
-% Change name operation
+% Change name operation / Update internal dictionary
 % -----------------------------------------------------
+keys1 = self.dict.keys;
+vals1 = self.dict.values;
 map = containers.Map(lower(varargin(1:2:end)),varargin(2:2:end));
 for i = 1:length(self.X.Properties.VarNames)
     if isKey(map,lower(self.X.Properties.VarNames{i}))
+        [~,ind] = ismember(lower(self.X.Properties.VarNames{i}),keys1);
+        keys1{ind} = lower(map(lower(self.X.Properties.VarNames{i})));
         self.X.Properties.VarNames{i} = map(lower(self.X.Properties.VarNames{i}));
     end
 end
+self.dict = containers.Map(keys1,vals1);
 % -----------------------------------------------------
 % Check whether the timetag variable name was changed 
 % -----------------------------------------------------
@@ -207,6 +245,10 @@ function self = select(self,idx,flag)
 % FLAG - A scalar set to either 0 or 1. When set to 0, the variables
 % selected by IDX are excluded. When set to 1, they are included. Default
 % is 1 (i.e. variable are included).
+%
+% NOTE: the argument IDX applies to the current version of the design,
+% namely the property X. However, the property INCLUDE applies to the
+% original design matrix imported.
 
 
 % -------------------------------------
@@ -219,8 +261,6 @@ elseif isa(idx,'cell') || isa(idx,'char')
     inds = ismember(lower(self.X.Properties.VarNames),lower(idx));
     if sum(inds) == 0  
         error('No variable recognized.');
-    % elseif sum(inds) ~= length(idx)
-    %    warning('Not all variable names recognized.')
     end
     idx = inds;
 elseif length(idx) == size(self.X,2)
@@ -245,10 +285,58 @@ else
     self.X = self.X(:,idx == 0);
 end
 
-self.include = idx;
+self.convinclude();
+% self.include = idx;
 
 end
-    
+
+% ------------------------------------------------------
+
+function newobj = convert(self,new_design)
+%
+% CONVERT - Converts a file using the transformations applied to SELF.
+%
+% Usage:
+%
+% self.CONVERT(new_design);
+%
+% NEW_DESIGN is a design file or design argument that can be read using the
+% constructor syntax:
+%
+% self.FEXDESIGNC(new_design);
+%
+%
+% See also FEXDESIGNC.
+
+if ~exist('new_design','var')
+    error('You need to enter a FEXDESIGNC object as template.');
+end
+
+% --------------------------------------------
+% Generate new FEXDESIGNC
+% --------------------------------------------
+newobj = fexdesignc(new_design);
+
+% --------------------------------------------
+% Variables Selection
+% --------------------------------------------
+if ~isempty(self.include)
+    newobj.select(self.include);
+end
+% --------------------------------------------
+% Rename Variables
+% --------------------------------------------
+NewVarNames = self.X.Properties.VarNames;
+OldVarNames = newobj.X.Properties.VarNames;
+for i = 1:size(newobj.X,2)
+    newobj.rename(OldVarNames{i},NewVarNames{i});
+end
+% --------------------------------------------
+% TimeTag Property
+% --------------------------------------------
+newobj.timetag = self.timetag;  
+end
+
 % ------------------------------------------------------
 end
     
@@ -261,7 +349,9 @@ methods (Access = private)
 %
 % Private Methods for FEXDESIGNC:
 % 
-% IMPORTDESIGN - 
+% IMPORTDESIGN - Robust import procedure for design.
+% SEAKTIME - Find candidates for TIMETAG property.
+% CONVINCLUDE - convert include property to indices.
     
 function self = importdesign(self,design) 
 %
@@ -272,9 +362,15 @@ function self = importdesign(self,design)
 % self = self.IMPORTDESIGN();
 %
 % IMPORTDESIGN cast the design provided to a dataset class. The input
-% argument DESIGN can be: ... 
+% argument DESIGN can be:
+%  
+% 1. The path to a file (.mat,.txt,.csv);
+% 2. A dataset;
+% 3. A matrix;
+% 4. A structure with one field per variable;
+% 5. A structure with .data and .colheaders fields.
 %
-% 
+% See also FEXDESIGNC.
 
 % DESIGN argument is required
 if ~exist('design','var')
@@ -333,6 +429,62 @@ end
 end
 
 % -------------------------------------------------------------------------
+
+function self = seaktime(self)
+%
+% SEAKTIME - looks for possible candidates for time-variables.
+%
+% Usage:
+%
+% self.seaktime()
+%
+% When the variable timetag is not specified, SEAKTIME uses the most
+% updated version of the names, and looks for possible candidates, such as
+% variables named "time," "timestamps", etc. If non of the candidate is
+% found, the variable is left empty.
+%
+% See also TIMETAG.
+
+opt_name = {'time','timestamp','timestamps','timetag'};
+ind = ismember(lower(self.X.Properties.VarNames),opt_name);
+
+if sum(ind) > 1
+    warning('Multiple possible "timetag" found.');
+    self.timetag = self.X.Properties.VarNames(ind == 1);
+elseif sum(ind) == 1
+    self.timetag = self.X.Properties.VarNames{ind == 1};
+else
+    self.timetag = '';
+end
+    
+end
+
+% -------------------------------------------------------------------------
+
+function self = convinclude(self)
+%
+% CONVINCLUDE - finds absolute indices for variables in INIT.
+%
+% Usage:
+%
+% self.CONVINCLUDE();
+%
+% CONVINCLUDE use the property DICT to identify which variables from the
+% original dataset are included in X.
+%
+% See also INCLUDE.
+
+VarNames = lower(self.X.Properties.VarNames);
+idx = [];
+for i = VarNames
+    idx = cat(2,idx,self.dict(i{1}));
+end
+self.include = idx;
+ 
+end
+
+% -------------------------------------------------------------------------
+
 end
     
 end
