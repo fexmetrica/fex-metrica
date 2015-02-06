@@ -490,18 +490,19 @@ end
 % Try to import a design
 if size(self.design,1) >= k
 % Test whether the design file exists
-[~,~,ex] = fileparts(self.design{k});
-switch ex
-    case '.txt'
-        args.design = dataset('File',self.design{k},'Delimiter','\t');
-    case '.csv'
-        args.design = dataset('File',self.design{k},'Delimiter',',');
-    case {'.xlsx','.xls'}
-        args.design = dataset('XLSFile',self.design{k});
-    otherwise
-        warning('File %s not recognized.', self.design{k});
-    return
-end
+args.design = fexdesignc(self.design{k});
+% [~,~,ex] = fileparts(self.design{k});
+% switch ex
+%     case '.txt'
+%         args.design = dataset('File',self.design{k},'Delimiter','\t');
+%     case '.csv'
+%         args.design = dataset('File',self.design{k},'Delimiter',',');
+%     case {'.xlsx','.xls'}
+%         args.design = dataset('XLSFile',self.design{k});
+%     otherwise
+%         warning('File %s not recognized.', self.design{k});
+%     return
+% end
 end
 
 
