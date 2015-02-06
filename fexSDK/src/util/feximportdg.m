@@ -178,7 +178,6 @@ function varargout = feximportdg_OutputFcn(hObject, eventdata, handles)
 %
 % OUTPUTFCN - Select command line output.
 
-handles.fexd.include = ones(1,size(handles.fexd.X,2));
 varargout{1} = handles.fexd;
 delete(handles.figure1);
 
@@ -439,25 +438,11 @@ else
     end
 end
 
-
-% --- Executes on selection change in variableslistbox.
-function variableslistbox_Callback(hObject, eventdata, handles)
-% hObject    handle to variableslistbox (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns variableslistbox contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from variableslistbox
-
-
 % --- Executes on selection change in list_select_var.
 function list_select_var_Callback(hObject, eventdata, handles)
-% hObject    handle to list_select_var (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+%
+% LIST_SELECT_VAR - Inactive.
 
-% Hints: contents = cellstr(get(hObject,'String')) returns list_select_var contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from list_select_var
 
 
 % --- Executes on key press with focus on list_select_var and none of its controls.
@@ -496,7 +481,7 @@ end
 % Update List of variables
 % ------------------------------------------------
 set(handles.list_select_var,'String',handles.fexd.X.Properties.VarNames);
-set(handles.list_select_var,'Value',min(ind,length(str)));
+set(handles.list_select_var,'Value',min(ind,length(handles.fexd.X.Properties.VarNames)));
 end
 
 % ------------------------------------------------
