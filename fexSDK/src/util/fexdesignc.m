@@ -67,6 +67,11 @@ properties (Access = protected)
     %
     % See also RENAME, SELECT, INCLUDE.
     dict
+    % TIDX: Indices for allignment of design matrix and matrix and facial
+    % expressions timeseries.
+    %
+    % See also ALLIGN,FEXTIME.
+    tidx
 end
 
 
@@ -315,7 +320,11 @@ end
 % --------------------------------------------
 % Generate new FEXDESIGNC
 % --------------------------------------------
-newobj = fexdesignc(new_design);
+if isa(new_design,'fexdesignc')
+    newobj = new_design;
+else
+    newobj = fexdesignc(new_design);
+end
 
 % --------------------------------------------
 % Variables Selection
@@ -338,8 +347,50 @@ newobj.timetag = self.timetag;
 end
 
 % ------------------------------------------------------
+
+% ------------------------------------------------------
+
+function self = align(self,ti)
+%
+% ALIGN - repeats rows of X in order to match FEXC timeseries size.
+%
+% Usage:
+%
+% self.ALIGN(ti);
+%
+% TI is the most recent timeseries from FEXC (i.e. FEXC.TIME.TIMESTAMPS).
+%
+% NOTE that in order for ALIGN to work you need to have self.TIMETAG
+% variable set up, and you need to enter TI.
+
+
+% -----------------------------------
+% Check arguments
+% -----------------------------------
+if isempty(self.timetag) || ~exist('ti','var')
+    error('Not enough timing information provided.');
+elseif isa(ti,'dataset')
+    ti = double(ti.TimeStamps);
 end
-    
+
+% -----------------------------------
+% Alignment process
+% -----------------------------------
+t = double(self.X.(self.timetag));
+[~,idx] = min(abs(repmat(ti,[1,length(t)]) - repmat(t',[length(ti),1])),[],2);
+
+% -----------------------------------
+% Update fields
+% -----------------------------------
+self.X = self.X(idx,:);
+self.fextime = ti;
+self.tidx = idx;
+
+end
+
+
+end
+
 
 % -------------------------------------------------------
 % Private methods    
