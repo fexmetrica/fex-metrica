@@ -44,7 +44,7 @@ Jan 18 - Jan 24
 | [SRC]  | [BUG]  | [.FEXC]             | nan for constructor     |   [P]  | 1    | 18-Jan |
 | [SRC]  | [BUG]  | [.FEXC]             | cell input option       |   [P]  | 1    | 18-Jan |
 | [SRC]  | [UP]   | [.FEXC]             | design importer         |   [P]  | 1    | 22-Jan |
-| [SRC]  | [BUG]  | [.FEXPORT]          | export to cvs option    |   [W]  | 1    | 18-Jan |
+| [SRC]  | [BUG]  | [.FEXPORT]          | export to cvs option    |   [P]  | 1    | 18-Jan |
 | [SRC]  | [BUG]  | [.DESCRIPTIVES]     | bug in derive stats     |   [P]  | 2    | 20-Jan |
 | [OS]   | [UP]   | []                  | .bashrc related issue   |   [P]  | 1    | 18-Jan |
 | [OS]   | [BUG]  | [FEXW_SEARCHG]      | "find" issue on Windows |   [P]  | 1    | 18-Jan |
@@ -79,6 +79,19 @@ Feb 1 - Feb 7
 | [SRC]  | [UP]   | [FEXGENC]           | Use FEXDESIGNC            |  [D]   | 1    | 6-Feb  |
 
 
+Feb 8 - Feb 14
+---------------
+
+| Scope  | Type   | **fexc** method     | Description                    | Status | Num  | Date   | 
+| ------ | ------ | ------------------- | ------------------------------ | ------ | ---- | ------ |
+| [SRC]  | [UP]   |                     | Remove unused util func        |  [D]   | 1    | 9-Feb  |
+| [SRC]  | [UP]   | [.DESIGN]           | Wrap FEXCDESIGN in FEXC.UPDATE |  [D]   | 1    | 9-Feb  |
+| [SRC]  | [UP]   | [FEXDESIGNC]        | Add .ALIGN Method              |  [P<sup>1</sup>]  | 1    | 9-Feb  |
+| [SRC]  | [UP]   | [FEXIMPORTDG]       | Option to import FEXDESIGNC    |  [D]   | 1    | 9-Feb  |
+
+<sup>1</sup> Needs to be tested. Need to have a project-back method.
+
+
 List of issues with **FEXC** object
 ================
 
@@ -87,9 +100,9 @@ List of issues with **FEXC** object
 | .FEXC                    | Update documentation            |    0    |
 | .UPDATE                  | Update documentation            |    0    |
 |                          | Add multiple args               |    0    |
-|                          | .DESIGN & .DESIGNINIT           |    0    |
+|                          | .DESIGN & .DESIGNINIT           |    P    |
 | .REINITIALIZE            | Use defaults                    |    0    |
-|                          | FEXDESIGNC.RESET                |    0    |
+|                          | FEXDESIGNC.RESET                |    1    |
 | .GETVIDEOINFO            | Getter property                 |    0    |
 |                          | VideoReader warning             |    0    |
 | .VIDEOUTIL<sup>1</sup>   | Make Linux compatible           |    0    |
@@ -100,6 +113,7 @@ List of issues with **FEXC** object
 |                          | Set .thrsemo as structure       |    0    |
 |                          | Add two thresold method         |    0    |
 |                          | Backup non thresholded emotions |    0    |
+|                          | Fix bug in .DOWNSAMPLE          |    0    |
 | .DOWNSAMPLE              | Fix structural & video          |    0    |
 |                          | Gaussian kernel option          |    0    |
 | .SETBASELINE             | Make a private property         |    0    |
@@ -109,7 +123,7 @@ List of issues with **FEXC** object
 | .INTERPOLATE             | Clean Method                    |    0    |
 |                          | Matrix size with structural     |    0    |
 |                          | Update design & designinit      |    0    |
-| .GETMATRIX               | Implement as MATRIX             |    0    |
+| .GETMATRIX               | Implement as MATRIX             |    P    |
 | .GETBAND                 | Implement                       |    0    |
 | .NORMALIZE               | Update documentation            |    0    |
 | .VIEWER<sup>2</sup>      | Single vieweer method           |    0    |
@@ -129,16 +143,16 @@ List of planned updates
 ================
 
 * Add a default file for FEXC ............ [SRC][NEW][.FEXC]
-* ~~Add summary method~~ ................. [SRC][NEW][.FEXC]
-* ~~Summary Sentiments percentage~~ ...... [SRC][UP][.FEXC]
-* ~~Video cropping util~~ ................ [SRC][NEW][UTIL]
+* ~~Add summary method~~ ............... [SRC][NEW][.FEXC]
+* ~~Summary Sentiments percentage~~ .... [SRC][UP][.FEXC]
+* ~~Video cropping util~~ .............. [SRC][NEW][UTIL]
 * Update .gitignore ...................... [GLOB][UP][]
-* Design import and edit ................. [SRC][UP][.DESIGN] 
+* ~~Design import and edit~~ ........... [SRC][UP][.DESIGN] 
 * GETMATRIX method ....................... [SRC][UP][.GETMATRIX]
-* Statistical methods<sup>1,2</sup> ...... [SRC][NEW][]
+* Statistical methods<sup>1,2</sup> .................. [SRC][NEW][]
 * Fit a response & plot .................. [SRC][NEW][]
 * Add catch path in importer ............. [SRC][UP][.FEXC]
-* ~~Add demographic info~~ ............... [SRC][NEW][.FEXC]
+* ~~Add demographic info~~ ............. [SRC][NEW][.FEXC]
 * Bug with fexc viewer overlay ........... [VIEW][UP][.VIEWER]
 * Add saving files part .................. [VIEW][BUG][.VIEWER]
 * Add selct file overlay viewer .......... [VIEW][UP][.VIEWER]

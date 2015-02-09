@@ -7,6 +7,7 @@ function varargout = feximportdg(varargin)
 %
 % desc = feximportdg;
 % desc = feximportdg('file',filename);
+% desc = feximportdg('file',FEXDESIGNC_OBJ);
 %
 %
 % FEXIMPORTDG help you to import design file for a FEXC object. You can
@@ -117,12 +118,17 @@ if ~isempty(ind1) && ~isempty(ind2)
         warning('Could''t import data, error %s.',errorID.message);
     end
 elseif ~isempty(ind1) && isempty(ind2)
+    % Use existing FEXDESIGNC
+    if isa(varargin{ind1+1},'fexdesignc')
+        handles.fexd = varargin{ind1+1};
+    elseif ~isempty(varargin{ind1+1})
     % Import dataset using IMPORTDATASET method
-    try
-        handles.fexd = fexdesignc(varargin{ind1+1});
-        % data = importasdataset(varargin{ind1+1});
-    catch errorID
-       warning('Could''t import data, error %s.',errorID.message);
+        try
+            handles.fexd = fexdesignc(varargin{ind1+1});
+            % data = importasdataset(varargin{ind1+1});
+        catch errorID
+           warning('Could''t import data, error %s.',errorID.message);
+        end
     end
 end
 
