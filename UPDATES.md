@@ -82,12 +82,15 @@ Feb 1 - Feb 7
 Feb 8 - Feb 14
 ---------------
 
-| Scope  | Type   | **fexc** method     | Description                    | Status | Num  | Date   | 
-| ------ | ------ | ------------------- | ------------------------------ | ------ | ---- | ------ |
-| [SRC]  | [UP]   |                     | Remove unused util func        |  [D]   | 1    | 9-Feb  |
-| [SRC]  | [UP]   | [.DESIGN]           | Wrap FEXCDESIGN in FEXC.UPDATE |  [D]   | 1    | 9-Feb  |
-| [SRC]  | [UP]   | [FEXDESIGNC]        | Add .ALIGN Method              |  [P<sup>1</sup>]  | 1    | 9-Feb  |
-| [SRC]  | [UP]   | [FEXIMPORTDG]       | Option to import FEXDESIGNC    |  [D]   | 1    | 9-Feb  |
+| Scope  | Type   | **fexc** method | Description                    | Status | Num  | Date   | 
+| ------ | ------ | --------------- | ------------------------------ | ------ | ---- | ------ |
+| [SRC]  | [UP]   |                 | Remove unused util func        |  [D]   | 1    | 9-Feb  |
+| [SRC]  | [UP]   | [.DESIGN]       | Wrap FEXCDESIGN in FEXC.UPDATE |  [D]   | 1    | 9-Feb  |
+| [SRC]  | [UP]   | [FEXDESIGNC]    | Add .ALIGN Method              |  [P<sup>1</sup>]  | 1    | 9-Feb  |
+| [SRC]  | [UP]   | [FEXIMPORTDG]   | Option to import FEXDESIGNC    |  [D]   | 1    | 9-Feb  |
+| [DOC]  | [UP]   |                 | Formatting                     |  [D]   | 1    | 9-Feb  |
+| [GLOB] | [UP]   |                 | Clean folder structure         |  [P]   | 1    | 9-Feb  |
+
 
 <sup>1</sup> Needs to be tested. Need to have a project-back method.
 
