@@ -291,7 +291,7 @@ function self = add(self,varargin)
 %
 % ADD - add a new video/file to the existing FEXGENC
 
-fprintf('TODO')
+warning('TODO!');
 
 
 
