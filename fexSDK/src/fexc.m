@@ -31,7 +31,7 @@ classdef fexc < handle
 % get - Shortcut to get subset of FEXC variables or properties.
 % listf - List variables names.
 % fexport - Export FEXC data or notes to .CSV file.
-% getmatrix	- [... ...]
+% matrix - [... ...]
 % 
 % VIDEO UTILITIES:
 % getvideoInfo - Read general information about a video file. 
@@ -124,7 +124,7 @@ properties
     % DESIGN: Dataset with design information. NOTE: DESIGN property is
     % only partially implemented.
     %
-    % See also DESIGNINIT.
+    % See also FEXDESIGNC.
     design
 end
     
@@ -198,11 +198,6 @@ properties (Access = protected)
     %
     % See also GET.
     demographics
-    % DESIGNINIT: Internal FEXDESIGNC object used for handling design
-    % transformation and import.
-    %
-    % See also FEXDESIGNC.
-    designinit
 end
 
 
@@ -391,7 +386,6 @@ newself(k).descrstats  = self(k).descrstats;
 newself(k).annotations = self(k).annotations;
 newself(k).coregparam  = self(k).coregparam;
 newself(k).naninfo     = self(k).naninfo;
-newself(k).designinit  = self(k).designinit;
 
 end
 
@@ -431,7 +425,6 @@ for k = 1:length(self)
     self(k).coregparam  = self(k).history.prev.coregparam;
     self(k).descrstats  = self(k).history.prev.descrstats;
     self(k).naninfo     = self(k).history.prev.naninfo;
-    self(k).designinit  = self(k).history.prev.designinit;
     % Allow REDO - Now Prev is set to the FEXC object after the operation
     % that was just undone.
     self(k).history.prev = h;
@@ -446,95 +439,135 @@ end
 
 function self = update(self,arg,val)
 %
-% UPDATE changes FEXC fields.
+% UPDATE - changes FEXC properties values.
 % 
 % SYNTAX:
-% self(k).UPDATE('functional',X)
-% self(k).UPDATE('structural',X)
-% self(k).UPDATE('outdir',X)
-% self(k).UPDATE('name',X)
-% self(k).UPDATE('video',X)
-% self(k).UPDATE('verbose',X)
 %
-% X must have the same size of the matrix from the dataset it replaces.
-% Otherwise, UPDATE won't make the substitution.
+% self(k).UPDATE(PropName,PropVal)
+%
+%
+% PROPNAME: Name of the property affected by UPDATE. Properties supported
+% by UPDATE are:
+%
+%
+% 1. 'design': Add the design, or adjust the size of the design to match the
+%    size of the functional timeseries. In this case, VAL can be:
+%       
+%    - A string set to 'ui', which opens a User Interface for design file
+%      import and editing if design were not imported at the time of
+%      construction. If design were imported already, the UI allows to make
+%      modification to the design matrix. You can indicate the modification
+%      with the UI on the frist design matrix, and the changes are
+%      propagated to all the FEXC istances in the stack.
+%
+%    - A string or cell with a list of design files that will be imported.
+%      If you want to make changes to the design files, you can call UPDATE
+%      again, with the argument 'ui';
+%
+%    - VAL can be left empty, in which case UPDATE will simply ALIGN the
+%      design to reflect the current size of FUNCTIONAL (e.g., you
+%      interpolated or downsampled the timeseries and you want the design
+%      to have the proper size. NOTE: this is done done automatically by
+%      other methods.
+%    
+%
+% 2. 'functional' ... 
+% 3. 'outdir' ... 
+% 4. 'name' ...
+% 5. 'structural' ... 
+% 6. 'video' ... 
+% 7. 'verbose' ... 
+%
 %
 % NOTE that UPDATE for 'functional' and 'structural' don't work on stacks
 % of FEXC. So, if length(FEXC) > 1, UPDATE needs to be called several
 % times.
 %
 %
-% See also FUNCTIONAL, STRUCTURAL, OUTDIR, NAME, VIDEO, DESIGN, VERBOSE.
+% See also FEXC, FEXDESIGNC.
 
 
+% ---------------------------
 % Add backup for undo
+% ---------------------------
 self.beckupfex();
 
-% Optional fields:
+
+% ---------------------------
+% Change Selected field
+% ---------------------------
 switch lower(arg)
-    case {'functional','structural'}
-        if length(self) > 1
-            warning('UPDATE does not operate on stacked FEXC for this field.');
-            return
-        elseif size(val,2) == size(self.(arg),2)
-            self.(arg) = replacedata(self.(arg),val);
-        else
-            error('Size mismatch.')
-        end
-    case {'name','video'}
-        if length(self) ~= size(val,1)
-            error('Not enough "%s" provided.',arg);
-        else
-            for k = 1:length(self)
-                try
-                    self(k).(arg) = deblank(char(val(k,:)));
-                catch
-                    self(k).(arg) = val{k};
-                end
-            end
-        end
-    case 'outdir'
-        if isa(val,'char')
-            val = cellstr(val);
-        end
-        if length(self) == size(val,1)
-            for k = 1:length(self)
-                self(k).outdir = val{k};
-            end
-        elseif size(val,1) == 1
-            for k = 1:length(self)
-                self(k).outdir = val{1};
-            end
-        end
-    case 'design'
-        fprintf('TODO.\n')
-        % Fixme: call update design with ui -- select data and specify
-        % operations. Alteratively, specify action: include/exclude,
-        % spec_time, reallign.
-%         if isa(val,'char')
-%             val = cellstr(val);
-%             for k = 1:length(self)
-%                 try
-%                     self(k).design = dataset('File',val{k});
-%                 catch errormsg
-%                     warning(errormsg.message);
-%                 end
-%             end
-%         elseif ~isa(val,'char') && length(self) == 1
-%             self.design = val;
-%         else
-%             error('Mispecified design argument.');                
-%         end
-    case 'verbose'
+case {'functional','structural'}
+    if length(self) > 1
+        warning('UPDATE does not operate on stacked FEXC for this field.');
+        return
+    elseif size(val,2) == size(self.(arg),2)
+        self.(arg) = replacedata(self.(arg),val);
+    else
+        error('Size mismatch.')
+    end
+case {'name','video'}
+    if length(self) ~= size(val,1)
+        error('Not enough "%s" provided.',arg);
+    else
         for k = 1:length(self)
-            if val
-                self(k).verbose = val;
-            else
-                self(k).verbose = false;
+            try
+                self(k).(arg) = deblank(char(val(k,:)));
+            catch
+                self(k).(arg) = val{k};
             end
         end
-    otherwise
-        error('Unrecognized field "%s".',arg);
+    end
+case 'outdir'
+    if isa(val,'char')
+        val = cellstr(val);
+    end
+    if length(self) == size(val,1)
+        for k = 1:length(self)
+            self(k).outdir = val{k};
+        end
+    elseif size(val,1) == 1
+        for k = 1:length(self)
+            self(k).outdir = val{1};
+        end
+    end
+case 'design'
+    if ~exist('val','var')
+        for k = 1:length(self)
+            self(k).design.align(self(k).time);
+        end
+    elseif strcmpi(val,'ui')
+        if isempty(self(1).design)
+            list = fexwsearchg('Select Design Files');
+            for k = 1:length(self)
+                self(k).design = deblank(list(k,:));
+            end
+        end
+        self(1).design = feximportdg('file',self(1).design);
+        self(1).design.align(self(1).time);
+        for k = 2:length(self)
+            self(k).design = self(1).design.convert(self(k).design);
+            self(k).design.align(self(k).time);
+        end
+    elseif isa(val,'char') || isa(val,'cell')
+        val = char(val);
+        for k = 1:length(self)
+            self(k).design = fexdesignc(val(k,:));
+            self(k).design.align(self(k).time);
+        end
+    else
+        error('Mispecified design argument.');                
+    end
+case 'verbose'
+    for k = 1:length(self)
+        if val
+            self(k).verbose = val;
+        else
+            self(k).verbose = false;
+        end
+    end
+otherwise
+    error('Unrecognized field "%s".',arg);
 end
 
 end
@@ -620,7 +653,6 @@ for k = 1:length(self)
     self(k).coregparam  = [];
     % Fixme: not properly implemented.
     self(k).naninfo     = [];
-    % Fixme: designinit and design
 end
 
 end
@@ -1346,7 +1378,7 @@ for k = 1:length(self)
 
         % Update matrix shapes
         % Fixme: I DON'T WANT TO CHANGE STRUCTURAL and COREGPARAM.
-        PropNames = {'functional','time','structural','coregparam','design','diagnostics'};
+        PropNames = {'functional','time','structural','coregparam','diagnostics'};
         for j = PropNames
         % Check that the fields exist.
             if ~isempty(self(k).(j{1}))
@@ -1364,10 +1396,14 @@ for k = 1:length(self)
         if rule > 0
             self(k).nanset(max(round(nfps*(1-rule)),1));
         end
+        % Update design when provided
+        if isa(self(k).design,'fexdesignc')
+            self(k).design.align(self(k).time);
+        end
     end
+    self(k).derivesentiments();
+    self(k).descriptives();
 end
-self(k).derivesentiments();
-self(k).descriptives();
 delete(h);
 end
 
@@ -1953,10 +1989,9 @@ if NofNans < 0.90
     if ~isempty(self(k).coregparam)
         self(k).coregparam = self(k).coregparam(nfr,:);
     end
-    % Update design if it exists
-    if ~isempty(self(k).design)
-        % Fixme: add designinit
-        self(k).design = self(k).design(nfr,:);
+    % Update design when provided
+    if isa(self(k).design,'fexdesignc')
+        self(k).design.align(self(k).time);
     end
     % Update diagnostocs if present
     if ~isempty(self(k).diagnostics)
@@ -2018,81 +2053,96 @@ end
 % *************************************************************************        
 
 
-    function M = getmatrix(self,index,varargin)
-    %
-    % -----------------------------------------------------------------  
-    % 
-    % Generate a matrix from the timeseries. Index is a vector of the
-    % same length of self.functional, s.t. [0,0,1,1,0,0,2,2,...] would
-    % select 2 events, and return a matrix where the first row is the
-    % average of the signal from frames tagged "1", the second row is
-    % the average of frames tagged with "2," and so on. Note that -Inf
-    % ,..., 0 are not considered tags, and will be excluded.
-    %
-    % varargin include:
-    %
-    %   'method': ...
-    %   'size'  : ...
-    % 
-    % -----------------------------------------------------------------
-    %
+function M = matrix(self,index,varargin)
+%
+% MATRIX - Generates a matrix of the data for analysis. 
+%
+% Usage:
+%
+% M = self.MATRIX(IDX);
+% M = self.MATRIX(IDX,'ArgName1','ArgVal1',...)
+%
+% The method MATRIX generates a matrix from the timeseries, which can
+% be used for the analysis.
+%
+% Arguments:
+%
+% IDX can be:
+%
+%   - A vector of indices of the same length of self.FUNCTIONAL, s.t.
+%   [0,0,1,1,0,0,2,2,...] would select 2 events, and return a matrix
+%   where the first row is the average of the signal from frames tagged
+%   "1," the second row is the average of frames tagged with "2," and
+%   so on.
+%
+%   - A string with the name of a variable in self.DESIGN - In this
+%   case the list of "events" is defied by unique(self.DESIGN.('IDX')).
+%
+%
+% METHOD : 
+% SIZE :
+%
+% 
 
-    % Set up event list
-    evlist = unique(index(index > 0));
-    index  = cat(2,index,zeros(size(index,1),1));
-    M = [];
+% ----------------------------
+% Interprete IDX
+% ----------------------------
+evlist = unique(index(index > 0));
+index  = cat(2,index,zeros(size(index,1),1));
+M = [];
 
-
-    % Set up method argument
-    ind = find(strcmp('method',varargin));
-    if isempty(ind)
-        method = @nanmean;
-    elseif isa(varargin{ind+1},'function_handle')
-        method = varargin{ind+1};
-    else
-    % try char that can be converted into an handle, otherwise give up.
-        try
-           method = eval(sprintf('@%s',varargin{ind+1}));
-        catch errorID
-            warning(errorID.message);
-            return
-        end
+% ----------------------------
+% Interprete METHOD
+% ----------------------------
+ind = find(strcmp('method',varargin));
+if isempty(ind)
+    method = @nanmean;
+elseif isa(varargin{ind+1},'function_handle')
+    method = varargin{ind+1};
+else
+% Try char that can be converted into an handle, otherwise give up.
+    try
+        method = eval(sprintf('@%s',varargin{ind+1}));
+    catch errorID
+        warning(errorID.message);
+        return
     end
+end
 
-    % Set up size argument
-    ind = find(strcmp('size',varargin));
-    if ~isempty(ind)
-    % get the position of the window
-        val = varargin{ind+1};
-        wps = find(val ~=0);
-        if ~ismember(wps,1:2)
-            warning('I couldn''t understand "size" parameter.');
-            return
-        end
-        % Resize the events
-        for i = evlist'
-            nc = (1:sum(index(:,1) == i))';
-            if wps == 1
-            % Get the beginning of the event
-                index(index(:,1) == i,2) = nc;
-            else
-            % Get the end of the event
-                index(index(:,1) == i,2) = flipud(nc);
-            end
-        end
-        index(index(:,2) > val(wps),1) = 0;
+% ----------------------------
+% Set up SIZE
+% ----------------------------
+ind = find(strcmp('size',varargin));
+if ~isempty(ind)
+    val = varargin{ind+1};
+    wps = find(val ~=0);
+    if ~ismember(wps,1:2)
+        warning('I couldn''t understand "size" parameter.');
+        return
     end
-
-    % Compile the matrix
-    temp = double(self.functional);
     for i = evlist'
-        M = cat(1,M,method(temp(index(:,1) == i,:)));
+        nc = (1:sum(index(:,1) == i))';
+        if wps == 1
+        % Get the beginning of the event
+            index(index(:,1) == i,2) = nc;
+        else
+        % Get the end of the event
+            index(index(:,1) == i,2) = flipud(nc);
+        end
     end
+    index(index(:,2) > val(wps),1) = 0;
+end
 
-    % Add header
-    M = mat2dataset([evlist,M],'VarNames',['NumEvent',self.functional.Properties.VarNames]);
+% ----------------------------
+% Create event matrix
+% ----------------------------
+temp = double(self.functional);
+for i = evlist'
+    M = cat(1,M,method(temp(index(:,1) == i,:)));
+end
+M = mat2dataset([evlist,M],'VarNames',['NumEvent',self.functional.Properties.VarNames]);
 
-    end
+end
 
 
 
@@ -2818,7 +2868,7 @@ arg_init = struct('name','','video','','videoInfo',[],...
        'structural',dataset([],'VarNames',{'FrameRows'}),...
        'sentiments',dataset([],[],[],[],'VarNames',{'Winner','Positive','Negative','Combined'}),...
        'time',dataset([],[],[],'VarNames',{'FrameNumber','TimeStamps','StrTime'}),...
-       'design',[],'designinit',[],'outdir','','history',[],'tempkernel',[],...
+       'design',[],'outdir','','history',[],'tempkernel',[],...
        'thrsemo',0,'descrstats',[],'annotations',[],'coregparam',[],...
        'naninfo',dataset([],[],[],'VarNames',{'count','tag','falsepositive'}),...
        'diagnostics',dataset([],'VarNames',{'track_id'}),'baseline',[],'verbose',true,...
@@ -2841,8 +2891,7 @@ function self = checkargs(self,args)
 %
 % self.CHECKARGS()
 %
-% Handles property TIME, NANINFO, DIAGNOSTICS, and VIDEOINFO during
-% construction.
+% Handles properties during construction.
 
 % --------------------------------------
 % Functional, Structural & Diagnostics
@@ -2919,7 +2968,8 @@ self.naninfo.tag = bwidx;
 for i = 1:max(bwidx)
     self.naninfo.count(bwidx == i) = sum(bwidx == i);
 end
-self.nanset(1); % make sure that nans are nans and not 0s.
+% make sure that nans are nans and not 0s.
+self.nanset(1);
 
 % --------------------------------------
 % Diagnostics
@@ -2931,16 +2981,12 @@ else
 end
     
 % --------------------------------------
-% Design
+% Import / Allign Design
 % --------------------------------------
-self.designinit = args.design;
-if isa(self.designinit,'fexdesignc')
-    self.design = self.designinit.X;
+self.design = args.design;
+if isa(self.design,'fexdesignc')
+    self.design.align(self.time);
 end
-if size(self.design,1) ~= size(self.functional,1) && ~isempty(self.design)
-    warning('The design matrix and data have different sizes.');
-end
-
 
 end
 
