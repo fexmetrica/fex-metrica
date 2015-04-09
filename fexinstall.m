@@ -3,13 +3,46 @@
 % Run this script to install fex-metrica. There are 3 installation
 % options:
 %
-% 1. Compile fexfacet.cpp from "./fexSDK/facet/cppdir/osx";
+% 1. Compile fexfacet.cpp from "./fexSDK/facet/cppdir/osx"
+% ========================================================
 %
-% 2. Enter location of compiled fexfacet.cpp, without compiling it;
+% The directory "cppdir/osx" contains a .cpp file which will produce the
+% .json file output expected by fex-metrica. Note that in order to compile
+% fexfacet.cpp, you need to have a copy of the SDK already installed. A UI
+% will ask for the location of Facet SDK.
+%
+%
+% 2. Enter location of compiled fexfacet.cpp, without compiling it
+% ========================================================
+%
+%
 %
 % 3. Use **fex-metrica** without FACET SDK.
+% ========================================================
+%
+%
+%
+%
 %
 % Version -- 04/09/2015.
+
+
+% ---------------------------------------------------------------
+% Select installation type
+% ---------------------------------------------------------------
+
+clb = @(popup,callbackdata) popup.Value;
+d   = dialog('Position',[300,300,250,150],'Name','Select Installation');
+popup = uicontrol('Parent',d,'Style','popup',...
+    'Position', [100 70 100,25],'String', ...
+    {'Compile (OSX)'; 'Choose Executable'; 'Without Facet'},...
+    'Callback',clb);
+
+uiwait(d);
+
+
+
+
 
 % ---------------------------------------------------------------
 % Add path to fex-metrica
