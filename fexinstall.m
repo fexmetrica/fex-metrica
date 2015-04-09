@@ -1,7 +1,15 @@
 %% Installation Script for fex-metrica
 %
-% Run this script to install fex-metrica. This script compiles the .cpp
-% files in fexSDK/facet/cppdir/osx. 
+% Run this script to install fex-metrica. There are 3 installation
+% options:
+%
+% 1. Compile fexfacet.cpp from "./fexSDK/facet/cppdir/osx";
+%
+% 2. Enter location of compiled fexfacet.cpp, without compiling it;
+%
+% 3. Use **fex-metrica** without FACET SDK.
+%
+% Version -- 04/09/2015.
 
 % ---------------------------------------------------------------
 % Add path to fex-metrica
