@@ -2069,27 +2069,83 @@ function M = matrix(self,index,varargin)
 %
 % IDX can be:
 %
-%   - A vector of indices of the same length of self.FUNCTIONAL, s.t.
-%   [0,0,1,1,0,0,2,2,...] would select 2 events, and return a matrix
-%   where the first row is the average of the signal from frames tagged
-%   "1," the second row is the average of frames tagged with "2," and
-%   so on.
-%
 %   - A string with the name of a variable in self.DESIGN - In this
 %   case the list of "events" is defied by unique(self.DESIGN.('IDX')).
+%
+%   - A string with a transformation of a variable in DESIGN, such as
+%   'VarName = 2', s.t. IDX = eval('self.design.VarName == 2'). Or a cell,
+%   in case there are multiple transformations.
+%
+%   - A vector of indices or of 1s and 0s of the same length of
+%    self.FUNCTIONAL. This option works only for un-stuck object, and it
+%    is deprecated.
 %
 %
 % METHOD : 
 % SIZE :
 %
 % 
+%
+% See also FEXDESIGNC.
+
+
+% ----------------------------
+% Set some Initial values
+% ----------------------------
+k = 1; cmd = ''; M = [];
 
 % ----------------------------
 % Interprete IDX
 % ----------------------------
-evlist = unique(index(index > 0));
-index  = cat(2,index,zeros(size(index,1),1));
-M = [];
+if ~exist('index','var')
+    error('You need to enter the INDEX argument.');
+elseif isa(index,'char') && ismember(index,self(1).design.X.Properties.VarNames)
+% Name of the variable
+    flag1 = 1;
+elseif isa(index,'char')
+% One string with one command
+    flag1 = 2;
+    try
+        cmd = sprintf('self(k).design.X.%s',index);
+        index = eval(cmd);
+    catch errorid
+        error(errorid.message);
+    end
+elseif isa(index,'cell')
+% Set of command -- one per each cell
+    flag1 = 2;
+    cmd = sprintf('self(k).design.X.%s',index{1});
+    for i = 2:length(index)
+        cmd = cat(2,cmd,sprintf(' && self(k).design.X.%s',index{i}));
+    end
+    try
+        index = eval(cmd);
+    catch errorid
+        error(errorid.message);
+    end
+% elseif isa(index,'double')
+% % Enter a vector argument ... This is deprecated.
+%     flag1 = 3;
+%     if length(self) > 1
+%         error('You can enter a vector when FEXOBJ length is 1');
+%     elseif length(index) ~= size(self.functional,1)
+%         error('Index and FUNCTIONAL must have same number of raws');
+%     end
+else
+    error('Unrecognized INDEX argument.');
+end
+    
+vals = unique(index);
+if ismembetr([0,1],vals','rows')
+    flag2 = 1;
+else
+    flag2 = 2;
+end
+% 
+%     
+% evlist = unique(index(index > 0));
+% index  = cat(2,index,zeros(size(index,1),1));
+% M = [];
 
 % ----------------------------
 % Interprete METHOD
@@ -2112,30 +2168,40 @@ end
 % ----------------------------
 % Set up SIZE
 % ----------------------------
-ind = find(strcmp('size',varargin));
-if ~isempty(ind)
-    val = varargin{ind+1};
-    wps = find(val ~=0);
-    if ~ismember(wps,1:2)
-        warning('I couldn''t understand "size" parameter.');
-        return
-    end
-    for i = evlist'
-        nc = (1:sum(index(:,1) == i))';
-        if wps == 1
-        % Get the beginning of the event
-            index(index(:,1) == i,2) = nc;
-        else
-        % Get the end of the event
-            index(index(:,1) == i,2) = flipud(nc);
-        end
-    end
-    index(index(:,2) > val(wps),1) = 0;
-end
+% ind = find(strcmp('size',varargin));
+% if ~isempty(ind)
+%     val = varargin{ind+1};
+%     wps = find(val ~=0);
+%     if ~ismember(wps,1:2)
+%         warning('I couldn''t understand "size" parameter.');
+%         return
+%     end
+%     for i = evlist'
+%         nc = (1:sum(index(:,1) == i))';
+%         if wps == 1
+%         % Get the beginning of the event
+%             index(index(:,1) == i,2) = nc;
+%         else
+%         % Get the end of the event
+%             index(index(:,1) == i,2) = flipud(nc);
+%         end
+%     end
+%     index(index(:,2) > val(wps),1) = 0;
+% end
+
 
 % ----------------------------
 % Create event matrix
 % ----------------------------
+
+for k = 1:length(self)
+    X = double(self.functional);
+    
+
+    % [ .... ]
+
+end
+
 temp = double(self.functional);
 for i = evlist'
     M = cat(1,M,method(temp(index(:,1) == i,:)));

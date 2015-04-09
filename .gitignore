@@ -32,3 +32,6 @@ fexSDK/samples/docs/.*
 # fexSDK/samples/fexwstreamermedia
 # fexSDK/samples/__MACOSX
 # fexSDK/samples/oldnotes.txt
+
+# Ignore Paper
+./paper

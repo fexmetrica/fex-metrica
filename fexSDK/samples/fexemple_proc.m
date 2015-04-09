@@ -78,6 +78,10 @@ fexobj.rectification(-1);
 % In this example, the threshold is set to *t=-1*.
 
 
+%% 
 
+
+fexobj.interpolate()
+fexobj.temporalfilt([.5,4],'order',60,'dc',false)
 
 

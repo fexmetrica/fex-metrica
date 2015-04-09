@@ -1,0 +1,148 @@
+\documentclass[11pt, oneside]{article} 
+\usepackage{geometry}
+\geometry{letterpaper}
+\usepackage[parfill]{parskip}
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{authblk}
+\usepackage[colorlinks = true]{hyperref}
+% Mcode package downloaded from:
+% http://www.mathworks.com/matlabcentral/fileexchange/8015-m-code-latex-package
+\usepackage[framed,numbered,autolinebreaks,useliterate]{mcode}
+% Don't distribute bit
+%\usepackage{draftwatermark}
+%\SetWatermarkText{DO NOT DISTRIBUTE}
+%\SetWatermarkScale{2}
+
+\title{Fex-Metrica: A Toolbox for the Analysis of Facial Expression Time Series}
+\author[1,*]{F. Rossi}
+\author[2]{L.J. Chang}
+\author[3]{I.R. Fasel}
+\author[4]{C.T. Morrison}
+\author[5]{A.G. Sanfey}
+\author[1,3]{M.S. Bartlett}
+
+
+\affil[1]{Institute for Neural Computation, University of California, San Diego, La Jolla, CA}
+\affil[2]{Computational Social Affective Neuroscience Lab, Dartmouth College, Hanover, NH}
+\affil[3]{Emotient Inc., San Diego, CA}
+\affil[4]{School of Information, Science, Technology and Art, University of Arizona, Tucson, AZ}
+\affil[5]{Donders Center for Brain, Cognition and Behavior, Radboud University, Nijmegen, NL}
+\affil[*]{Contact Information: \texttt{frossi@ucsd.edu}}
+
+%\date{}
+
+\begin{document}
+\maketitle
+
+% +++++++++++++++++++++++++++++++++++++
+\abstract{One of the fast-growing fields of cognitive neuroscience is the study of emotions and their effects on cognitive processes \cite{}. A very promising approach, which allows unique insights into human emotions is the observation of humans' facial expressions \cite{}. Studies have shown that facial expressions are systematically associated with emotions such as anger, joy or fear \cite{}, therefore tracking facial movements allows to study underlying emotional experiences. Facial expressions tracking used to be labor-intense. However, advances in computer vision have rendered automatic facial expression detection fast and reliable \cite{}. In this work we introduce \emph{FexMetrica}, a toolbox developed to conduct statistical analyses of automatically detected facial expression time series \cite{}. As with most time series data, there are nuisances due to the nature of the signal, which need to be addressed before moving to statistical inference. Our toolbox is meant to provide a basic set of algorithms for these analyses, and the scaffold for the collaborative development of procedures for the study of facial expressions.} 
+
+\newpage
+
+% +++++++++++++++++++++++++++++++++++++
+\section{Introduction}
+\subsection{Automatic Detection of Facial Expressions}
+
+% Talk about framework, origin, and expectations ... 
+% Talk about the system we are using & compare it to older models (features, and noise).
+
+There are two main frameworks for the study of emotions. One of them operationalizes emotions in terms of a three-dimensional space with axes for valence, salience and arousal \cite{}. Alternatively, the Facial Action Coding System (FACS) \cite{} is more quantize and it assumes the existence of seven primary emotions: anger, contempt, disgust, fear, joy, sadness and surprise \cite{}. Our research uses this second framework, which relies on Paul Ekman's seminal work on the relationship between facial muscles and emotions \cite{}. In particular, muscular activity in the face is described in terms of Action Units (AU), such as frowning of the eyebrows (AU 4) or raising the cheeks (AU 6) \cite{}. Emotions are then described as combinations of these AUs \cite{} (see \textbf{Fig. 1}).\\
+
+\noindent Human-based assessment of emotions is extremely time-demanding \cite{}. Facial expressions would not be a particularly serviceable signal if it took hours to identify emotions over one single minute of video \cite{}. Fortunately, machine learning and computer provide automatic and reliable readings of facial expressions from video recordings or even real-time video capturing \cite{}.\\
+
+\noindent We have been contributing to this endeavor by developing one very popular system: the Computer Expression Recognition Toolbox (CERT) \cite{}. This system finds a face in a square patch of pixels from a video frame and it detects both AUs and emotions from the detected face \cite{}. Notably, CERT was successfully used to study emotions in a broad set of scenario such as pain and clinical studies \cite{}, driving simulation \cite{}, and even neuroeconomic studies \cite{}.\\
+
+\noindent In the past few years, CERT has evolved in even more reliable set of machine learning tools provided by \href{http://www.emotient.com}{Emotient Analytics}. This new system is spreading across academics (approximately 150 as of late 2014), and it guarantees reliable readings of emotions from facial expressions. For comparison, \textbf{Fig. 2} shows  CERT and Emotient Analytics on a large database of posed facial expressions (N $>$ 100,000). The new system significantly outperforms CERT, which in itself is considered state-of-the-art in computer vision \cite{}. Based on these results, we decided to use Emotient Analytics as starting point for \emph{FexMetrica}.\\
+
+\noindent The development of accurate facial expression detectors is an ongoing process. Parallel to this process, we also have to design adequate algorithms that account for the nuisances of facial expressions time series \cite{}. The purpose of our toolbox is to provide an initial set of ``canonical'' tools for the analysis of facial expressions time series. Additionally, we hope that \emph{FexMetrica} will constitute a shared platform for the development of appropriate techniques for mining facial expression data.\\
+
+\subsection{Dataset Description}
+% Description of the dataset
+
+\noindent We generated a database of videos with posed expressions of emotions occurring at different temporal frequencies, in order to exemplify the key aspects of the analysis of facial expression time series. The dataset include 2.5 minute video from 10 participants. During the ``experiment,'' we asked participants to imitate specific expressions during the ``Production'' window for 20 trials (see \textbf{Fig. 3}). We prompted only four facial expressions: joy, surprise, disgust, and contempt. Each trial lasts for 10 seconds, and expressions are produced for either one or two seconds.\\
+
+\noindent There are three main parameters manipulated in the video:\\
+
+\begin{enumerate}
+\item Emotion Produced;
+\item Duration;
+\item Onset;
+\end{enumerate}
+
+
+% +++++++++++++++++++++++++++++++++++++
+\section{Preprocessing Facial Expression Time Series}
+
+\subsection{Facial Expressions Time Series Objects}
+% Introduce FEXC objects -- structure and options
+
+\noindent Generate a \textbf{fexc} object ... 
+
+\begin{lstlisting}
+fex_init;
+fexobj = fexc('ui');
+\end{lstlisting}
+
+\subsection{``Spatial'' Processing}
+% Coregistration, False positive detection, False negative interpolation
+
+\noindent Look for ``false positive,'' namely patches of pixels that the system evaluate as containing a face, when they are not.
+
+\begin{lstlisting}
+fexobj.falsepositive('method','position','threshold',2);
+fexobj.coregister('fp',true,'threshold',2);
+fexobj.motioncorrect('thrs',0.50,'normalize','-whiten');
+\end{lstlisting}
+
+
+\subsection{Temporal Processing}
+% Time filtering, Downsampling, and Smoothing
+
+\subsection{Normalization}
+% Rectification, Suppression, and Normalization
+
+\begin{lstlisting}
+fexobj.setbaseline('mean','-global');
+fexobj.rectification(-1);
+\end{lstlisting}
+
+% +++++++++++++++++++++++++++++++++++++
+\section{Tools for Statistica Analyses and Visualization}
+
+\subsection{``Design'' Objects}
+% Design Object, and Data Extraction
+
+\subsection{Features Extraction and Generation}
+% Describe stats features, Gabors/Band-specific features, bumps detection.
+
+\subsection{Regression and Classification}
+% Simple classification and regression -- model estimate, cv, multilevel modeling.
+
+\subsection{Simple Models of Multi-Modal Integration}
+% Example of Signal combination ??
+
+\subsection{Visualization Tools}
+% Basic summary images, Viewers -- Summary for Statistics 
+
+% +++++++++++++++++++++++++++++++++++++
+\section{Conclusions}
+
+\begin{lstlisting}
+for i = 1:3
+	if i >= 5 && a ~= b       % literate programming replacement
+		disp('cool');           % comment with some §\mcommentfont\LaTeX in it: $\mcommentfont\pi x^2$§
+	end
+	[:,ind] = max(vec);
+	x_last = x(1,end) - 1;
+	v(end);
+	really really long really really long really really long really really long really really long line % blaaaaaaaa
+	ylabel('Voltage (µV)');
+end
+\end{lstlisting}
+
+
+
+
+
+\end{document}  
