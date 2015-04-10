@@ -80,13 +80,13 @@ if ismember(lower(computer), {'pcwin64','pcwin'});
 else
     d = dialog('Position',[300,300,250,150],'Name','Fex-Metrica: Installation');
     
-    txt = uicontrol('Parent',d,'Style','text','Position', [20 80 210 40],...
+    txt = uicontrol('Parent',d,'Style','text',...
         'String','Select installation type:');
     
-    popup = uicontrol('Parent',d,'Style','popup','Position', [25 50 200,50],...
+    popup = uicontrol('Parent',d,'Style','popup',c...
         'String',{'Compile "fexfacet.cpp"'; 'Choose Executable'; 'Without Facet'},...
         'Callback',@select_callback);
-    btn = uicontrol('Parent',d,'String','Select',...
+    btn = uicontrol('Parent',d,'String','Done',...
         'Callback','delete(gcf)'); 
     % Wait for answer:
     uiwait(d);
@@ -126,11 +126,11 @@ switch fexinfo.INST
         if exist('build','dir')
             system('rm build/*');
         else
-            system('mkdir build');
+            system('mkdir build && cd build');
         end
         
         % Build executable files
-        cd('build')
+        mkdir('build'); cd('build')
         cmd = 'cmake -G "Unix Makefiles" .. && make';
         if exist('~/.bashrc','file')
             cmd = sprintf('source ~/.bashrc && %s',cmd);
@@ -195,6 +195,7 @@ function costumize_path()
 % Update CMakeLists.txt 
 cmakefilename = sprintf('%s/CMakeLists.txt',target_dir);
 confifilename = sprintf('%s/config.hpp',target_dir);
+videotest = sprintf('%s/fexSDK/test/test.mov',base);
 cml = cellstr(importdata(cmakefilename));
 ind = cellfun(@isempty,strfind(cml, 'set(FACETMAIN'));
 cml{ind==0} = sprintf('set(FACETMAIN "%s")',FACET_DIR);
@@ -224,7 +225,6 @@ function test_install(inst_type,h)
 % TEST_INSTALL - Test whether FACET SDK works properly. 
 %
 
-videotest = sprintf('%s/fexSDK/test/test.mov',base);
 if h == 0
     fprintf('\nInstallation was successfull. \n\n');
     fprintf('\n\nRUNNING TETS ...\n\n');
