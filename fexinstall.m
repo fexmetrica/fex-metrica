@@ -33,7 +33,7 @@ function fexinstall()
 
 % Initialize FEXINFO
 fexinfo = struct('ROOT',sprintf('%s/fexSDK',pwd),'INST',1,'EXEC','');
-
+base = pwd;
 
 % ---------------------------------------------------------------
 % Add path to fex-metrica
@@ -107,7 +107,6 @@ switch fexinfo.INST
         % Set up some directories
         fexinfo.EXEC = sprintf('%s/fexSDK/src/facet/cpp/osx/fexfacetexec',pwd);
         save('./fexSDK/include/fexinfo.dat','fexinfo');
-        base = pwd;
         target_dir = sprintf('%s/fexSDK/src/facet/cpp/osx',pwd);
         cd(target_dir);
 
@@ -162,6 +161,7 @@ switch fexinfo.INST
             save('./fexSDK/include/fexinfo.dat','fexinfo');
             return
         else
+            h = 0;
             fexinfo.EXEC = sprintf('%s',FexFacetExec);
             save('./fexSDK/include/fexinfo.dat','fexinfo');
         end
