@@ -45,16 +45,23 @@ if nargin == 0
 end
 
 % Locate executable file
-FACET_EXEC = which('fexfacetexec.cpp');
-if isempty(FACET_EXEC)
-    error('FACET executable not found.');
-else
-    FACET_EXEC = FACET_EXEC(1:end-4);
-end
+% FACET_EXEC = which('fexfacetexec.cpp');
+% if isempty(FACET_EXEC)
+%     error('FACET executable not found.');
+% else
+%     FACET_EXEC = FACET_EXEC(1:end-4);
+% end
+info = importdata('fexinfo.dat');
+FACET_EXEC = info.EXEC;
 
 SAVE_TO = pwd;
 if ~isempty(find(strcmpi('dir',varargin),1))
     SAVE_TO = varargin{find(strcmpi('dir',varargin)) + 1};
+end
+
+IS_PAR = 1;
+if ~isempty(find(strcmpi('parallel',varargin),1))
+    IS_PAR = varargin{find(strcmpi('parallel',varargin)) + 1};
 end
 
 % Read LIST argument, transform to cell, and add name for output files.
@@ -114,12 +121,17 @@ cmd = cell(size(h));
 for k = 1:size(nlist,1)
     cmd{k} = sprintf('%s -f %s -o %s',FACET_EXEC,nlist{k,1},Y{k});
 end
+
 % Update envirnoment (! temporararely)
 env1 = getenv('DYLD_LIBRARY_PATH');
 setenv('DYLD_LIBRARY_PATH','/usr/local/bin:/usr/bin:/usr/local/sbin');
 
+base = pwd;
+tpar = fileparts(FACET_EXEC);
+cd(tpar);
+
 % Run the preprocessing
-if size(nlist,1) > 1
+if size(nlist,1) > 1 && IS_PAR
     % Add waitbar with cancel button
     % he = waitbar(0,sprintf('Processing %d Videos',size(nlist,1)),...
     %    'CreateCancelBtn','setappdata(gcbf,''canceling'',1)');
@@ -136,9 +148,12 @@ if size(nlist,1) > 1
     end
     % delete(he)
 else
-    h{1} = system(sprintf('%s',cmd{1}));
+    for k = 1:size(nlist,1)
+        h{k} = system(sprintf('%s',cmd{k}));
+    end
 end
 % return to original environment setting
+cd(base)
 setenv('DYLD_LIBRARY_PATH',env1);
 cmd = char(cmd);
 
