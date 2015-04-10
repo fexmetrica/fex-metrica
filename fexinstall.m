@@ -33,7 +33,7 @@ function fexinstall()
 
 % Initialize FEXINFO
 fexinfo = struct('ROOT',sprintf('%s/fexSDK',pwd),'INST',1,'EXEC','');
-
+base = pwd;
 
 % ---------------------------------------------------------------
 % Add path to fex-metrica
@@ -107,7 +107,6 @@ switch fexinfo.INST
         % Set up some directories
         fexinfo.EXEC = sprintf('%s/fexSDK/src/facet/cpp/osx/fexfacetexec',pwd);
         save('./fexSDK/include/fexinfo.dat','fexinfo');
-        base = pwd;
         target_dir = sprintf('%s/fexSDK/src/facet/cpp/osx',pwd);
         cd(target_dir);
 
@@ -118,7 +117,7 @@ switch fexinfo.INST
             warning('No "FACET SDK" provided.');
             fprintf('\nInstallation completed without FacetSDK functionality.\n');
             fexinfo.INST = 3; fexinfo.EXEC = '';
-            cd(base);
+            cd(base)
             save('./fexSDK/include/fexinfo.dat','fexinfo');
             return
         end
@@ -152,7 +151,7 @@ switch fexinfo.INST
         
         fprintf('Installation Method 2:\nSelect Executable File.\n');
         % Select File
-        FexFacetExec = uigetfile('*','Select File:');
+        [FexFacetExec, fexfd] = uigetfile('*','Select File:');
         
         % Abort
         if FexFacetExec == 0
@@ -162,7 +161,8 @@ switch fexinfo.INST
             save('./fexSDK/include/fexinfo.dat','fexinfo');
             return
         else
-            fexinfo.EXEC = sprintf('%s',FexFacetExec);
+            h = 0;
+            fexinfo.EXEC = sprintf('%s%s',fexfd,FexFacetExec);
             save('./fexSDK/include/fexinfo.dat','fexinfo');
         end
 
