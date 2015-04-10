@@ -117,7 +117,7 @@ switch fexinfo.INST
             warning('No "FACET SDK" provided.');
             fprintf('\nInstallation completed without FacetSDK functionality.\n');
             fexinfo.INST = 3; fexinfo.EXEC = '';
-            cd(base);
+            cd(base)
             save('./fexSDK/include/fexinfo.dat','fexinfo');
             return
         end
@@ -151,7 +151,7 @@ switch fexinfo.INST
         
         fprintf('Installation Method 2:\nSelect Executable File.\n');
         % Select File
-        FexFacetExec = uigetfile('*','Select File:');
+        [FexFacetExec, fexfd] = uigetfile('*','Select File:');
         
         % Abort
         if FexFacetExec == 0
@@ -162,7 +162,11 @@ switch fexinfo.INST
             return
         else
             h = 0;
+<<<<<<< HEAD
             fexinfo.EXEC = sprintf('%s',FexFacetExec);
+=======
+            fexinfo.EXEC = sprintf('%s%s',fexfd,FexFacetExec);
+>>>>>>> origin/master
             save('./fexSDK/include/fexinfo.dat','fexinfo');
         end
 
