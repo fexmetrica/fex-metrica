@@ -162,11 +162,7 @@ switch fexinfo.INST
             return
         else
             h = 0;
-<<<<<<< HEAD
-            fexinfo.EXEC = sprintf('%s',FexFacetExec);
-=======
             fexinfo.EXEC = sprintf('%s%s',fexfd,FexFacetExec);
->>>>>>> origin/master
             save('./fexSDK/include/fexinfo.dat','fexinfo');
         end
 
