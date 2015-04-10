@@ -1,9 +1,10 @@
 # Fex-Metrica .gitignore files:
 #
-# Version 10-Jan-2015.
+# Version 10-Apr-2015.
 
 # Ignore fex_init file
 # fexSDK/include/*
+fexSDK/include/*.dat
 
 
 # Ignore build files

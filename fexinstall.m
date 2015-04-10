@@ -1,6 +1,6 @@
 function fexinstall()
 %
-% FEXINSTALL - Installation function for **fex-metrica**.
+% FEXINSTALL - Installation function for FexMetrica 1.0.1.
 %
 % Call this function to install FexMetrica. There are three installation
 % options. A UI will ask for the location of Facet SDK. The three options
@@ -105,6 +105,8 @@ switch fexinfo.INST
         
         fprintf('Installation Method 1:\nSelect Facet SDK main directory.\n');
         % Set up some directories
+        fexinfo.EXEC = sprintf('%s/fexSDK/src/facet/cpp/osx/fexfacetexec',pwd);
+        save('./fexSDK/include/fexinfo.dat','fexinfo');
         base = pwd;
         target_dir = sprintf('%s/fexSDK/src/facet/cpp/osx',pwd);
         cd(target_dir);
@@ -115,7 +117,9 @@ switch fexinfo.INST
         if FACET_DIR == 0
             warning('No "FACET SDK" provided.');
             fprintf('\nInstallation completed without FacetSDK functionality.\n');
+            fexinfo.INST = 3; fexinfo.EXEC = '';
             cd(base);
+            save('./fexSDK/include/fexinfo.dat','fexinfo');
             return
         end
         
@@ -154,19 +158,21 @@ switch fexinfo.INST
         if FexFacetExec == 0
             warning('No file provided.\n');
             fprintf('\nInstallation completed without FacetSDK functionality.\n');
-            cd(base);
+            fexinfo.INST = 3; fexinfo.EXEC = '';
+            save('./fexSDK/include/fexinfo.dat','fexinfo');
             return
+        else
+            fexinfo.EXEC = sprintf('%s',FexFacetExec);
+            save('./fexSDK/include/fexinfo.dat','fexinfo');
         end
-                
-        % Add Information for calling Executable
-        % ?????? 
 
         % Test Installation: 
         test_install(inst_type,h); 
                 
     otherwise
     % Use Fex-Metrica without FACET SDK
-                
+        fexinfo.INST = 3; fexinfo.EXEC = '';
+        save('./fexSDK/include/fexinfo.dat','fexinfo');    
         fprintf('\nInstallation completed without FacetSDK functionality.\n');
         return
 end
@@ -229,10 +235,10 @@ if h == 0
     fprintf('\nInstallation was successfull. \n\n');
     fprintf('\n\nRUNNING TETS ...\n\n');
     
-    if inst_type == 1
-        [n,~,h1] = fex_facetproc(videotest,'dir','fexSDK/test');
+    if inst_type == 1 || inst_type == 2
+        [n,~,h1] = fex_facetproc(videotest,'dir',sprintf('%s/fexSDK/test',base));
         if h1{1} == 0
-            fex_jsonparser(n{1},'fexSDK/test/test.csv');
+            fex_jsonparser(n{1},sprintf('%s/fexSDK/test/test.csv',base));
         end
         fprintf('\nTests passed succesfully.\n')
         tests.exec = 1;
@@ -243,7 +249,7 @@ else
     tests.exec = 0;
     warning('Installation failed.');
 end
-save('fexSDK/test/fextest_report.mat','tests');
+save(sprintf('%s/fexSDK/test/fextest_report.mat',base),'tests');
 
 end
 
