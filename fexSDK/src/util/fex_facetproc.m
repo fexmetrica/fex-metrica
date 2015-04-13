@@ -123,8 +123,13 @@ for k = 1:size(nlist,1)
 end
 
 % Update envirnoment (! temporararely)
-env1 = getenv('DYLD_LIBRARY_PATH');
-setenv('DYLD_LIBRARY_PATH','/usr/local/bin:/usr/bin:/usr/local/sbin');
+if strcmp(computer,'MACI64')
+    env1 = getenv('DYLD_LIBRARY_PATH');
+    setenv('DYLD_LIBRARY_PATH','/usr/bin:/usr/local/bin:/usr/local/sbin');
+elseif strcmp(computer,'GLNXA64')
+    env1 = getenv('LD_LIBRARY_PATH');
+    setenv('LD_LIBRARY_PATH','/usr/bin:/usr/local/bin:/usr/local/sbin');
+end
 
 base = pwd;
 tpar = fileparts(FACET_EXEC);
@@ -154,7 +159,7 @@ else
 end
 % return to original environment setting
 cd(base)
-setenv('DYLD_LIBRARY_PATH',env1);
+setenv('LD_LIBRARY_PATH',env1);
 cmd = char(cmd);
 
 
