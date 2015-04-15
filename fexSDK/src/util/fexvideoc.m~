@@ -23,7 +23,6 @@ properties
     exec
     flag
     face
-    dirout
 end
 
 
@@ -38,7 +37,7 @@ if isempty(varargin)
     return
 elseif isa(varargin{1},'char')
     self.flag  = 1;
-    self.video = varargin{1};
+    self.video = 'char';
     self.face  = [];
 elseif isa(varargin{1},'fexc')
     self.flag  = 2;
@@ -51,10 +50,6 @@ end
 if ~exist(self.video,'file')
     error('Video Not found.');
 end
-
-% Set output directory
-[path,file] = fileparts(self.video);
-
 
 
 end
@@ -93,29 +88,12 @@ end
 
 function self = small(self,fps)
 %
-% SMALL - Reduce file size in time.
-%
-% FPS = frames per second in new video (default 0.5);
-
-
+% SMALL - 
+    
+    
+    
 end
 
-
-
-% ==============================================
-
-function self = sound(self,ab,an,ar)
-%
-% SOUND - Extract sound track from 
-%
-% ab: audio bitrate; default = 160 kb/sec.;
-% an: number of audio channels; default = 2;
-% ar: audio sampling rate; default = 44100;
-%
-% Output file is an .mp3.
-
-
-end
 
 % ==============================================
 

@@ -122,18 +122,18 @@ for k = 1:size(nlist,1)
     cmd{k} = sprintf('%s -f %s -o %s',FACET_EXEC,nlist{k,1},Y{k});
 end
 
-% Update envirnoment (! temporararely)
-if strcmp(computer,'MACI64')
-    env1 = getenv('DYLD_LIBRARY_PATH');
-    setenv('DYLD_LIBRARY_PATH','/usr/bin:/usr/local/bin:/usr/local/sbin');
-elseif strcmp(computer,'GLNXA64')
-    env1 = getenv('LD_LIBRARY_PATH');
-    setenv('LD_LIBRARY_PATH','/usr/bin:/usr/local/bin:/usr/local/sbin');
-end
+% Update envirnoment (! temporararely) (done by fex_init??)
+% if strcmp(computer,'MACI64')
+%     env1 = getenv('DYLD_LIBRARY_PATH');
+%     setenv('DYLD_LIBRARY_PATH','/usr/bin:/usr/local/bin:/usr/local/sbin');
+% elseif strcmp(computer,'GLNXA64')
+%     env1 = getenv('LD_LIBRARY_PATH');
+%     setenv('LD_LIBRARY_PATH','/usr/bin:/usr/local/bin:/usr/local/sbin');
+% end
 
-base = pwd;
-tpar = fileparts(FACET_EXEC);
-cd(tpar);
+% base = pwd;
+% tpar = fileparts(FACET_EXEC);
+% cd(tpar);
 
 % Run the preprocessing
 if size(nlist,1) > 1 && IS_PAR
@@ -158,8 +158,8 @@ else
     end
 end
 % return to original environment setting
-cd(base)
-setenv('LD_LIBRARY_PATH',env1);
+% cd(base)
+% setenv('LD_LIBRARY_PATH',env1);
 cmd = char(cmd);
 
 

@@ -13,7 +13,7 @@ function fex_init()
 
 
 
-FEXMETROOT = '/home/filippor/Documents/GitHub/fex-metrica/fexSDK';
+FEXMETROOT = '/Users/filippo/Documents/code/GitHub/fex-metrica/fexSDK';
 
 
 if isempty(FEXMETROOT) || ~exist(FEXMETROOT,'dir')
@@ -54,4 +54,6 @@ end
 % Add .bashrc search to enviroment
 if strcmp(computer,'MACI64')
     setenv('DYLD_LIBRARY_PATH',['/usr/local/bin:/usr/bin:/usr/local/sbin:',getenv('DYLD_LIBRARY_PATH')]);
+elseif strcmp(computer,'GLNXA64')
+    setenv('LD_LIBRARY_PATH',['/usr/bin:/usr/local/bin:/usr/local/sbin:',getenv('LD_LIBRARY_PATH')]);
 end
