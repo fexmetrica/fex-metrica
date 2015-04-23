@@ -23,6 +23,7 @@ classdef fexc < handle
 %
 % UTILITIES:
 % summary - Print information about current FEXC object.
+% fsave - Save FEXC objects to OUTDIR directory.
 % clone	- Make a copy of FEXC object(s), i.e. new handle.
 % reinitialize - Reinitialize the FEXC object to construction stage. 
 % update - Changes FEXC fields.
@@ -216,6 +217,7 @@ function self = fexc(varargin)
 %
 % fexObj = FEXC()
 % fexObj = FEXC('ui')
+% fexObj = FEXC('load',filepath)
 % fexObj = FEXC('data', datafile)
 % fexObj = FEXC('data', datafile,'ArgNam1',ArgVal1,...)
 % fexObj = FEXC('video',videolist)
@@ -227,9 +229,10 @@ function self = fexc(varargin)
 % (1) FEXC() creates an empty FEXC object. You can add data and information
 %     using the method UPDATE.
 % (2) FEXC('ui') opens a UI that assists in generating the object. 
-% (3) FEXC('data', datafile) or FEXC('data',datafile,'ArNam',ArVal,..)
+% (3) FEXC('load',filepath, ...)
+% (4) FEXC('data', datafile) or FEXC('data',datafile,'ArNam',ArVal,..)
 %     creates a FEXC object that was already processed with the FACET SDK.
-% (4) FEXC('video',videolist) or FEXC('video',videolist,'ArNam',ArVal,...),
+% (5) FEXC('video',videolist) or FEXC('video',videolist,'ArNam',ArVal,...),
 %     creates the FEXC object when you have th videos, but you don't have
 %     them processed with FACET SDK yet. This method is only triggered when
 %     you enter 'video', but you don't enter 'data.'
@@ -271,7 +274,8 @@ elseif strcmpi(varargin{1},'ui')
     else
     he = waitbar(0,sprintf('FEXC: 1 / %d',length(h.files)));
     self = h.export(1);
-    ttagdes = self.design.timetag; % Propagare the timetag
+    % Propagare the timetag
+    ttagdes = self.design.timetag;
     for k = 2:length(h.files)
         self = cat(1,self,h.export(k,ttagdes));
         waitbar(k/length(h.files),he,sprintf('FEXC: %d / %d',k,length(h.files)));
@@ -279,6 +283,38 @@ elseif strcmpi(varargin{1},'ui')
     delete(he);
     self.update('name',h.name);
     self.update('outdir',h.targetdir);
+    end
+    return
+elseif strcmpi(varargin{1},'load')
+% -----------------------------------------------------------
+% Reload a FEXC Object
+% -----------------------------------------------------------   
+    fids = {'*.fex','Fex File'; '*.mat','Mat File'};
+    if length(varargin) < 2
+        [FileName,PathName]= uigetfile(fids,'Select Files','MultiSelect','on');
+        if ischar(FileName)
+            name_file{1} = sprintf('%s/%s',PathName,FileName);
+        else
+            name_file = cell(length(FileName));
+            for k = 1:length(name_file)
+                name_file{k} = sprintf('%s/%s',PathName,FileName{k});
+            end
+        end
+    else ischar(varargin{2})
+        name_file{1} = varargin{2};
+    end
+    % Load fexc objects
+    try
+        h = importdata(name_file{1});
+    catch 
+        error('%s not found.',name_file{1});
+    end
+    if isa(h,'cell')
+        name_file = h;
+    end
+    self = importdata(name_file{1});
+    for k = 2:length(name_file)
+        self = cat(1,self,importdata(name_file{k}));
     end
     return
 elseif isa(varargin{1},'struct')
@@ -357,6 +393,64 @@ disp(struct2table(tabinfo));
     
     
 end
+
+% *************************************************************************
+
+function fsave(self,is_compact,name_used)
+%
+% SAVE saves the current FEXC handle.
+%
+% SYNTAX:
+% self.SAVE()
+% self.SAVE(IS_COMPACT)
+%
+% Save saves a FEXC object to the directory specified in SELF.OUTDIR. The
+% flafg IS_COMPACT determines whether each of the FEXC object in a stuck
+% are saved together (IS_COMPACT = true), or whether they are saved as
+% separate files (IS_CONPACT = false). Default is IS_COMPACT = 1.
+%
+% NAME_USED is a string used for the name of the saved file. Default is
+% "FexObj," s.t. FEXC will be saved to:
+%
+%  [SELF.OUTDIR]/[NAME_USED].fex
+%
+% Note that if there are multiple objects within a FEXC stack, and each
+% object is saved independently, the name of each object k will be the
+% string SELF(k).name. A [NAME_USED].fex file will also be generted, which
+% contains a list of the new .fex files.
+% 
+% NOTE: If previous versions where saved, those versions will be
+% overwritten.
+
+% TODO: Add safety check for param specification, and for overwriting.
+
+if ~exist('is_compact','var')
+    is_compact = 1;
+end
+
+if ~exist('name_used','var')
+    name_used = 'FexObj';
+end
+
+% Save FEXC
+if is_compact || length(self) == 1
+    save_as = sprintf('%s/%s.fex',self(1).outdir,name_used);
+    save(save_as,'self');
+else
+    save_as = cell(length(self),1);
+    for k = 1:length(self)
+        save_as{k} = sprintf('%s/%s.fex',self(k).outdir,self(k).name);
+        temp = self(k);
+        save(save_as{k},'temp');
+        clear temp
+    end
+    % Store the list for loading
+    save(sprintf('%s/%s.fex',self(k).outdir,name_used),'save_as');
+end
+
+end
+
+
 
 % *************************************************************************
 
