@@ -85,6 +85,10 @@ function self = crop(self,varargin)
 % 1. Manual area selection;
 % 2. Given coordinates;
 % 3. Fast face finder code (compiled only).
+
+args = struct('manual','off','nsp',10,'fps',0.5);
+
+
     
     
 end

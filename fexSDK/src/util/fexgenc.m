@@ -227,7 +227,7 @@ end
 
 %------------------------------------------------------------------
 
-function [obj,name] = export(self,k)
+function [obj,name] = export(self,k,dttag)
 %
 % EXPORT - creates FEXC object.
 %
@@ -238,6 +238,12 @@ function [obj,name] = export(self,k)
 % EXPORT generates the output OBJ of class FEXC.
 %
 % See also FEXC.
+
+% Check argument
+if ~exist('dttag','var')
+    dttag = '';
+end
+
 
 % Update checklist
 for i = {'movies','files'}
@@ -277,7 +283,7 @@ else
 end
 
 for k = NK
-    args = self.gen2fex(k);
+    args = self.gen2fex(k,dttag);
     obj = cat(1,obj,fexc(args));
 end
 % save(name,'obj');
@@ -444,7 +450,7 @@ end
 
 %------------------------------------------------------------------
 
-function args = gen2fex(self,k)
+function args = gen2fex(self,k,dttag)
 %
 % GEN2FEX - Creates the input argument for FEXC object
 
@@ -490,7 +496,7 @@ end
 % Try to import a design
 if size(self.design,1) >= k
 % Test whether the design file exists
-args.design = fexdesignc(self.design{k});
+args.design = fexdesignc(self.design{k},'timetag',dttag);
 % [~,~,ex] = fileparts(self.design{k});
 % switch ex
 %     case '.txt'

@@ -29,7 +29,7 @@ classdef fexdesignc < handle
 % Copyright (c) - 2014 - 2015 Filippo Rossi, Institute for Neural Computation,
 % University of California, San Diego. email: frossi@ucsd.edu
 %
-% VERSION: 1.0.1 1-Feb-2015.
+% VERSION: 1.0.1 23-Apr-2015.
 %
 % Fixme: Add safe check which won't allow to exclude Time.
 
@@ -361,15 +361,21 @@ function self = align(self,ti)
 % TI is the most recent timeseries from FEXC (i.e. FEXC.TIME.TIMESTAMPS).
 %
 % NOTE that in order for ALIGN to work you need to have self.TIMETAG
-% variable set up, and you need to enter TI.
+% variable set up, and you need to enter TI. If the TIMETAG attribut is not
+% set up, a UI will pop up.
 
 
 % -----------------------------------
 % Check arguments
 % -----------------------------------
-if isempty(self.timetag) || ~exist('ti','var')
+if isempty(self.timetag) && ~exist('ti','var')
     error('Not enough timing information provided.');
-elseif isa(ti,'dataset')
+elseif isempty(self.timetag)
+% Start the UI to add information 
+    feximportdg('file',self);
+end
+
+if isa(ti,'dataset')
     ti = double(ti.TimeStamps);
 end
 
@@ -382,7 +388,7 @@ t = double(self.X.(self.timetag));
 % -----------------------------------
 % Update fields
 % -----------------------------------
-self.X = self.X(idx,:);
+self.X = self.X(idx,:); % This is not needed and it occupies space.
 self.fextime = ti;
 self.tidx = idx;
 
