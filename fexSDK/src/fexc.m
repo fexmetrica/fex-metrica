@@ -69,7 +69,7 @@ classdef fexc < handle
 % Copyright (c) - 2014-2015 Filippo Rossi, Institute for Neural Computation,
 % University of California, San Diego. email: frossi@ucsd.edu
 %
-% VERSION: 1.0.1 4-Feb-2015.
+% VERSION: 1.0.1 23-Apr-2015.
 
     
 properties
@@ -943,9 +943,20 @@ X = [];
 % Select variables for output
 switch lower(ReqArg)
     % Getting Variables
+    case 'design'
+        for k = 1:length(self)
+            X = cat(1,X,self(k).design.align(self(k).time));
+        end
     case 'sentiments'
         for k = 1:length(self)
             X  = cat(1,X,self(k).functional(:,{'positive','negative','neutral'}));
+        end
+    case 'dsentiments' % Derived sentiments
+        for k = 1:length(self)
+            idn  = sum(~isnan(double(self(k).functional)),2);
+            idn(idn == 0)    = nan;
+            idn(~isnan(idn)) = self(k).sentiments.Combined;
+            X = cat(1,X,mat2dataset(idn,'VarNames',{'SentimentsDrived'}));
         end
     case {'au','aus'}
         ind = strncmpi('au',self(1).functional.Properties.VarNames,2);
@@ -1128,7 +1139,7 @@ end
 
 % *************************************************************************
 
-function flist = fexport(self,Spec)
+function flist = fexport(self,Spec,dirname)
 %
 % self.FEXPORT saves selected data to CSV file.
 %
@@ -1145,6 +1156,8 @@ function flist = fexport(self,Spec)
 %
 % SPEC: a string, indicating what to save. This argument is required.
 % Recognized string for SPEC are:
+%
+% - 'UI': Opens a gui for selecting the variables to save.
 %
 % - 'Data1': saves all the data (functional, structural, time and
 %   diagnostics). This format can be read back as a FEXC object using
@@ -1163,45 +1176,92 @@ function flist = fexport(self,Spec)
 %
 % - DIRNAME: A string with a custom name for the saved file.
 %
-% See also GET, VIEWER.
+% See also GET, VIEWER, FEXCHANNELSG.
 
 
-% Controll Spec argument
+% ---------------------------------------
+% Check Spec / Start UI if needed
+% ---------------------------------------
 if ~exist('Spec','var')
-    error('SPEC input needed. Options: ''Data1'',''Data2'',''Annotations''.');
-elseif sum(strcmpi(Spec,{'Data','Data1','Data2','Annotations','Notes'})) == 0;
-    error('SPEC options: ''Data'',''Annotations''.');
+    Spec = 'ui';
+end
+if strcmpi(Spec,'ui')
+    ui_rules = fexchannelsg(self(1));
+    dirname  = ui_rules.select_dir;
+    save_extension = ui_rules.save_extension;
+    ui_rules = rmfield(ui_rules,{'save_extension','select_dir'});
+    if isempty(ui_rules)
+        error('No saving parameters specified.');
+    end
 end
 
-% Initialize waitbar
-h = waitbar(0,sprintf('Exporting %s ... ',Spec));
+% ---------------------------------------
+% Select output directory
+% ---------------------------------------
+if exist('dirname','var')
+    SAVE_TO = repmat(dirname,[length(self),1]);
+elseif ~iesmpty(self(1).dirout)
+    SAVE_TO = self.get('dirout');
+else
+    SAVE_TO = repmat(pwd,[length(self),1]);
+end
+SAVE_TO = [SAVE_TO,repmat('/fexport/',[length(self),1])];
 
+% ---------------------------------------
+% Select output name
+% ---------------------------------------
+if ~exist('save_extension','var')
+    save_extension = '.csv';
+end
+NAME_TO = char(self.get('name'));
+
+% ---------------------------------------
+% Initiate loop / waitbar
+% ---------------------------------------
+h = waitbar(0,sprintf('Exporting %s ... ',Spec));
 flist = cell(length(self),1);
 for k = 1:length(self)
-    if isempty(self(k).outdir)
-        SAVE_TO = sprintf('%s/fexexport',pwd); 
-    else
-        SAVE_TO = sprintf('%s/fexexport',self(k).outdir);
+    if ~exist(SAVE_TO(k,:),'dir')
+        mkdir(SAVE_TO(k,:));
     end
-    % Generate output directory
-    if ~exist(SAVE_TO,'dir')
-        mkdir(SAVE_TO);
-    end
-    
-    % Set up a filename
-    if ~isempty(self(k).video)
-        [~,bname] = fileparts(self(k).video);
-    elseif ~isempty(self(k).name)
-        bname = self(k).name; 
-    else
-        bname = sprintf('fexexport_%s',datestr(now,'HH_MM_SS'));   
-    end
-    
+% ---------------------------------------
+% Select / Generate output directory
+% ---------------------------------------
+%     if isempty(self(k).outdir)
+%         SAVE_TO = sprintf('%s/fexexport',pwd); 
+%     else
+%         SAVE_TO = sprintf('%s/fexexport',self(k).outdir);
+%     end
+%     if ~exist(SAVE_TO,'dir')
+%         mkdir(SAVE_TO);
+%     end
+% ---------------------------------------
+% Set up a filename
+% ---------------------------------------  
+%     if ~isempty(self(k).name)
+%         bname = self(k).name; 
+%     elseif ~isempty(self(k).video)
+%         [~,bname] = fileparts(self(k).video);
+%     else
+%         bname = sprintf('fexexport_%s',datestr(now,'HH_MM_SS'));   
+%     end
+% ---------------------------------------
+% Switch across options
+% ---------------------------------------     
     % Save the data
     switch lower(Spec)
+        case 'ui'
+            ds = self(k).time(:,2);
+            for j = {'design','emotions','sentiments','dsentiments','actionunits','structural'};
+                if ui_rules.(j{1}) == 1
+                    ds = cat(2,ds,self(k).get(j{1}));
+                end
+            end
+            flist{k} = [SAVE_TO(k,:),NAME_TO(k,:),save_extension];
+            export(ds,'file',flist{k},'Delimiter',',');
         case {'data','data1'}
         % Export all the datasets
-            flist{k} = sprintf('%s/%s.csv',SAVE_TO,bname);
+            flist{k} = [SAVE_TO(k,:),NAME_TO(k,:)];
             self(k).export2viewer(flist{k});
         case {'data2'}
         % Cleaner csv file following Emotient Inc. 

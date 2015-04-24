@@ -1,30 +1,13 @@
 function varargout = fexchannelsg(varargin)
-% FEXCHANNELSG MATLAB code for fexchannelsg.fig
-%      FEXCHANNELSG, by itself, creates a new FEXCHANNELSG or raises the existing
-%      singleton*.
 %
-%      H = FEXCHANNELSG returns the handle to a new FEXCHANNELSG or the handle to
-%      the existing singleton*.
+% FEXCHANNELSG - UI for selecting features to be included in the output file.
 %
-%      FEXCHANNELSG('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in FEXCHANNELSG.M with the given input arguments.
 %
-%      FEXCHANNELSG('Property','Value',...) creates a new FEXCHANNELSG or raises the
-%      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before fexchannelsg_OpeningFcn gets called.  An
-%      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to fexchannelsg_OpeningFcn via varargin.
+% Copyright (c) - 2014-2015 Filippo Rossi, Institute for Neural Computation,
+% University of California, San Diego. email: frossi@ucsd.edu
 %
-%      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
-%      instance to run (singleton)".
-%
-% See also: GUIDE, GUIDATA, GUIHANDLES
+% VERSION: 1.0.1 24-Apr-2015.
 
-% Edit the above text to modify the response to help fexchannelsg
-
-% Last Modified by GUIDE v2.5 23-Apr-2015 21:57:03
-
-% Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
@@ -46,28 +29,150 @@ end
 
 % --- Executes just before fexchannelsg is made visible.
 function fexchannelsg_OpeningFcn(hObject, eventdata, handles, varargin)
-% This function has no output args, see OutputFcn.
-% hObject    handle to figure
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to fexchannelsg (see VARARGIN)
+% 
+% OPENINGFCN - UI Initializer
 
-% Choose default command line output for fexchannelsg
-handles.output = hObject;
+set(handles.figure1,'Name','Select Channels');
 
-% Update handles structure
+handles.exporules = struct('emotions',1,'sentiments',1,'dsentiments',1,...
+              'actionunits',0,'structural',0,'timestamps',1,'design',0,...
+              'include_nan',1,'save_extension','.csv','select_dir',pwd);
+
+if ~isempty(varargin)
+    if isa(varargin{1},'fexc')
+        if isempty(varargin{1}(1).design);
+            set(handles.select_design,'Enable','off');
+        end
+    end
+end
+    
+handles.output = handles.exporules;
+guidata(hObject, handles);
+uiwait(handles.figure1);
+
+
+% Close Request **********************************************************
+function figure1_CloseRequestFcn(hObject, eventdata, handles)
+%
+% CLOSEREQUEST - closes the ui.
+
+if isequal(get(handles.figure1,'waitstatus'),'waiting')
+    uiresume(hObject);
+else
+    delete(hObject);
+end
+
+
+% Select Output **********************************************************
+function varargout = fexchannelsg_OutputFcn(hObject, eventdata, handles) 
+%
+% OUTPUTFCN - Select command line output.
+
+varargout{1} = handles.exporules;
+delete(handles.figure1);
+
+
+
+% --- Executes on button press in button_cancel.
+function button_cancel_Callback(hObject, eventdata, handles)
+% 
+% BUTTON_CANCEL - Close without outputing rules
+
+handles.exporules = '';
+handles.output = handles.exporules;
+guidata(hObject, handles);
+figure1_CloseRequestFcn(handles.figure1,[],handles)
+
+
+% --- Executes on button press in button_done.
+function button_done_Callback(hObject, eventdata, handles)
+% 
+% BUTTON_DONE - EXIT THE UI
+
+handles.output = handles.exporules;
+guidata(hObject, handles);
+figure1_CloseRequestFcn(handles.figure1,[],handles)
+
+
+% --- Executes during object creation, after setting all properties.
+function select_extension_Callback(hObject, eventdata, handles)
+% 
+% SELECT EXTENSION - Extension for the file to be saved
+
+ind  = get(handles.select_extension,'Value');
+str  = get(handles.select_extension,'String');
+if ind > 1
+    handles.exporules.timestamps = str{ind};
+else
+    handles.exporules.timestamps = 0;
+end
+
+handles.output = handles.exporules;
 guidata(hObject, handles);
 
-% UIWAIT makes fexchannelsg wait for user response (see UIRESUME)
-% uiwait(handles.figure1);
+% --- Executes on button press in select_design.
+function select_design_Callback(hObject, eventdata, handles)
+%
+% SELECT_DESIGN - Include Design
+
+handles.exporules.design = get(handles.select_design,'Value');
+handles.output = handles.exporules;
+guidata(hObject, handles);
 
 
-% --- Outputs from this function are returned to the command line.
-function varargout = fexchannelsg_OutputFcn(hObject, eventdata, handles) 
-% varargout  cell array for returning output args (see VARARGOUT);
-% hObject    handle to figure
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% --- Executes on button press in select_time.
+function select_time_Callback(hObject, eventdata, handles)
+%
+% SELECT_TIME - Include Time Stamps
 
-% Get default command line output from handles structure
-varargout{1} = handles.output;
+handles.exporules.select_time = get(handles.select_time,'Value');
+handles.output = handles.exporules;
+guidata(hObject, handles);
+
+
+% --- Executes on button press in include_nans.
+function include_nans_Callback(hObject, eventdata, handles)
+%
+% INCLUDE_NANS - Include nan in the data file
+
+handles.exporules.include_nans = get(handles.include_nans,'Value');
+handles.output = handles.exporules;
+guidata(hObject, handles);
+
+
+% --- Executes on button press in select_au.
+function select_au_Callback(hObject, eventdata, handles)
+%
+% SELECT_AU - Include Action Unit
+
+handles.exporules.select_au = get(handles.select_au,'Value');
+handles.output = handles.exporules;
+guidata(hObject, handles);
+
+
+% --- Executes on button press in select_emo.
+function select_emo_Callback(hObject, eventdata, handles)
+% 
+% SELECT_EMO - Inclide Emotions
+
+handles.exporules.select_emo = get(handles.select_emo,'Value');
+handles.output = handles.exporules;
+guidata(hObject, handles);
+
+% --- Executes on button press in select_sentiments.
+function select_sentiments_Callback(hObject, eventdata, handles)
+%
+% SELECT_SENTIMENTS - Include sentiments
+
+handles.exporules.select_sentiments = get(handles.select_sentiments,'Value');
+handles.output = handles.exporules;
+guidata(hObject, handles);
+
+% --- Executes on button press in select_structural.
+function select_structural_Callback(hObject, eventdata, handles)
+%
+% SELECT_STRUCTURAL - Include structural
+
+handles.exporules.select_structural = get(handles.select_structural,'Value');
+handles.output = handles.exporules;
+guidata(hObject, handles);
