@@ -350,7 +350,7 @@ end
 
 % ------------------------------------------------------
 
-function self = align(self,ti)
+function XX = align(self,ti)
 %
 % ALIGN - repeats rows of X in order to match FEXC timeseries size.
 %
@@ -374,7 +374,6 @@ elseif isempty(self.timetag)
 % Start the UI to add information 
     feximportdg('file',self);
 end
-
 if isa(ti,'dataset')
     ti = double(ti.TimeStamps);
 end
@@ -391,6 +390,7 @@ t = double(self.X.(self.timetag));
 % self.X = self.X(idx,:); % This is not needed and it occupies space.
 self.fextime = ti;
 self.tidx = idx;
+XX = self.X(idx,:);
 
 end
 
