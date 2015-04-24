@@ -400,6 +400,7 @@ function exportbutton_Callback(hObject, eventdata, handles)
 % 
 % EXPORTBUTTON - export FEXDESIGNC object.
 
+set(handles.figure1,'Visible','off');
 handles.output = handles.fexd;
 guidata(hObject, handles);
 figure1_CloseRequestFcn(handles.figure1,[],handles)

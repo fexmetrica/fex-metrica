@@ -388,7 +388,7 @@ t = double(self.X.(self.timetag));
 % -----------------------------------
 % Update fields
 % -----------------------------------
-self.X = self.X(idx,:); % This is not needed and it occupies space.
+% self.X = self.X(idx,:); % This is not needed and it occupies space.
 self.fextime = ti;
 self.tidx = idx;
 

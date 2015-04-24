@@ -275,9 +275,9 @@ elseif strcmpi(varargin{1},'ui')
     he = waitbar(0,sprintf('FEXC: 1 / %d',length(h.files)));
     self = h.export(1);
     % Propagare the timetag
-    ttagdes = self.design.timetag;
+    temp_des = self.design;
     for k = 2:length(h.files)
-        self = cat(1,self,h.export(k,ttagdes));
+        self = cat(1,self,h.export(k,temp_des));
         waitbar(k/length(h.files),he,sprintf('FEXC: %d / %d',k,length(h.files)));
     end
     delete(he);

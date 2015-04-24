@@ -227,7 +227,7 @@ end
 
 %------------------------------------------------------------------
 
-function [obj,name] = export(self,k,dttag)
+function [obj,name] = export(self,k,des_temp)
 %
 % EXPORT - creates FEXC object.
 %
@@ -240,8 +240,8 @@ function [obj,name] = export(self,k,dttag)
 % See also FEXC.
 
 % Check argument
-if ~exist('dttag','var')
-    dttag = '';
+if ~exist('des_temp','var')
+    des_temp = '';
 end
 
 
@@ -283,7 +283,7 @@ else
 end
 
 for k = NK
-    args = self.gen2fex(k,dttag);
+    args = self.gen2fex(k,des_temp);
     obj = cat(1,obj,fexc(args));
 end
 % save(name,'obj');
@@ -450,7 +450,7 @@ end
 
 %------------------------------------------------------------------
 
-function args = gen2fex(self,k,dttag)
+function args = gen2fex(self,k,des_temp)
 %
 % GEN2FEX - Creates the input argument for FEXC object
 
@@ -496,19 +496,12 @@ end
 % Try to import a design
 if size(self.design,1) >= k
 % Test whether the design file exists
-args.design = fexdesignc(self.design{k},'timetag',dttag);
-% [~,~,ex] = fileparts(self.design{k});
-% switch ex
-%     case '.txt'
-%         args.design = dataset('File',self.design{k},'Delimiter','\t');
-%     case '.csv'
-%         args.design = dataset('File',self.design{k},'Delimiter',',');
-%     case {'.xlsx','.xls'}
-%         args.design = dataset('XLSFile',self.design{k});
-%     otherwise
-%         warning('File %s not recognized.', self.design{k});
-%     return
-% end
+    args.design = fexdesignc(self.design{k});
+    if isa(des_temp,'fexdesignc')
+        args.design = des_temp.convert(self.design{k});
+    else
+        args.design = fexdesignc(self.design{k},'timetag',des_temp);
+    end
 end
 
 
