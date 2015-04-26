@@ -764,16 +764,43 @@ function self = getvideoInfo(self)
 % Gather video information and store them in FEXC.VIDEOINFO. This is a five
 % component vector, composed of: FrameRate; Duration; NumberOfFrames;
 % Width; Height.
+%
+% Note: GETVIDEOINFO tries to use ffmpeg instead of matlab VIDEOREADER,
+% because it saves time. When it fails, it will attempt to use VIDEOREADER
+% instead. If all fails, the property VIDEOINFO is left empty.
 % 
 % See also VIDEOINFO.
 
 prop = {'FrameRate','Duration','NumberOfFrames','Width','Height'};
 
 for k = 1:length(self)
+% -----------------
+% TRY WITH FFMPEG
+% -----------------
 try
-    self(k).videoInfo = cell2mat(get(VideoReader(self(k).video),prop));
-catch errorID
-    warning(errorID.message);
+    cmd   = sprintf('ffmpeg -i %s 2>&1 | grep "Duration"',self(k).video);
+    [~,o] = unix(sprintf('source ~/.bashrc && %s',cmd));
+    s = strsplit(o,' ');
+    % FIXME:  This makes the assumption that it is always in 3rd position.
+    VI(2) = fex_strtime(s{3}(1:end-1));
+    cmd   = sprintf('ffmpeg -i %s 2>&1 | grep "fps"',self(k).video);
+    [~,o] = unix(sprintf('source ~/.bashrc && %s',cmd));
+    s = strsplit(o,' ');
+    VI(1) = str2double(s{find(strcmp(s,'fps,'))-1});
+    % FIXME:  This makes the assumption that it is always in 11th position.
+    VI(4:5) = cellfun(@str2double,strsplit(s{11},'x'));
+    % FIXME: This is an approximation
+    VI(3) = round(VI(2)*VI(1));
+    self(k).videoInfo = VI;
+catch
+% -----------------
+% TRY WITH MATLAB     
+% -----------------
+    try
+        self(k).videoInfo = cell2mat(get(VideoReader(self(k).video),prop));
+    catch errorID
+        warning(errorID.message);
+    end
 end
 
 end
@@ -3131,7 +3158,8 @@ end
 % Fix Demographic information
 % -------------------------------------
 if ~isempty(self.demographics.isMale)
-    self.demographics.isMale = nanmean(self.demographics.isMale);
+    I = sign(self.demographics.isMale(self.demographics.isMale ~=0));
+    self.demographics.isMale = sum(I) < 0;
 end
 
 % --------------------------------------
