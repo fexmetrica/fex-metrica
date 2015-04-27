@@ -596,7 +596,7 @@ function new_name = convert2mjpg(oldname)
 % 
 % CONVERT2MJPG - Use ffmpeg to re-encode the video to .avi with mjpeg.
 
-if ~exist('fexwstreamermedia','dir')
+if ~exist(sprintf('%s/fexwstreamermedia',pwd),'dir')
     mkdir('fexwstreamermedia');
 end
 [~,fname] = fileparts(oldname);
@@ -609,12 +609,12 @@ if exist(new_name,'file')
 end
 
 % This may not work if I can't find the ffmpeg executable.
-cmd = sprintf('ffmpeg -i %s -vcodec mjpeg -an -q 2 %s',oldname,new_name);
+cmd = sprintf('ffmpeg -i %s -vcodec mjpeg -an -q 2 -loglevel quiet %s',oldname,new_name);
 if exist('~/.bashrc','file')
     cmd = sprintf('source ~/.bashrc && %s',cmd);
 end
-[isError,output] = unix(cmd,'-echo');
-% [isError,output] = unix(sprintf('%s',cmd),'-echo');
+fprintf('Re-encoding the video for ... ')
+[isError,output] = unix(cmd);
 
 if isError ~= 0 
 % Something went wrong: print error, use the old video and leave.

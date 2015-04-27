@@ -2282,7 +2282,7 @@ k = 1; cmd = ''; M = [];
 if ~exist('index','var')
     error('You need to enter the INDEX argument.');
 elseif isa(index,'char') && ismember(index,self(1).design.X.Properties.VarNames)
-% Name of the variable
+% Name of one variable
     flag1 = 1;
 elseif isa(index,'char')
 % One string with one command
@@ -2295,7 +2295,7 @@ elseif isa(index,'char')
     end
 elseif isa(index,'cell')
 % Set of command -- one per each cell
-    flag1 = 2;
+    flag1 = 3;
     cmd = sprintf('self(k).design.X.%s',index{1});
     for i = 2:length(index)
         cmd = cat(2,cmd,sprintf(' && self(k).design.X.%s',index{i}));
