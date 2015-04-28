@@ -847,9 +847,22 @@ function self = videoutil(self,crop_frame,change_fexc)
 %
 % See also FEXW_STREAMERUI, GET, STRUCTURAL.
 
+
 % Add backup for undo
+% ----------------
 self.beckupfex();
 
+
+% Get Executable 
+% ----------------
+if strcmpi(computer,'glnxa64')
+    EXEC = 'avconv';
+else
+    EXEC = 'ffmpeg';
+end
+
+% Read arguments in
+% ----------------
 if ~exist('crop_frame','var')
     crop_frame = false;
 end
@@ -857,7 +870,8 @@ if ~exist('change_fexc','var')
     change_fexc = false;
 end
 
-% Read various CROP_FRAME options
+% Detect Crop options
+% ------------------
 if ~isa(crop_frame,'logical') && ~ismember(4,size(crop_frame))
     error('CROP_FRAME option mispecification.');
 elseif isa(crop_frame,'logical')
@@ -1014,6 +1028,7 @@ switch lower(ReqArg)
         facehdr = {'FaceBoxX','FaceBoxY','FaceBoxW','FaceBoxH'};
         for k = 1:length(self)
             B = double(self(k).structural(:,facehdr));
+            B = B(sum(B,2) ~= 0,:);
             B(:,3:4) = B(:,1:2) + B(:,3:4);
             X = cat(1,X,[min(B(:,1:2)), max(B(:,3:4)) - min(B(:,1:2))]);
         end
@@ -3167,8 +3182,8 @@ end
 % Fix Demographic information
 % -------------------------------------
 if ~isempty(self.demographics.isMale)
-    I = sign(self.demographics.isMale(self.demographics.isMale ~=0));
-    self.demographics.isMale = sum(I) < 0;
+    I = nanmean(self.demographics.isMale(self.demographics.isMale ~=0));
+    self.demographics.isMale = I;
 end
 
 % --------------------------------------
