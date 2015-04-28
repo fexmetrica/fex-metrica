@@ -119,7 +119,7 @@ Y = nlist(:,2);
 h = cell(size(nlist,1),1);
 cmd = cell(size(h));
 for k = 1:size(nlist,1)
-    cmd{k} = sprintf('%s -f %s -o %s',FACET_EXEC,nlist{k,1},Y{k});
+    cmd{k} = sprintf('%s -f "%s" -o "%s"',FACET_EXEC,nlist{k,1},Y{k});
 end
 
 % Update envirnoment (! temporararely) (done by fex_init??)
