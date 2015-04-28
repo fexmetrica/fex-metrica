@@ -34,3 +34,7 @@ fexSDK/samples/docs/.*
 
 # Ignore Paper
 ./paper/
+
+# Ignore temp autosave
+fexSDK/src/*.m~
+fexSDK/src/util/*.m~
