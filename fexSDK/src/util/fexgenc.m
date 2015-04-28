@@ -462,12 +462,16 @@ warning('off','stats:dataset:ModifiedVarnames');
 args = struct('data',[],'video',[],'design',[]);
 
 % Get all relevant info
-fname = deblank(self.files{k});
-if ~exist(fname,'file')
-    warning('File %s does not exist.', fname);
-    return
+try
+    fname = deblank(self.files{k});
+    if ~exist(fname,'file')
+        warning('File %s does not exist.', fname);
+        return
+    end
+    [p,f,ex] = fileparts(fname);
+catch
+    p = ''; f = ''; ex = '';
 end
-[p,f,ex] = fileparts(fname);
 
 try
     args.video = deblank(self.movies{k});
@@ -488,6 +492,8 @@ switch ex
         args.data = dataset('File',fname,'Delimiter',',');
     case {'.xlsx','.xls'}
         args.data = dataset('XLSFile',fname);
+    case ''
+        return
     otherwise
         warning('File %s not recognized.', fname);
     return

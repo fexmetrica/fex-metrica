@@ -343,7 +343,7 @@ else
     h = fexgenc(varargin);
     he = waitbar(0,sprintf('FEXC: 1 / %d',length(h.files)));
     self = h.export(1);
-    for k = 2:length(h.files)
+    for k = 2:length(h.movies)
         self = cat(1,self,h.export(k));
         waitbar(k/length(h.files),he,sprintf('FEXC: %d / %d',k,length(h.files)));
     end
@@ -1398,6 +1398,9 @@ function self = derivesentiments(self,m,emotrect)
 %
 % See also SENTIMENTS. 
 
+if isempty(self(1).functional)
+    return
+end
 
 % Add backup for undo
 self.beckupfex();
@@ -1718,6 +1721,10 @@ function [Desc,Prob] = descriptives(self,varargin)
 % FEXC object.
 %
 % See also GET.
+
+if isempty(self(1).functional)
+    return
+end
 
 if ~isempty(varargin)
     warning('Sorry ... no arguments implemented.');
@@ -3145,12 +3152,14 @@ function self = checkargs(self,args)
 % Functional, Structural & Diagnostics
 % --------------------------------------
 load('fexheaders2.mat')
+if ~isempty(args.data)
 for j = args.data.Properties.VarNames;
 try
     str = hdrs.map2(lower(j{1}));
     self.(hdrs.map1(lower(j{1}))).(str) = args.data.(j{1});
 catch
     fprintf('Ignored variable: %s.\n',j{1});
+end
 end
 end
 
@@ -3177,13 +3186,15 @@ if isempty(self.time.TimeStamps) && isempty(self.videoInfo)
     t = 0:size(self.functional,1);
     self.time.TimeStamps = t';
 elseif isempty(self.time.TimeStamps) && ~isempty(self.videoInfo)
-    t = linespace(self.videoInfo(1),self.videoInfo(2),self.videoInfo(3));
+    t = linspace(self.videoInfo(1),self.videoInfo(2),self.videoInfo(3));
     self.time.TimeStamps = t';
 end
 % Fix order
 [~,ind] = sort(self.time.TimeStamps);
 for p = {'functional','structural','time'}
-    self.(p{1}) = self.(p{1})(ind,:);
+    if ~isempty(self.(p{1}))
+        self.(p{1}) = self.(p{1})(ind,:);
+    end
 end
 if ~isempty(self.diagnostics)
     self.diagnostics = self.diagnostics(ind,:);
@@ -3201,15 +3212,20 @@ for i = 1:bn
     nfnind = find(bl == i,1,'first');
     self.time.FrameNumber(bl == i) = self.time.FrameNumber(nfnind+1);
 end
+
+if ~isempty(self.functional) && ~isempty(self.structural)
 ind = (isnan(sum(double(self.functional),2)) | sum(double(self.functional),2) == 0) & bl(:) > 0;
 self.functional = self.functional(ind == 0,:);
 self.structural = self.structural(ind == 0,:);
 self.time = self.time(ind == 0,:);
+end
+
 self.time.StrTime = fex_strtime(self.time.TimeStamps);
 
 % --------------------------------------
 % Nan Information
 % --------------------------------------
+if ~isempty(self.functional)
 X = self.get('emotions','double');
 bwidx = bwlabel(sum(X,2) == 0 | isnan(sum(X,2)));
 self.naninfo = mat2dataset(zeros(size(X,1),3),'VarNames',{'count','tag','falsepositive'});
@@ -3219,11 +3235,12 @@ for i = 1:max(bwidx)
 end
 % make sure that nans are nans and not 0s.
 self.nanset(1);
+end
 
 % --------------------------------------
 % Diagnostics
 % --------------------------------------
-if isempty(self.diagnostics)
+if isempty(self.diagnostics) && ~isempty(self.functional)
     self.diagnostics.track_id = zeros(size(X,1),1) - self.naninfo.tag > 0;
 else
     self.diagnostics = self.diagnostics(ind == 0,:);
