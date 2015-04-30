@@ -1043,6 +1043,12 @@ switch lower(ReqArg)
             X = cat(1,X,self(k).name);
         end
         X = strtrim(X);
+    case {'video','videos','movie','movies'}
+        X = {};
+        for k = 1:length(self)
+            X = cat(1,X,self(k).video);
+        end
+        X = strtrim(X);  
     case fieldnames(self(1).descrstats)
         self.descriptives();
         % look for global or local varibles.
