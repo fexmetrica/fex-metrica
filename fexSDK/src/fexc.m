@@ -1237,6 +1237,9 @@ if strcmpi(Spec,'ui')
     ui_rules = fexchannelsg(self(1));
     dirname  = ui_rules.select_dir;
     save_extension = ui_rules.save_extension;
+    if ~ismember(save_extension,{'.csv','.mat'})
+        save_extension = '.csv';
+    end
     ui_rules = rmfield(ui_rules,{'save_extension','select_dir'});
     if isempty(ui_rules)
         error('No saving parameters specified.');
@@ -1306,7 +1309,12 @@ for k = 1:length(self)
                 end
             end
             flist{k} = [SAVE_TO(k,:),NAME_TO(k,:),save_extension];
-            export(ds,'file',flist{k},'Delimiter',',');
+            % FIXME: This allows only ".mat" files and ".csv" files
+            if strcmp(save_extension,'.mat')
+                save(flist{k},'ds');
+            elseif strcmp(save_extension,'.csv')
+                export(ds,'file',flist{k},'Delimiter',',');
+            end
         case {'data','data1'}
         % Export all the datasets
             flist{k} = [SAVE_TO(k,:),NAME_TO(k,:)];
