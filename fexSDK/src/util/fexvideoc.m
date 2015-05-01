@@ -187,23 +187,46 @@ if ~exist(SAVE_TO,'dir')
 end
 
 switch which_method
-    case 1
-        for k = 1:self.nv
-            fprintf('Generating new videos %d / %d ...\n ',k,self.nv)
-            [~,f,ex] = fileparts(self.projtree.(which_branch).files{k});
-            % nn = sprintf('%s/%s%s',SAVE_TO,f,ex);
-            nn = sprintf('%s/%s%s',SAVE_TO,f,'.mov');
-            c4 = cmd4(self.projtree.(which_branch).files{k},nn,self.facebox(k,:));
-            [h,o] = system(sprintf('%s %s',self.exec,c4));
-            if h ~=0
-                warning(o);
-            else
-                self.projtree.fexcropd.files{k} = nn;
-            end
+% Use existing face box
+% ---------------------
+case 1
+    for k = 1:self.nv
+        fprintf('Generating new videos %d / %d ...\n ',k,self.nv)
+        [~,f,ex] = fileparts(self.projtree.(which_branch).files{k});
+        % nn = sprintf('%s/%s%s',SAVE_TO,f,ex);
+        nn = sprintf('%s/%s%s',SAVE_TO,f,'.avi');
+        bk = self.facebox(k,:); bk(3:4) = rempamt(max(bk(3:4),[1,2]));
+        c4 = cmd4(self.projtree.(which_branch).files{k},nn,bk);
+        [h,o] = system(sprintf('%s %s',self.exec,c4));
+        if h ~=0
+            warning(o);
+        else
+            self.projtree.fexcropd.files{k} = nn;
         end
-        self.last_branch = 'fexcropd';
-    otherwise
-        return
+    end
+    self.last_branch = 'fexcropd';
+case 2
+% Drow face-box
+% ---------------------
+    if isempty(self.projtree.fexlfpsd.files);
+        self.condense();
+    end
+    self.drawbox(self.projtree.fexlfpsd.files);
+    for k = 1:self.nv
+        fprintf('Generating new videos %d / %d ...\n ',k,self.nv)
+        [~,f,ex] = fileparts(self.projtree.(which_branch).files{k});
+        % nn = sprintf('%s/%s%s',SAVE_TO,f,ex);
+        nn = sprintf('%s/%s%s',SAVE_TO,f,'.mov');
+        c4 = cmd4(self.projtree.(which_branch).files{k},nn,self.facebox(k,:));
+        [h,o] = system(sprintf('%s %s',self.exec,c4));
+        if h ~=0
+            warning(o);
+        else
+            self.projtree.fexcropd.files{k} = nn;
+        end
+    end
+otherwise
+    return
 end
 
 

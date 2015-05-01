@@ -566,11 +566,12 @@ function self = update(self,arg,val)
 %      other methods.
 %    
 %
-% 2. 'functional' ... 
-% 3. 'outdir' ... 
-% 4. 'name' ...
-% 5. 'structural' ... 
-% 6. 'video' ... 
+% 1. 'functional' ... 
+% 2. 'outdir' ... 
+% 3. 'name' ...
+% 4. 'structural' ... 
+% 5. 'video' ... 
+% 6. 'design' ...
 % 7. 'verbose' ... 
 %
 %
@@ -627,10 +628,20 @@ case 'outdir'
         end
     end
 case 'design'
+    % Design update option
+    % --------------------
+    % Default is to reallign the design matrix with the facial expression
+    % matrix.
     if ~exist('val','var')
         for k = 1:length(self)
             self(k).design.align(self(k).time);
         end
+    % --------------------
+    % Open the UI to update the design: This option allows:
+    %
+    % - Add/Modify the existing design;
+    % - Replace existing design with a new one;
+    % - Add new information to the existing design.
     elseif strcmpi(val,'ui')
         if isempty(self(1).design)
             list = fexwsearchg('Select Design Files');
@@ -644,6 +655,8 @@ case 'design'
             self(k).design = self(1).design.convert(self(k).design);
             self(k).design.align(self(k).time);
         end
+    % --------------------
+    % Provide a list of files which will be used as design.
     elseif isa(val,'char') || isa(val,'cell')
         val = char(val);
         for k = 1:length(self)
@@ -3156,7 +3169,7 @@ arg_init = struct('name','','video','','videoInfo',[],...
        'thrsemo',0,'descrstats',[],'annotations',[],'coregparam',[],...
        'naninfo',dataset([],[],[],'VarNames',{'count','tag','falsepositive'}),...
        'diagnostics',dataset([],'VarNames',{'track_id'}),'baseline',[],'verbose',true,...
-       'demographics',struct('isMale',[]));   
+       'demographics',struct('isMale',[],'Age',[],'Race',[]));   
 % Initialization of FEXC object
 fld = fieldnames(arg_init);
 for n = fld'
