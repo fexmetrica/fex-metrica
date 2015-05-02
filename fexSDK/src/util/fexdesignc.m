@@ -48,6 +48,9 @@ properties
     % INCLUDE: a set of indices of variables that will be included in the
     % final design.
     include
+    % DURATION: a string with the name of the variable in X with duration
+    % for each event in the variable TIMETAG
+    duration
 end
 
 properties (Access = protected)
@@ -517,6 +520,7 @@ end
 end
 
 % -------------------------------------------------------------------------
+
 
 function self = convinclude(self)
 %

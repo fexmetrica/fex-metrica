@@ -674,6 +674,25 @@ case 'verbose'
             self(k).verbose = false;
         end
     end
+case {'demographics','demo'}
+    % FIXME: This has no safty check & it's ugly
+    opt  = fieldnames(self(1).demographics);
+    dict = containers.Map({'gender','ismale','male', 'age', 'race'},[1,1,1,2,3]);
+    for j = fieldnames(val)
+        if isKey(dict,lower(j{1}));
+            for k = 1:length(self)
+                if dict(lower(j{1})) == 1 && isa(val.(j{1}),'cell')
+                    if strcmpi(val.(j{1}){k}(1),'m')
+                        self(k).demographics.isMale = 1;
+                    else
+                        self(k).demographics.isMale = -1;
+                    end
+                else
+                    self(k).demographics.(opt{dict(lower(j{1}))}) = val.(j{1})(k);
+                end
+            end
+        end
+    end
 otherwise
     error('Unrecognized field "%s".',arg);
 end
@@ -1108,7 +1127,11 @@ switch lower(ReqArg)
     case 'gender'
         X = {};
         for k = 1:length(self)
-            if self(k).demographics.isMale > 0
+            if ischar(self(k).demographics.isMale)
+                X = cat(1,X,{self(k).demographics.isMale});
+            elseif isa(self(k).demographics.isMale,'cell')
+                X = cat(1,X,self(k).demographics.isMale);
+            elseif self(k).demographics.isMale > 0
                 X = cat(1,X,{'Male'});
             else
                 X = cat(1,X,{'Female'});
