@@ -1031,24 +1031,24 @@ switch lower(ReqArg)
             idn(~isnan(idn)) = self(k).sentiments.Combined;
             X = cat(1,X,mat2dataset(idn,'VarNames',{'SentimentsDrived'}));
         end
-    case {'au','aus'}
+    case {'au','aus','actionunits'}
         ind = strncmpi('au',self(1).functional.Properties.VarNames,2);
         for k = 1:length(self)
             X  = cat(1,X,self(k).functional(:,ind));
         end
     case 'emotions'
-        % list = {'anger','contempt','disgust','joy','fear','sadness',...
-        %         'surprise','confusion','frustration'};
         list = self.listf('primary');
         for k = 1:length(self)
             X  = cat(1,X,self(k).functional(:,list));
         end
+    case {'advanced_emotions','secondary'};
+        list = self.listf('secondary');
+        for k = 1:length(self)
+            X  = cat(1,X,self(k).functional(:,list));
+        end
     case 'landmarks'
-        % k1 = cellfun(@isempty,strfind(self(1).structural.Properties.VarNames, '_x'));
-        % k2 = cellfun(@isempty,strfind(self(1).structural.Properties.VarNames, '_y'));
         list = self.listf('land');
         for k = 1:length(self)
-            % X = cat(1,X,self(k).structural(:,k1==0|k2==0));
             X = cat(1,X,self(k).structural(:,list));
         end
     case 'face'
@@ -1339,7 +1339,7 @@ for k = 1:length(self)
     switch lower(Spec)
         case 'ui'
             ds = self(k).time(:,2);
-            for j = {'design','emotions','sentiments','dsentiments','actionunits','structural'};
+            for j = {'design','emotions','secondary','sentiments','dsentiments','actionunits','structural'};
                 if ui_rules.(j{1}) == 1
                     ds = cat(2,ds,self(k).get(j{1}));
                 end

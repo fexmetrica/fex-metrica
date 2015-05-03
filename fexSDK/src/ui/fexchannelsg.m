@@ -34,7 +34,7 @@ function fexchannelsg_OpeningFcn(hObject, eventdata, handles, varargin)
 
 set(handles.figure1,'Name','Select Channels');
 
-handles.exporules = struct('emotions',1,'sentiments',1,'dsentiments',1,...
+handles.exporules = struct('emotions',1,'secondary',1,'sentiments',1,'dsentiments',1,...
               'actionunits',0,'structural',0,'timestamps',1,'design',0,...
               'include_nan',1,'save_extension','.csv','select_dir',pwd);
 
@@ -101,12 +101,7 @@ function select_extension_Callback(hObject, eventdata, handles)
 
 ind  = get(handles.select_extension,'Value');
 str  = get(handles.select_extension,'String');
-if ind > 1
-    handles.exporules.timestamps = str{ind};
-else
-    handles.exporules.timestamps = 0;
-end
-
+handles.exporules.save_extension = str{ind};
 handles.output = handles.exporules;
 guidata(hObject, handles);
 
@@ -145,7 +140,7 @@ function select_au_Callback(hObject, eventdata, handles)
 %
 % SELECT_AU - Include Action Unit
 
-handles.exporules.select_au = get(handles.select_au,'Value');
+handles.exporules.actionunits = get(handles.select_au,'Value');
 handles.output = handles.exporules;
 guidata(hObject, handles);
 
@@ -155,7 +150,7 @@ function select_emo_Callback(hObject, eventdata, handles)
 % 
 % SELECT_EMO - Inclide Emotions
 
-handles.exporules.select_emo = get(handles.select_emo,'Value');
+handles.exporules.emotions = get(handles.select_emo,'Value');
 handles.output = handles.exporules;
 guidata(hObject, handles);
 
@@ -164,7 +159,7 @@ function select_sentiments_Callback(hObject, eventdata, handles)
 %
 % SELECT_SENTIMENTS - Include sentiments
 
-handles.exporules.select_sentiments = get(handles.select_sentiments,'Value');
+handles.exporules.dsentiments = get(handles.select_sentiments,'Value');
 handles.output = handles.exporules;
 guidata(hObject, handles);
 
@@ -173,6 +168,16 @@ function select_structural_Callback(hObject, eventdata, handles)
 %
 % SELECT_STRUCTURAL - Include structural
 
-handles.exporules.select_structural = get(handles.select_structural,'Value');
+handles.exporules.structural = get(handles.select_structural,'Value');
+handles.output = handles.exporules;
+guidata(hObject, handles);
+
+
+% --- Executes on button press in secondary.
+function secondary_Callback(hObject, eventdata, handles)
+% 
+% SECONDARY - Select secondary emotions
+
+handles.exporules.secondary = get(handles.secondary,'Value');
 handles.output = handles.exporules;
 guidata(hObject, handles);
