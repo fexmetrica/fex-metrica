@@ -385,7 +385,10 @@ end
 % Alignment process
 % -----------------------------------
 t = double(self.X.(self.timetag));
-[~,idx] = min(abs(repmat(ti,[1,length(t)]) - repmat(t',[length(ti),1])),[],2);
+D = repmat(ti,[1,length(t)]) - repmat(t',[length(ti),1]);
+D(D < 0) = Inf;
+[~,idx]  = min(D,[],2);
+% [~,idx] = min(abs(repmat(ti,[1,length(t)]) - repmat(t',[length(ti),1])),[],2);
 
 % -----------------------------------
 % Update fields
