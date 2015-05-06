@@ -1059,10 +1059,15 @@ switch lower(ReqArg)
     case 'facebox'
         facehdr = {'FaceBoxX','FaceBoxY','FaceBoxW','FaceBoxH'};
         for k = 1:length(self)
-            B = double(self(k).structural(:,facehdr));
-            B = B(sum(B,2) ~= 0,:);
-            B(:,3:4) = B(:,1:2) + B(:,3:4);
-            X = cat(1,X,[min(B(:,1:2)), max(B(:,3:4)) - min(B(:,1:2))]);
+            try
+                B = double(self(k).structural(:,facehdr));
+                B = B(sum(B,2) ~= 0,:);
+                B(:,3:4) = B(:,1:2) + B(:,3:4);
+                B = [min(B(:,1:2)), max(B(:,3:4)) - min(B(:,1:2))];
+            catch
+                B = nan(1,4);
+            end
+            X = cat(1,X,B);
         end
         X = mat2dataset(X,'VarNames',facehdr);
     case 'pose'

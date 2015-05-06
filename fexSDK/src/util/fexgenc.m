@@ -483,6 +483,9 @@ end
 switch ex
     case '.json'
         data = fex_jsonparser(fname,[p,'/',f,'.csv'],false); 
+        if isempty(data);
+            return
+        end
         ds = struct2dataset(data);
         [~,ind] = sort(ds.timestamp);
         args.data = ds(ind,:);
