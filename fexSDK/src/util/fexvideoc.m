@@ -51,6 +51,8 @@ properties
     last_branch
     % VIDEOINFO: ... 
     info
+    % CODEX set map
+    codex
 end
 
 
@@ -112,8 +114,8 @@ self.projtree = struct('root',sprintf('%s/fexvideod',pwd),...
     'fexaudid',struct('dir',sprintf('%s/fexvideod/fexaudid',pwd),'files',cell(self.nv,1)));
 for k = 1:self.nv
     p = fileparts(self.video{k});
-    self.projtree.original.dir{k} = p;
-    self.projtree.original.files{k} = self.video{k};
+    self.projtree.original(k).dir = p;
+    self.projtree.original(k).files = self.video{k};
 end
 
 self.last_branch = '';
@@ -154,6 +156,13 @@ else
     fprintf('\nObject using: %s\n\n',s{1});
 end
 
+% Generate codecx banck
+% ---------------------------
+self.codex.h264.vcodec = '-vcodec libx264';
+self.codex.h264.pox_fmt = '-pix_fmt yuv420p';
+self.codex.h264.crf = 5;
+self.codex.mjpeg.vcodec = '-vcodec libx264';
+self.codex.mjpeg.h264.pox_fmt = '-pix_fmt yuv420p';
         
 end
 
@@ -168,19 +177,30 @@ function self = crop(self,which_method,which_branch)
 % 1. Given coordinates;
 % 3. Fast face finder code (compiled only).
 
-% cmd4 = @(f1,f2,b) sprintf('-i %s -filter:v crop=%d:%d:%d:%d -q:v 0 -y -loglevel quiet %s',f1,b,f2);
-cmd4 = @(f1,f2,b) sprintf('-i %s -filter:v crop=%d:%d:%d:%d -q:v 0 -vcodec mjpeg -an -y -loglevel quiet %s',f1,b,f2);
+% Cropping util
+% -------------
+cmd4 = @(f1,f2,b) sprintf('-i %s -filter:v crop=%d:%d:%d:%d -q:v 0 -an -y -loglevel quiet %s',f1,b,f2);
 
-
+% Select input videos
+% -------------
 if ~exist('which_branch','var');
     which_branch = 'original';
 end
 
+% Select croppin method
+% --------------
+wmm = container.Map({'facet','f',1,'manual','drow','inter',2},ones(1,3),2*ones(1,3));
 if ~exist('which_method','var') && ~isempty(self.facebox)
     which_method = 1;
+elseif ~isKey(wmm,lower(which_method));
+    warning('Unrecognized method. Using method: 1.');
+    which_method = 1;
+else
+    which_method = wmm(lower(which_method));
 end
 
-
+% Set up save directory / Renaming Util
+% ---------------
 SAVE_TO = self.projtree.fexcropd.dir;
 if ~exist(SAVE_TO,'dir')
     mkdir(SAVE_TO);
@@ -192,44 +212,40 @@ switch which_method
 case 1
     for k = 1:self.nv
         fprintf('Generating new videos %d / %d ...\n ',k,self.nv)
-        [~,f,ex] = fileparts(self.projtree.(which_branch).files{k});
-        % nn = sprintf('%s/%s%s',SAVE_TO,f,ex);
-        nn = sprintf('%s/%s%s',SAVE_TO,f,'.avi');
-        bk = self.facebox(k,:); bk(3:4) = rempamt(max(bk(3:4),[1,2]));
-        c4 = cmd4(self.projtree.(which_branch).files{k},nn,bk);
+        [~,f,ex] = fileparts(self.projtree.(which_branch)(k).files);
+        nn = sprintf('%s/%s%s',SAVE_TO,f,ex);
+        % nn = sprintf('%s/%s%s',SAVE_TO,f,'.mov');
+        % This forces square boxes
+        % -----------------------
+        bk = self.facebox(k,:);
+        bk(1:2) = repmat(max(bk(1:2)),[1,2]);
+        c4 = cmd4(self.projtree.(which_branch)(k).files,nn,bk);
         [h,o] = system(sprintf('%s %s',self.exec,c4));
         if h ~=0
             warning(o);
         else
-            self.projtree.fexcropd.files{k} = nn;
+            self.projtree.fexcropd(k).files = nn;
         end
     end
     self.last_branch = 'fexcropd';
-case 2
 % Drow face-box
 % ---------------------
-    if isempty(self.projtree.fexlfpsd.files);
-        self.condense();
+case 2
+    if isempty(self.projtree.fexlfpsd(1).files);
+    % Subsample video frequency
+    % -------------------------
+        fprintf('Generating Cropped files.\n');
+        self.condense(0.25,false);
     end
-    self.drawbox(self.projtree.fexlfpsd.files);
-    for k = 1:self.nv
-        fprintf('Generating new videos %d / %d ...\n ',k,self.nv)
-        [~,f,ex] = fileparts(self.projtree.(which_branch).files{k});
-        % nn = sprintf('%s/%s%s',SAVE_TO,f,ex);
-        nn = sprintf('%s/%s%s',SAVE_TO,f,'.mov');
-        c4 = cmd4(self.projtree.(which_branch).files{k},nn,self.facebox(k,:));
-        [h,o] = system(sprintf('%s %s',self.exec,c4));
-        if h ~=0
-            warning(o);
-        else
-            self.projtree.fexcropd.files{k} = nn;
-        end
-    end
+    % Start manual video cropping
+    % -------------------------
+    self.drawbox({self.projtree.fexlfpsd.files}');
+    % Crop the videos
+    % -------------------------
+    self.crop(1,'original');
 otherwise
     return
 end
-
-
 
 end
 
@@ -265,7 +281,7 @@ end
 % Set up utilities command 
 % -----------------------
 cmd1 = @(N1,FPS,S)sprintf(' -i "%s" -r %.1f -q:v 0 -loglevel quiet %s/img%s.jpg',N1,FPS,SAVE_TO,'%08d');
-cmd2 = @(S,N2)sprintf(' -i %s/img%s.jpg -r 15 -vcodec mjpeg -q:v 0 -loglevel quiet "%s"',S,'%08d',N2);
+cmd2 = @(S,N2)sprintf(' -i %s/img%s.jpg -r 15 -vcodec mjpeg -q:v 0 -loglevel quiet -y "%s"',S,'%08d',N2);
 c3 = sprintf('find %s/ -name "*.jpg" -delete',SAVE_TO);
 
 % Downsample videos
@@ -278,7 +294,7 @@ for k = 1:self.nv
     c2 = sprintf('%s %s',self.exec,cmd2(SAVE_TO,nn));
     [h,out] = system(sprintf('%s && %s && %s',c1,c2,c3));
     if h == 0
-        self.projtree.fexlfpsd.files{k} = nn;
+        self.projtree.fexlfpsd(k).files = nn;
     else
         warning(out);
     end 
@@ -322,8 +338,8 @@ end
 % Process with FACET SDK
 % -----------------------
 SAVE_TO = self.projtree.(which_branch).dir;
-Y = fex_facetproc(self.projtree.(which_branch).files,'dir',SAVE_TO);
-f = fexc('videos',self.projtree.(which_branch).files,'files',Y);
+Y = fex_facetproc({self.projtree.(which_branch).files}','dir',SAVE_TO);
+f = fexc('videos',{self.projtree.(which_branch).files}','files',Y);
 
 % False allarm & Face box size
 % -----------------------
@@ -416,6 +432,60 @@ for k = 1:self.nv
 end
         
 end
+
+
+% ==============================================
+
+function b = drawbox(self,vids,is_sq)
+%
+% DRAWBOX -- Manually draw a face box.
+
+% Set up 
+
+if ~exist('is_sq','var')
+    is_sq = 0;
+end
+
+
+for k = 1:length(vids)
+vid = vids{k};
+pos = [];
+in_vid = 1;
+vobj = VideoReader(vid);
+
+% figure
+h = figure('Name','FEXVIDEO: DRAW BOX'); hold on;
+
+
+while in_vid
+    try
+        frame = readFrame(vobj);
+        imshow(frame);
+        if isempty(pos)
+            h1 = imrect();
+            pause
+        else
+            h1 = imrect(gca,pos(end,:));
+            pause
+        end
+        pos = cat(1,pos,getPosition(h1));
+    catch err
+        fprintf(err.message);
+        in_vid = false;
+    end
+end
+close all
+pos(:,3:4) = pos(:,1:2) + pos(:,3:4);
+b = round([min(pos(:,1:2)), max(pos(:,3:4)) - min(pos(:,1:2))]);
+if is_sq
+    b(3:4) = repmat(max(b(3:4)),[1,2]);
+end
+self.facebox = cat(1,self.facebox,b(:,[3,4,1,2]));
+
+end  
+end
+
+
 
 
 
