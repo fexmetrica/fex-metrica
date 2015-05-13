@@ -189,7 +189,7 @@ end
 
 % Select croppin method
 % --------------
-wmm = container.Map({'facet','f',1,'manual','drow','inter',2},ones(1,3),2*ones(1,3));
+wmm = containers.Map({'facet','f',1,'manual','drow','inter',2},ones(1,3),2*ones(1,3));
 if ~exist('which_method','var') && ~isempty(self.facebox)
     which_method = 1;
 elseif ~isKey(wmm,lower(which_method));
