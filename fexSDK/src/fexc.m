@@ -3260,36 +3260,40 @@ elseif isempty(self.time.TimeStamps) && ~isempty(self.videoInfo)
     self.time.TimeStamps = t';
 end
 % Fix order
-[~,ind] = sort(self.time.TimeStamps);
-for p = {'functional','structural','time'}
+[self.time.TimeStamps,ind]  = sort(self.time.TimeStamps);
+[~,ind2] = unique(self.time.TimeStamps);
+for p = {'functional','structural','diagnostics'}
     if ~isempty(self.(p{1}))
         self.(p{1}) = self.(p{1})(ind,:);
+        self.(p{1}) = self.(p{1})(ind2,:);
     end
 end
-if ~isempty(self.diagnostics)
-    self.diagnostics = self.diagnostics(ind,:);
-end
+% if ~isempty(self.diagnostics)
+%     self.diagnostics = self.diagnostics(ind,:);
+% end
 
 % --------------------------------------
 % Check for repeated frames
 % --------------------------------------
-indrep  = [diff(self.time.TimeStamps) < 10e-4; 0];
-self.time.FrameNumber = zeros(size(self.time,1),1);
-self.time.FrameNumber(indrep == 0) = (1:sum(indrep == 0))';
-self.time.FrameNumber(indrep ~= 0) = nan;
-[bl,bn] = bwlabel(isnan(self.time.FrameNumber));
-for i = 1:bn
-    nfnind = find(bl == i,1,'first');
-    self.time.FrameNumber(bl == i) = self.time.FrameNumber(nfnind+1);
-end
+% FIXME -- MAY CREATE N of FRAME ISSUES
+% indrep  = [diff(self.time.TimeStamps) < 10e-4; 0];
+% self.time.FrameNumber = zeros(size(self.time,1),1);
+% self.time.FrameNumber(indrep == 0) = (1:sum(indrep == 0))';
+% self.time.FrameNumber(indrep ~= 0) = nan;
+% [bl,bn] = bwlabel(isnan(self.time.FrameNumber));
+% for i = 1:bn
+%     nfnind = find(bl == i,1,'first');
+%     self.time.FrameNumber(bl == i) = self.time.FrameNumber(nfnind+1);
+% end
+% 
+% if ~isempty(self.functional) && ~isempty(self.structural)
+% ind = (isnan(sum(double(self.functional),2)) | sum(double(self.functional),2) == 0) & bl(:) > 0;
+% self.functional = self.functional(ind == 0,:);
+% self.structural = self.structural(ind == 0,:);
+% self.time = self.time(ind == 0,:);
+% end
 
-if ~isempty(self.functional) && ~isempty(self.structural)
-ind = (isnan(sum(double(self.functional),2)) | sum(double(self.functional),2) == 0) & bl(:) > 0;
-self.functional = self.functional(ind == 0,:);
-self.structural = self.structural(ind == 0,:);
-self.time = self.time(ind == 0,:);
-end
-
+self.time.FrameNumber = (1:size(self.time,1))';
 self.time.StrTime = fex_strtime(self.time.TimeStamps);
 
 % --------------------------------------
