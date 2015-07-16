@@ -139,13 +139,13 @@ function self = execset(self,varargin)
 
 prex = '';
 if exist('~/.bashrc','file');
-    prex = 'source ~/.bashrc';
+    prex = 'source ~/.bashrc && ';
 end
 
 if strcmp(computer,'GLNXA64')
-    self.exec = sprintf('%s && avconv',prex);
+    self.exec = sprintf('%s avconv',prex);
 else
-    self.exec = sprintf('%s && ffmpeg',prex);
+    self.exec = sprintf('%s ffmpeg',prex);
 end
     
 [h,out] = system(self.exec);
@@ -501,12 +501,12 @@ for k = 1:self.nv
     try
         self.info = cat(1,self.info,cell2mat(get(VideoReader(self(k).video),prop)));
     catch
-        cmd  = sprintf('%s -i %s 2>&1 | grep "Duration"',self.exec,self.video{k});
+        cmd  = sprintf('%s -i "%s" 2>&1 | grep "Duration"',self.exec,self.video{k});
         [~,o] = system(sprintf('%s',cmd));
         s = strsplit(o,' ');
         % FIXME:  This makes the assumption that it is always in 3rd position.
         VI(2) = fex_strtime(s{3}(1:end-1));
-        cmd   = sprintf('%s -i %s 2>&1 | grep "fps"',self.exec,self.video{k});
+        cmd   = sprintf('%s -i "%s" 2>&1 | grep "fps"',self.exec,self.video{k});
         [~,o] = system(sprintf('%s',cmd));
         s = strsplit(o,' ');
         VI(1) = str2double(s{find(strcmp(s,'fps,'))-1});
@@ -515,9 +515,11 @@ for k = 1:self.nv
         % FIXME: This is an approximation
         VI(3) = round(VI(2)*VI(1));
         self.info = cat(1,self.info,VI);
+        clc
+        fprintf('Gathering video information: %.3d of %.3d.\n',k,self.nv);
     end
 end
-
+clc;
 end
 
 % ==============================================

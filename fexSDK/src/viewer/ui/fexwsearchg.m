@@ -81,7 +81,7 @@ if isempty(path_wch)
 end
 
 if ismember(upper(computer),{'MACI64','GLNXA64'})
-    cmd = sprintf('find %s -name "%s" | sort',path_str,path_wch);
+    cmd = sprintf('find "%s" -name "%s" | sort',path_str,path_wch);
 else
 % Fixme: this was not tested.
     % cmd = sprintf('find "%s" %s',path_wch,path_str);
@@ -117,7 +117,7 @@ if isempty(path_wch)
 end
 
 % Generate unix cmmand -- this won't work on windows 
-cmd = sprintf('find %s -name "%s" | sort',path_str,path_wch);
+cmd = sprintf('find "%s" -name "%s" | sort',path_str,path_wch);
 [~,list] = unix(cmd);
 if ~isempty(list)
     set(handles.FileListEditable,'String',list);

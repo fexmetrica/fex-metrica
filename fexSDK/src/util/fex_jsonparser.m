@@ -77,7 +77,7 @@ if USE_MATLAB
     data = matjsonpars(jsonfile,new_name);
 else
 % Use Python script
-    cmd = sprintf('python %s %s %s -nohdr',JSON_EXEC,jsonfile,new_name);
+    cmd = sprintf('python %s "%s" "%s" -nohdr',JSON_EXEC,jsonfile,new_name);
     [h,out] = system(cmd);  
     if h ~= 0 
         w_mess = sprintf('FEX_JSON2DAT.PY failed with error:\n\n');
