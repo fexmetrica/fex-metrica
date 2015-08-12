@@ -32,3 +32,4 @@ var
 # Ignore temp autosave
 fexSDK/src/*.m~
 fexSDK/src/util/*.m~
+
