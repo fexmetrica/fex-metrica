@@ -23,7 +23,7 @@ fexSDK/dev
 fexSDK/samples/*
 !fexSDK/samples/data.zip
 !fexSDK/samples/docs
-!fexSDK/samples/fexemple_proc.m
+!fexSDK/samples/example1.m
 !fexSDK/samples/README.md
 
 # Ignore Paper

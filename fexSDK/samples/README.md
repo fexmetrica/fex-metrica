@@ -1,38 +1,85 @@
-FexMetrica Examples Folder
+Example
 ===========
 
-This folder contains an examplification of some of the tools from **fex-metrica**. The code can be run from the file [fexemple1.m](fexemple1.m).
+This folder contains an example of some of the tools from **fex-metrica**. The code can be run from the file [exemple1.m](exemple1.m). I am assuming that **Fex-metrica** was already installed (if not, follow the direction [here](../../README.md).
+
+**NOTE**: The facial expression processing output was extracted using FacetSDK -- i.e. the SDK version of [Emotient Analytics](http://www.emotient.com/products/emotient-analytics/). 
 
 
-File Description
+Dataset
 ===========
 
-This directory is organized as follow:
+The files in [Data](data) include three movie files: contempt.mov, disgust.mov, and smile.mov. Each of the movie file is associated with a .csv file, with the FacetSDK output.
 
-    
-    data/                   directory for data
-        contempt.csv        csv file for contempt movie
-        contempt.json       js file for contempt movie
-        contempt.mov        movie with contempt expression
-        disgust.csv         csv file for disgust movie
-        disgust.json        js file for disgust movie
-        disgust.mov         movie with disgust expression
-        smile.csv           csv file for smile movie
-        smile.json          js file for smile movie
-        smile.mov           movie with smile expression
-    fexemple1.m             main script for example
-    README.md               this file        
-    
+The .csv files contain the following variables:
 
 
-Generate a FEXC object
+* Size of each frame:
+    FrameRows
+    FrameCols
+* Timestamp for the frame:
+    timestamp
+* Face Box coordinates:
+    FaceBoxH
+    FaceBoxW
+    FaceBoxX
+    FaceBoxY
+* Gender evidence (positive = male):
+    isMale
+* Action Units evidence (positive = present):
+    AU1,AU2,AU4-AU7,AU9-AU10,AU12,AU14,AU15,AU17,AU18,AU20,AU23-AU26,AU28.
+* Basic emotions evidence (positive = present):
+    anger
+    contempt
+    disgust
+    fear
+    joy
+    sadness
+    surprise
+* Advanced emotions evidence (positive = present):
+    confusion
+    frustration
+* Sentiments evidence (positive = present):
+    positive
+    negative
+    neutral
+* x,y coordinates for facial landmarks:
+    center_mouth
+    left_eye_lateral
+    left_eye_medial
+    left_eye_pupil
+    nose_tip
+    right_eye_lateral
+    right_eye_medial
+    right_eye_pupil
+* Pose information in degress:
+    pitch
+    roll
+    yaw
+* Track id (0 - N; -1 = no face in the frame):
+    track_id
+
+
+Construct a FEXC object
 ===========
 
-A **fexc** object is the main class used for the analysis, and can be generated in several ways. The easiest way is to use the "ui" option. The UI let you select:
+A **fexc** object is the main class used for the analysis. The constructor requires the movie files and the .csv files. Assuming that you are working from this directory:
 
-1. Video files;
-2. Files with the facial expressions timeseries;
-3. Outout directory.
+
+```Matlab
+% Initialize fex-metrica
+fex_init; 
+
+% Construct the object
+fexobj = fexc('video',{'contempt.mov','disgust.mov','smile.mov'},...
+        'data',{'contempt.csv','disgust.csv','smile.csv'},'outdir',...
+        [pwd '/output']);
+
+```
+
+=========
+
+Alternatively, you can use the "ui" option and select the data using the UI:
 
 
 ```Matlab
@@ -40,24 +87,19 @@ fex_init;
 fexobj = fexc('ui');
 ```
 
-Note that Calling FEX_INIT adds **fex-metrica** to Matlab search path.
-
-If you have the movies, but not the files with facial expressions, the UI gives you the option to analyze the data by pressing the FACET button. For this option to work, you need to have a local copy of the Facet SDK installed. Additionallty, you need to run [fexinstall](../../fexinstall.m).
-
-
 ![alt text](https://github.com/filipporss/fex-metrica/blob/master/fexSDK/samples/docs/constimg.png "Fexc Constructor UI")
 
-===========
+The UI let you select:
 
-An alternative way to create a **fexc** object is to use "varargin" input structure:
+1. Video files;
+2. Files with the facial expressions timeseries;
+3. Outout directory.
 
-```Matlab
-vlist  = fexwsearchg(); % Select the .mov files with the ui;
-dlist  = fexwsearchg(); % Select either .json or .csv files with the ui.
-fexobj = fexc('video',vlist,'data',dlist,'outdir',[pwd '/output']);
-```
+If you have the movies, but not the files with facial expressions, the UI gives you the option to analyze the data by pressing the FACET button. For this option to work, you need to have a local copy of the Facet SDK installed.
 
-The function **fexwsearchg** opens a ui that allows you to select a set of files. If you enter the files manually, they can be either a char object or a cell.
+
+Object Description
+=============
 
 
 Spatial Processing
@@ -121,6 +163,8 @@ fexobj.setbaseline('mean','-global');
 
 In this case, the statistics selected for normalization (i.e. 'mean') is computed over all videos in the FEXC object. By default, the descriptive statistics is computed video-wise.
 
+==========
+
 The second step in normalization is "rectification," which involve setting all facial expressions values lower than a threshold *t* to *t*:
 
 ```Matlab
@@ -141,7 +185,7 @@ fexobj.derivesentiments(0.00);
 
 For each frame, the method **derivesentiments** gets a global negative score **N** (the maximum value between anger, contempt, disgust, sadness and fear). Additionally, it also computes a global positive score **P** (frame-wise maximum between joy and surprise). Each frame is then tagged as positive, negative or neutral based on the following formula:
 
-![equation]($S_{f} = argmax(P_{f},N_{f}*,\xi)$)
+S_{f} = argmax(P_{f},N_{f}*,\xi)
 
 The variable "$\xi$" (set to 0.00 in the example above) is a margin used to define neutral frames. A frame is considered neutral if: max(P_{f},N_{f}) <= $\xi$. Scores for positive and negative frames are set, respectively, to **P**, **N**  or $\xi$, based on which sentiment is more expressed.
 
@@ -184,9 +228,6 @@ Viewer - Overlay display
 ----
 
 [...]
-
-
-**Note** that visualization methods require indices (this limitation will be removed).
 
 
 Save Files and Images

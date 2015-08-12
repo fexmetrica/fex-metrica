@@ -1,9 +1,6 @@
 FEX METRICA 
 ===========
 
-
-![alt text](https://github.com/filipporss/fex-metrica/blob/master/manual/images/fexicon.jpg "Icon")
-
 **fex-metrica** comprises a set of preprocessing and statistical tools for the analysis of time series of facial expressions. This toolbox contains Matlab functions and classes for preprocessing the time series computed with FACET SDK and Emotient Analytics facial expressions recognition tools developped by [Emotient, Inc](http://www.emotient.com).
 
 
