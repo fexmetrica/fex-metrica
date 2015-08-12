@@ -1,6 +1,6 @@
 # Fex-Metrica .gitignore files:
 #
-# Version 10-Apr-2015.
+# Version 08/12/15
 
 # Ignore fex_init file & fexinfo.dat
 fexSDK/include/*
@@ -23,17 +23,11 @@ fexSDK/dev
 fexSDK/samples/*
 !fexSDK/samples/data.zip
 !fexSDK/samples/docs
-fexSDK/samples/docs/.*
 !fexSDK/samples/fexemple_proc.m
-!fexSDK/samples/fexemple_server.m
 !fexSDK/samples/README.md
-# fexSDK/samples/data
-# fexSDK/samples/fexwstreamermedia
-# fexSDK/samples/__MACOSX
-# fexSDK/samples/oldnotes.txt
 
 # Ignore Paper
-./paper/
+var
 
 # Ignore temp autosave
 fexSDK/src/*.m~
