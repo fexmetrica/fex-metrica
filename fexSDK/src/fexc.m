@@ -3221,11 +3221,16 @@ function self = checkargs(self,args)
 % --------------------------------------
 % Functional, Structural & Diagnostics
 % --------------------------------------
-load('fexheaders2.mat')
+load('fexheaders2.mat') 
+fun = @(s)str2double(s(2:end-1)); % FIXME: Wired Emotient Analytics thing
 if ~isempty(args.data)
 for j = args.data.Properties.VarNames;
 try
     str = hdrs.map2(lower(j{1}));
+    % FIXME: Wired Emotient Analytics thing
+    if iscell(args.data.(j{1}));
+        args.data.(j{1}) = cellfun(fun,args.data.(j{1}),'UniformOutput',1);
+    end
     self.(hdrs.map1(lower(j{1}))).(str) = args.data.(j{1});
 catch
     fprintf('Ignored variable: %s.\n',j{1});
