@@ -33,3 +33,5 @@ var
 fexSDK/src/*.m~
 fexSDK/src/util/*.m~
 
+# share private files
+fexSDK/shared/private
