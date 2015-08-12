@@ -843,9 +843,3 @@ else
     set(handles.addmovie,'Checked','on')
 end
 guidata(hObject, handles);
-
-
-
-
-
-
