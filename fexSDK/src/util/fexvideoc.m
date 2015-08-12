@@ -189,7 +189,9 @@ end
 
 % Select croppin method
 % --------------
-wmm = containers.Map({'facet','f',1,'manual','drow','inter',2},ones(1,3),2*ones(1,3));
+% wmm = containers.Maps({'facet','f','1','manual','drow','inter','2'},[ones(1,3),2*ones(1,3)]);
+wmm = containers.Map({'facet','f','1','manual','drow','2'},[ones(1,3),2*ones(1,3)]);
+
 if ~exist('which_method','var') && ~isempty(self.facebox)
     which_method = 1;
 elseif ~isKey(wmm,lower(which_method));
@@ -280,16 +282,16 @@ end
 
 % Set up utilities command 
 % -----------------------
-cmd1 = @(N1,FPS,S)sprintf(' -i "%s" -r %.1f -q:v 0 -loglevel quiet %s/img%s.jpg',N1,FPS,SAVE_TO,'%08d');
-cmd2 = @(S,N2)sprintf(' -i %s/img%s.jpg -r 15 -vcodec mjpeg -q:v 0 -loglevel quiet -y "%s"',S,'%08d',N2);
-c3 = sprintf('find %s/ -name "*.jpg" -delete',SAVE_TO);
+cmd1 = @(N1,FPS,S)sprintf(' -i "%s" -r %.1f -q:v 0 -loglevel quiet "%s/img%s.jpg"',N1,FPS,SAVE_TO,'%08d');
+cmd2 = @(S,N2)sprintf(' -i "%s/img%s.jpg" -r 15 -vcodec mjpeg -q:v 0 -loglevel quiet -y %s',S,'%08d',N2);
+c3 = sprintf('find "%s" -name "*.jpg" -delete',SAVE_TO);
 
 % Downsample videos
 % -----------------------
 for k = 1:self.nv
     fprintf('Resemapling video %d / %d ...\n ',k,self.nv)
     [~,f] = fileparts(self.video{k});
-    nn = sprintf('%s/%s.avi',SAVE_TO,f);
+    nn = sprintf('"%s/%s.avi"',SAVE_TO,f);
     c1 = sprintf('%s %s',self.exec,cmd1(self.video{k},fps,SAVE_TO));
     c2 = sprintf('%s %s',self.exec,cmd2(SAVE_TO,nn));
     [h,out] = system(sprintf('%s && %s && %s',c1,c2,c3));
@@ -504,16 +506,20 @@ for k = 1:self.nv
         cmd  = sprintf('%s -i "%s" 2>&1 | grep "Duration"',self.exec,self.video{k});
         [~,o] = system(sprintf('%s',cmd));
         s = strsplit(o,' ');
-        % FIXME:  This makes the assumption that it is always in 3rd position.
-        VI(2) = fex_strtime(s{3}(1:end-1));
-        cmd   = sprintf('%s -i "%s" 2>&1 | grep "fps"',self.exec,self.video{k});
-        [~,o] = system(sprintf('%s',cmd));
-        s = strsplit(o,' ');
-        VI(1) = str2double(s{find(strcmp(s,'fps,'))-1});
-        % FIXME:  This makes the assumption that it is always in 11th position.
-        VI(4:5) = cellfun(@str2double,strsplit(s{11},'x'));
-        % FIXME: This is an approximation
-        VI(3) = round(VI(2)*VI(1));
+        try
+            % FIXME:  This makes the assumption that it is always in 3rd position.
+            VI(2) = fex_strtime(s{3}(1:end-1));
+            cmd   = sprintf('%s -i "%s" 2>&1 | grep "fps"',self.exec,self.video{k});
+            [~,o] = system(sprintf('%s',cmd));
+            s = strsplit(o,' ');
+            VI(1) = str2double(s{find(strcmp(s,'fps,'))-1});
+            % FIXME:  This makes the assumption that it is always in 11th position.
+            VI(4:5) = cellfun(@str2double,strsplit(s{11},'x'));
+            % FIXME: This is an approximation
+            VI(3) = round(VI(2)*VI(1));
+        catch
+            VI = nan(1,5);
+        end
         self.info = cat(1,self.info,VI);
         clc
         fprintf('Gathering video information: %.3d of %.3d.\n',k,self.nv);
