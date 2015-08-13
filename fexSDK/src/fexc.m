@@ -359,7 +359,7 @@ end
 % CLASS UTILITIES
 % ================================================================
 
-function summary(self)
+function tabinfo = summary(self)
 %
 % SUMMARY - print information about current FEXC object.
 %
@@ -389,7 +389,10 @@ end
 tabinfo.Duration = char(fex_strtime(tabinfo.Duration,'short'));
 
 fprintf('\n%d-dimension FEXC object with the following properties:\n\n',length(self));
-disp(struct2table(tabinfo));
+tabinfo = struct2table(tabinfo);
+if nargout == 0
+    disp(tabinfo);
+end
     
     
 end
