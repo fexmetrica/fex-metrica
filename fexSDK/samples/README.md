@@ -9,9 +9,16 @@ This folder contains an example of some of the tools from **fex-metrica**. The c
 Dataset
 ===========
 
-The files in [Data](data) include three movie files: contempt.mov, disgust.mov, and smile.mov. Each of the movie file is associated with a .csv file, with the FacetSDK output.
+The files in [Data](data) include three videos:
 
-The .csv files contain the following variables:
+* contempt.mov;
+* disgust.mov;
+* smile.mov. 
+
+Each of the videos is associated with two .csv: one with the output from version 4.0.5 of FacetSDK (e.g. contempt_facet.csv), and one with the output from version 4.1.1 from [Emotient Analytic Website](http://www.emotient.com/products/emotient-analytics/).  
+
+
+The facet .csv files contains the following variables:
 
 
 * Size of each frame:
