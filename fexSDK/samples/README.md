@@ -109,13 +109,12 @@ The files that end with "facet.csv", which were computed with SDK v4.0.5 contain
  
 The value -1 indicates that no face was found in the frame.
 
-
 ===========
 FexMetrica Postprocessing
 ===========
 
 
-**Fex-metrica** is meant to be used after you download the data from Emotient Analytic website or, in this case, an SDK -- if you have the SDK, you can call it from Matlab directly. The postprocessing of the facial expression time series discussed below can be run using this code:
+**Fex-metrica** is meant to be used after you download the data from Emotient Analytics website or, in this case, an SDK -- if you have the SDK, you can call it from Matlab directly. The postprocessing of the facial expression time series discussed below can be run using this code:
 
 ```Matlab
 % Use this data
@@ -155,7 +154,7 @@ The sections below elaborare on each of the above steps, that is:
 * Export resulting matrix.
 
 Construct a FEXC object
-===========
+----------
 
 A **fexc** object is the main class used for the analysis. The constructor requires the movie files and the .csv files. Assuming that you are working from this directory:
 
