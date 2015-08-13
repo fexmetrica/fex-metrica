@@ -21,7 +21,7 @@ This folder contains an example of some of the tools from **fex-metrica**. The c
 Dataset
 ===========
 
-There are sets of files in the [data folder](data), one for each of these videos:
+There are three sets of files in the [data folder](data), one for each of these videos:
 
 * contempt;
 * disgust;
@@ -80,6 +80,12 @@ The files that end with "facet.csv", which were computed with SDK v4.0.5 contain
 
 **Overall Sentiments**: Evidence of positive, negative, and neutral sentiments. 
 
+
+The SDK data include directly computed scores for positive, negative and neutral sentiments. From Emotient Analytics, you will now get scores that are derived from a combination of positive emotions (Happiness and Surprise), and negative emotions (Sadness, Fear, Anfer, Disgust, and Contempt).
+
+**Fex-metrica** uses max-pooling to compute aggregate measures for positive, negative and neutral sentiments (**fexc.derivesentiments** described  momentarely).
+
+
 ===============
 
 **Pose**: There are three pose features, all indicating degrees from frontal in a specific plan:
@@ -108,6 +114,17 @@ The files that end with "facet.csv", which were computed with SDK v4.0.5 contain
 | -1    |  ...      |
  
 The value -1 indicates that no face was found in the frame.
+
+===========
+Documentation
+===========
+
+Most function have a documentation, and you can access it using "help" or "doc" on the Matlab front. For example, this allows you to access the main class documentation, as well as the documentation of the related methods and functions: 
+
+
+```Matlab
+>> doc fexc
+```
 
 ===========
 FexMetrica Postprocessing
@@ -156,43 +173,72 @@ The sections below elaborare on each of the above steps, that is:
 Construct a FEXC object
 ----------
 
-A **fexc** object is the main class used for the analysis. The constructor requires the movie files and the .csv files. Assuming that you are working from this directory:
+A **fexc** object is the main class used for the analysis. The constructor requires the movie files and the .csv files.
 
 
 ```Matlab
-% Initialize fex-metrica
-fex_init; 
+% Use this data
+vid = {'data/contempt.mov','data/disgust.mov','data/smile.mov'};
+vid = {'data/contempt_facet.csv','data/disgust_facet.csv','data/smile_facet.csv'};
 
-% Construct the object
-videos = cellstr(ls('data/*facet.mov'));
-data   = cellstr(ls('data/*facet.csv'));
-
-fexobj = fexc('video',{'contempt.mov','disgust.mov','smile.mov'},...
-        'data',{'contempt.csv','disgust.csv','smile.csv'},'outdir',...
-        [pwd '/output']);
-
-```
-
-=========
-
-Alternatively, you can use the "ui" option and select the data using the UI:
-
-
-```Matlab
+% Construction
 fex_init;
-fexobj = fexc('ui');
+fexobj = fexc('video',vid,'data',dat,'outdir',[pwd '/output']);
 ```
 
-![alt text](https://github.com/filipporss/fex-metrica/blob/master/fexSDK/samples/docs/constimg.png "Fexc Constructor UI")
+The function **fex_init** adds **fex-metrica** to your path. Calling **fexc** creates the **FEXC** object. This object has the following public properties:
+
+
+```Matlab
+>> fexobj = 
+
+  3x1 fexc array with properties:
+    name                % Name of the video
+    video               % Path to the video
+    videoInfo           % Info about the video (e.g. duration, fps)
+    functional          % Emotion expressions and AUs timeseries
+    structural          % Landmarks and Pose timeseries
+    sentiments          % Overal sentiments derived with the method described above
+    time                % Seconds (double and strings)
+    design              % External data, such as stimuli time from your experiment
+
+```
+
+=============
+
+Alternatively, you can use the "ui" option and select the data with:
+
+
+```Matlab
+
+fexobj = fexc('ui');
+
+```
+
+![alt text](https://github.com/filipporss/fex-metrica/blob/master/fexSDK/samples/docs/img1.png "Fexc Constructor UI")
 
 The UI let you select:
 
 1. Video files;
 2. Files with the facial expressions timeseries;
-3. Outout directory.
+3. Design files
+4. Outout directory.
 
 If you have the movies, but not the files with facial expressions, the UI gives you the option to analyze the data by pressing the FACET button. For this option to work, you need to have a local copy of the Facet SDK installed.
 
+=============
+
+Once **fexobj** exists, you can get general information about the videos and data in several ways:
+
+```Matlab
+% Videos description, sentiments and percent of missing obeservations 
+fexobj.summary;
+
+% Descriptive statistics video-wise, e.g. 'mean'
+fexobj.get('mean');            % Mean per video   
+fexobj.get('mean','-global');  % Mean across videos
+
+```
 
 Object Description
 =============
@@ -273,18 +319,37 @@ In this example, the threshold is set to *t=-1*.
 Sentiments
 ===========
 
-The [FACET SDK](http://www.emotient.com) output directly aggreagte scores for positive, negative and neutral sentiments. However, **fex-metrica** uses max-pooling to offer another aggregate measure of positive, negative and neutral sentiments. You can use the method **derivesentiments**, and the output is contained in the property **sentiments**.
-
 ```Matlab
-fexobj.derivesentiments(0.00);
+fexobj.derivesentiments(0.25);
 ```
 
-For each frame, the method **derivesentiments** gets a global negative score **N** (the maximum value between anger, contempt, disgust, sadness and fear). Additionally, it also computes a global positive score **P** (frame-wise maximum between joy and surprise). Each frame is then tagged as positive, negative or neutral based on the following formula:
+Positive, negative and neutral are computed using the **derivesentiments** method.
 
-S_{f} = argmax(P_{f},N_{f}*,\xi)
 
-The variable "$\xi$" (set to 0.00 in the example above) is a margin used to define neutral frames. A frame is considered neutral if: max(P_{f},N_{f}) <= $\xi$. Scores for positive and negative frames are set, respectively, to **P**, **N**  or $\xi$, based on which sentiment is more expressed.
+For each frame, **derivesentiments** gets:
 
+* global negative score (N): maximum value between anger, contempt, disgust, sadness and fear;
+* global positive score (P): maximum value between joy and surprise.
+
+Each frame is then tagged as positive, negative or neutral based on the formula:
+
+S_{f} = argmax(P_{f},N_{f}*,ξ)
+
+The variable **ξ** (set to 0.25 in the example above) is a margin used to define neutral frames. A frame is considered neutral if:
+
+max(P_{f},N_{f}) <= ξ.
+
+Scores for positive and negative frames are set, respectively, to **P**, -1***N**  or **ξ**, based on which sentiment is more expressed.
+
+==============
+
+A second way to call **derivesentiments** is the following:
+
+```Matlab
+fexobj.derivesentiments(0.25, 0);
+```
+
+The second argument will set the emotion from the non wining sentiment to some constant *c*, in this case set to c = 0.
 
 Visualization
 ===========
@@ -311,7 +376,7 @@ Viewer - Video and time series
 The VIEWER method called without arguments displays the video and associated timeseries. The tools menu item allows you to focus on the face, and add visualize morphological property for the face displaied in each video.
 
 
-![alt text](https://github.com/filipporss/fex-metrica/blob/master/fexSDK/samples/docs/viewer1.png "Fexc Viewer")
+![alt text](https://github.com/filipporss/fex-metrica/blob/master/fexSDK/samples/docs/img4.png "Fexc Viewer")
 
 
 The UI opened by the method VIEWER has several functionality that can be accessed from the "Tools" menu. Additionally, there are short-keys associated with the UI. For a detailed description look at the help menu:
