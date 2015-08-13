@@ -1,3 +1,14 @@
+WARNING
+===========
+
+The facial expression data used in this example were computed using FACET SDK (v4.0.5) -- namely the SDK associated with [Emotient Analytics](http://www.emotient.com/products/emotient-analytics/). The current online version of the software is 4.1.1. There are few differences of in the output, notably:
+
+* The online version comprises AU 43 (Eyes Closed);
+* The current online version does not output facial landmarks;
+
+Due to the lack of landmarks in the output from Emotient Analytics, some of the viewer options currently do not work. This will be fixed soon. For the sake of this example, use "data/*_facet.csv". For comparison, I included the output of the online version (i.e. "data/*_ea.csv"). 
+
+
 Example
 ===========
 
@@ -15,56 +26,77 @@ The files in [Data](data) include three videos:
 * disgust.mov;
 * smile.mov. 
 
-Each of the videos is associated with two .csv: one with the output from version 4.0.5 of FacetSDK (e.g. contempt_facet.csv), and one with the output from version 4.1.1 from [Emotient Analytic Website](http://www.emotient.com/products/emotient-analytics/).  
+Each of the videos is associated with two .csv: one with the output from version 4.0.5 of FacetSDK (i.e. contempt_facet.csv), and one with the output from version 4.1.1 from [Emotient Analytic Website](http://www.emotient.com/products/emotient-analytics/).  
 
 
-The facet .csv files contains the following variables:
+The "data/*_facet.csv" files contains the following variables:
 
 
-* Size of each frame:
-    FrameRows
-    FrameCols
-* Timestamp for the frame:
-    timestamp
-* Face Box coordinates:
-    FaceBoxH
-    FaceBoxW
-    FaceBoxX
-    FaceBoxY
-* Gender evidence (positive = male):
-    isMale
-* Action Units evidence (positive = present):
-    AU1,AU2,AU4-AU7,AU9-AU10,AU12,AU14,AU15,AU17,AU18,AU20,AU23-AU26,AU28.
-* Basic emotions evidence (positive = present):
-    anger
-    contempt
-    disgust
-    fear
-    joy
-    sadness
-    surprise
-* Advanced emotions evidence (positive = present):
-    confusion
-    frustration
-* Sentiments evidence (positive = present):
-    positive
-    negative
-    neutral
-* x,y coordinates for facial landmarks:
-    center_mouth
-    left_eye_lateral
-    left_eye_medial
-    left_eye_pupil
-    nose_tip
-    right_eye_lateral
-    right_eye_medial
-    right_eye_pupil
-* Pose information in degress:
-    pitch
-    roll
-    yaw
-* Track id (0 - N; -1 = no face in the frame):
-    track_id
+**Size of each frame:**
+
+* FrameRows
+* FrameCols
+
+**Timestamp for the frame:**
+
+* timestamp
+
+**Face Box coordinates:**
+
+* FaceBoxH
+* FaceBoxW
+* FaceBoxX
+* FaceBoxY
+
+**Gender evidence (positive = male):**
+
+* isMale
+
+**Action Units evidence (positive = present):**
+
+* AU1,AU2,AU4-AU7,AU9-AU10,AU12,AU14,AU15,AU17,AU18,AU20,AU23-AU26,AU28.
+
+**Basic emotions evidence (positive = present):**
+
+* anger
+* contempt
+* disgust
+* fear
+* joy
+* sadness
+* surprise
+
+**Advanced emotions evidence (positive = present):**
+
+* confusion
+* frustration
+
+**Sentiments evidence (positive = present):**
+
+* positive
+* negative
+* neutral
+
+**x,y coordinates for facial landmarks:**
+
+* center_mouth
+* left_eye_lateral
+* left_eye_medial
+* left_eye_pupil
+* nose_tip
+* right_eye_lateral
+* right_eye_medial
+* right_eye_pupil
+
+**Pose information in degress:**
+
+* pitch
+* roll
+* yaw
+
+**Track id (0 - N; -1 = no face in the frame):**
+
+* track_id
 
 
 Construct a FEXC object
