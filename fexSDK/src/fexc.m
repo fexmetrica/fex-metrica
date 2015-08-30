@@ -373,6 +373,7 @@ tabinfo.Id       = [];
 tabinfo.Name     = self.get('names');
 tabinfo.Gender   = self.get('gender');
 tabinfo.Duration = [];
+tabinfo.Fps      = [];
 tabinfo.NullObs  = [];
 tabinfo.Positive = [];
 tabinfo.Negative = [];
@@ -380,6 +381,7 @@ tabinfo.Negative = [];
 for k = 1:length(self)
     tabinfo.Id = cat(1,tabinfo.Id,k);
     tabinfo.Duration = cat(1,tabinfo.Duration,self(k).time.TimeStamps(end));
+    tabinfo.Fps      = cat(1,tabinfo.Fps,self(k).videoInfo(1));
     fp = sum(isnan(sum(self(k).get('emotions','double'),2)));
     fp = round(100*fp./size(self(k).functional,1));
     tabinfo.NullObs = cat(1,tabinfo.NullObs,fp);
@@ -1715,7 +1717,7 @@ function self = setbaseline(self,StatName,StatSource,renew)
 self.beckupfex();
 
 % Check StatName argument
-optstats = {'mean','median','q25','q75'};
+optstats = {'mean','median','q25','q75','neutral'};
 if ~exist('StatName','var')
     error('You need to specify baseline statistics.');
 elseif sum(strcmpi(StatName,optstats)) == 0;
@@ -1735,7 +1737,7 @@ if ~exist('StatSource','var')
 end
 
 % Apply baseline
-if strcmpi(StatSource,'-local')
+if strcmpi(StatSource,'-local') && ~strcmpi(StatName,'neutral')
 % Local version computed on the current FEXC object from self.
     h = waitbar(0,'Set Baseline ...');
     for k = 1:length(self)
@@ -1746,8 +1748,21 @@ if strcmpi(StatSource,'-local')
         self(k).update('functional',Y -NormVal);
         self(k).baseline = NormVal;
         waitbar(k/length(self),h);
+    end 
+elseif strcmpi(StatSource,'-local') && strcmpi(StatName,'neutral')
+    h = waitbar(0,'Set Baseline ...');
+    for k = 1:length(self)
+        n = ceil(60/mode(diff(self(k).time.TimeStamps)));
+        Y = double(self(k).functional);
+        N = self(k).functional.neutral;
+        N(isnan(N)) = -10000;
+        [~,ind] = sort(N,'descend');
+        NormVal = nanmean(double(self(k).functional(ind(1:n),:)));
+        self(k).baseline = NormVal;
+        NormVal = repmat(NormVal,[size(Y,1),1]);
+        self(k).update('functional',Y -NormVal);
     end
-elseif strcmpi(StatSource,'-global')
+elseif strcmpi(StatSource,'-global') && ~strcmpi(StatName,'neutral')
 % Global baseline computed on all FEXC object from self.
     h = waitbar(0,'Set Baseline ...');
     NormVal = self(1).get(StatName,'-global');
@@ -3263,17 +3278,21 @@ if isempty(self.time.TimeStamps) && isempty(self.videoInfo)
     warning('No timestamp information provided. Use "UPDATE" method.');
     t = 0:size(self.functional,1);
     self.time.TimeStamps = t';
-elseif isempty(self.time.TimeStamps) && ~isempty(self.videoInfo)
+elseif isempty(1/self.time.TimeStamps) && ~isempty(self.videoInfo)
     t = linspace(self.videoInfo(1),self.videoInfo(2),self.videoInfo(3));
     self.time.TimeStamps = t';
 end
-% Fix order
-[self.time.TimeStamps,ind]  = sort(self.time.TimeStamps);
-[~,ind2] = unique(self.time.TimeStamps);
+% FIXME HERE!
+% [self.time.TimeStamps,ind]  = sort(self.time.TimeStamps);
+% Newer version ... likely a bug
+[~,ind]  = sort(self.time.TimeStamps);
+self.time.TimeStamps = linspace(1/self.videoInfo(1),self.videoInfo(2),length(ind))';
+% [~,ind2] = unique(self.time.TimeStamps);
 for p = {'functional','structural','diagnostics'}
     if ~isempty(self.(p{1}))
+% FIXME I DONT KNOW WHAT IS GOING ON ... 
         self.(p{1}) = self.(p{1})(ind,:);
-        self.(p{1}) = self.(p{1})(ind2,:);
+        %  self.(p{1}) = self.(p{1})(ind2,:);
     end
 end
 % if ~isempty(self.diagnostics)
