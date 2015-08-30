@@ -191,8 +191,7 @@ The function **fex_init** adds **fex-metrica** to your path. Calling **fexc** cr
 
 ```Matlab
 >> fexobj = 
-
-  3x1 fexc array with properties:
+3x1 fexc array with properties:
     name                % Name of the video
     video               % Path to the video
     videoInfo           % Info about the video (e.g. duration, fps)
