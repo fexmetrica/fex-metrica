@@ -88,6 +88,42 @@ The [doc folder](doc) is empty. For now, documentation for most functions or met
 The [samples folder](fexSDK/samples/README.md) contains examples of some operations that you can carry on in **fex-metrica**. 
 
 
+UPDATES
+==============
+
+
+Scheduled Uptgrades
+------------------
+
+| Method                   | Update                          | isDone? |
+| ------------------------ | ------------------------------- | ------- |
+| .FEXC                    | Update documentation            |    0    |
+|                          | Fix timing issue                |    0    |
+| .UPDATE                  | Add multiple args               |    0    |
+|                          | .DESIGN & .DESIGNINIT           |    0    |
+| .REINITIALIZE            | Use defaults                    |    0    |
+| .FEXPORT                 | Clean code                      |    0    |
+|                          | Remove method "data1"           |    0    |
+| .DERIVESENTIMENTS        | Make Sentiments a getter func   |    0    |
+|                          | Set .thrsemo as structure       |    0    |
+|                          | Add two thresold method         |    0    |
+| .DOWNSAMPLE              | Fix structural & video          |    0    |
+|                          | Gaussian kernel option          |    0    |
+| .SETBASELINE             | Make a private property         |    0    |
+|                          | Improve "neutral options"       |    0    |
+| .INTERPOLATE             | Matrix size with structural     |    0    |
+| .GETMATRIX               | Implement as MATRIX             |    0    |
+| .GETBAND                 | Implement                       |    0    |
+| .NORMALIZE               | Add arbitrary bounds            |    0    |
+| .FEXEXPORT2VIEWER        | Remove                          |    0    |
+| .SHOWANNOTATION          | Make stakable in GET            |    0    |
+| .REGRESS                 | Implement MLR                   |    0    |
+| .CLASSIFY                | Implement MLR                   |    0    |
+| .SHOWANNOTATION          | Make stakable in GET            |    0    |
+| .DEFAULT                 | Global default files            |    0    |
+| .ESTCRF                  | Canonical Resp. Project         |    0    |
+| .TEST                    | Implement tests                 |    0    |
+
 ===========
 
 Support for this research was provided by NSF SBE 1232676. Any opinions, findings, and conclusions or recommendations expressed in this material are those of the authors and do not necessarily reflect the views of NSF.
