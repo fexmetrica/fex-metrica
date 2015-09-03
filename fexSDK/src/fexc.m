@@ -3278,26 +3278,18 @@ if isempty(self.time.TimeStamps) && isempty(self.videoInfo)
     warning('No timestamp information provided. Use "UPDATE" method.');
     t = 0:size(self.functional,1);
     self.time.TimeStamps = t';
-elseif isempty(1/self.time.TimeStamps) && ~isempty(self.videoInfo)
-    t = linspace(self.videoInfo(1),self.videoInfo(2),self.videoInfo(3));
+elseif isempty(self.time.TimeStamps) && ~isempty(self.videoInfo)
+    t = linspace(1/self.videoInfo(1),self.videoInfo(2),self.videoInfo(3));
     self.time.TimeStamps = t';
-end
-% FIXME HERE!
-% [self.time.TimeStamps,ind]  = sort(self.time.TimeStamps);
-% Newer version ... likely a bug
-[~,ind]  = sort(self.time.TimeStamps);
-self.time.TimeStamps = linspace(1/self.videoInfo(1),self.videoInfo(2),length(ind))';
-% [~,ind2] = unique(self.time.TimeStamps);
-for p = {'functional','structural','diagnostics'}
-    if ~isempty(self.(p{1}))
-% FIXME I DONT KNOW WHAT IS GOING ON ... 
-        self.(p{1}) = self.(p{1})(ind,:);
-        %  self.(p{1}) = self.(p{1})(ind2,:);
+elseif ~isempty(self.time.TimeStamps) && ~isempty(self.videoInfo)
+    % Test timestamps consistency
+    % FIXME: This assumes that you have only one face per frame.
+    [self.time.TimeStamps,ind]  = sort(self.time.TimeStamps);
+    tt = unique(self.time.TimeStamps);
+    if length(tt) < length(self.time.TimeStamps)
+        self.time.TimeStamps = linspace(1/self.videoInfo(1),self.videoInfo(2),length(ind))';
     end
 end
-% if ~isempty(self.diagnostics)
-%     self.diagnostics = self.diagnostics(ind,:);
-% end
 
 % --------------------------------------
 % Check for repeated frames
@@ -3319,6 +3311,14 @@ end
 % self.structural = self.structural(ind == 0,:);
 % self.time = self.time(ind == 0,:);
 % end
+
+
+for p = {'functional','structural','diagnostics'}
+    if ~isempty(self.(p{1}))
+        self.(p{1}) = self.(p{1})(ind,:);
+      % self.(p{1}) = self.(p{1})(ind2,:);
+    end
+end
 
 self.time.FrameNumber = (1:size(self.time,1))';
 self.time.StrTime = fex_strtime(self.time.TimeStamps);
