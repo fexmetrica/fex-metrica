@@ -95,6 +95,8 @@ properties
     % neutral); two high level emotions (confusion and frustration), and 19
     % action units.
     functional
+    % VERSION: version of the SDK used (default: unknown).
+    version
     % STRUCTURAL: Dataset object with as many rows as frames in the video
     % from FEXC.VIDEO, and 23 columns. This columns indicate number of
     % frame matrix rows and column, location of face box (top left X & Y
@@ -3207,6 +3209,7 @@ function self = init(self)
 % Set default arguments
 load('fexheaders.mat');
 arg_init = struct('name','','video','','videoInfo',[],...
+       'version','unknown',...
        'functional',dataset([],'VarNames',{'AU1'}),...
        'structural',dataset([],'VarNames',{'FrameRows'}),...
        'sentiments',dataset([],[],[],[],'VarNames',{'Winner','Positive','Negative','Combined'}),...
@@ -3240,7 +3243,8 @@ function self = checkargs(self,args)
 % Functional, Structural & Diagnostics
 % --------------------------------------
 load('fexheaders2.mat') 
-fun = @(s)str2double(s(2:end-1)); % FIXME: Wired Emotient Analytics thing
+% FIXME: Wired Emotient Analytics thing
+fun = @(s)str2double(s(2:end-1));
 if ~isempty(args.data)
 for j = args.data.Properties.VarNames;
 try
@@ -3254,6 +3258,13 @@ catch
     fprintf('Ignored variable: %s.\n',j{1});
 end
 end
+end
+
+% -------------------------------------
+% Add version
+% -------------------------------------
+if ismember('version',args.data.Properties.VarNames)
+    self.version = args.data.version{1}(2:end-1);
 end
 
 % -------------------------------------
