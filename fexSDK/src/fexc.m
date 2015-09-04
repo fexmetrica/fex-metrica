@@ -3301,13 +3301,16 @@ if ismember('version',args.data.Properties.VarNames)
 end
 
 % -------------------------------------
-% Fix Demographic information
+% Fix Demographic information: Gender
 % -------------------------------------
 if ~isempty(self.demographics.isMale)
     I = nanmean(self.demographics.isMale(self.demographics.isMale ~=0));
     self.demographics.isMale = I;
 end
 
+% -------------------------------------
+% Fix Demographic information: Age
+% -------------------------------------
 agev = {'age_18','age_25','age_35', 'age_45','age_55','age_65','age_100'};
 agen = [18,25,35,45,55,65,100];
 for i = 1:length(agev)
@@ -3317,6 +3320,9 @@ for i = 1:length(agev)
     end
 end
 
+% -------------------------------------
+% Fix Demographic information: Ethnic.
+% -------------------------------------
 etnv = {'asian','black','hispanic','indian','white'};
 for i = 1:length(etnv)
     fn = sprintf('ethnicity_%s',etnv{i});
