@@ -403,6 +403,39 @@ end
 
 % *************************************************************************
 
+function self = merge(self,nefx)
+%
+% MERGE - add variables from the FEXC object nefx not included in self.
+%
+% Usage: 
+%
+% self.merge(nefx)
+
+for prop =  {'structural','functional'};
+    hdr1 = nefx(1).(prop{1}).Properties.VarNames;
+    hdr2 = self(1).(prop{1}).Properties.VarNames;
+    [nhd,ind] = setdiff(hdr1,hdr2);
+    
+    for k = 1:length(self)
+        s1 = size(self(k).(prop{1}),1);
+        s2 = size(nefx(k).(prop{1}),1);
+        d = s1 - s2;
+        if d == 0
+            self(k).(prop{1}) = [self(k).(prop{1}), nefx(k).(prop{1})(:,ind')];
+        elseif d > 0
+        % FIXME: ADD WORNING FOR SIZE ISSUE
+            add_var = double(nefx(k).(prop{1})(:,ind'));
+            add_var = cat(1,add_var,nan(d,size(add_var,2)));
+            add_var = mat2dataset(add_var,'VarNames',nhd(:)');
+            self(k).(prop{1}) = [self(k).(prop{1}), add_var];
+        end
+    end
+end
+
+end
+
+% *************************************************************************
+
 function fsave(self,is_compact,name_used)
 %
 % SAVE saves the current FEXC handle.
@@ -3273,6 +3306,24 @@ end
 if ~isempty(self.demographics.isMale)
     I = nanmean(self.demographics.isMale(self.demographics.isMale ~=0));
     self.demographics.isMale = I;
+end
+
+agev = {'age_18','age_25','age_35', 'age_45','age_55','age_65','age_100'};
+agen = [18,25,35,45,55,65,100];
+for i = 1:length(agev)
+    if ismember(agev{i},fieldnames(self.demographics));
+        self.demographics.Age = cat(1,self.demographics.Age,[agen(i),nanmean(self.demographics.(agev{i}))]);
+        self.demographics = rmfield(self.demographics,agev{i});
+    end
+end
+
+etnv = {'asian','black','hispanic','indian','white'};
+for i = 1:length(etnv)
+    fn = sprintf('ethnicity_%s',etnv{i});
+    if ismember(fn,fieldnames(self.demographics));
+        self.demographics.Race.(etnv{i}) = nanmean(self.demographics.(fn));
+        self.demographics = rmfield(self.demographics,fn);
+    end
 end
 
 % --------------------------------------
