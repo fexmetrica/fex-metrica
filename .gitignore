@@ -14,6 +14,8 @@ fexSDK/src/facet/cpp/osx/config.hpp
 # Ignore build and data for emotient-matlab
 fexSDK/src/emotient-matlab/_build
 fexSDK/src/emotient-matlab/users
+fexSDK/src/emotient-matlab/test
+
 
 # Ignore test files
 fexSDK/test/test.json
