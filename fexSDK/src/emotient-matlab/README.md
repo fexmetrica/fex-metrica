@@ -1,3 +1,19 @@
+TODO
+============
+
+[] Add send method;
+[] Add delete method;
+[] Make fex-util functions internal;
+[] Add documentation;
+[] Add path storing in .file;
+[] Finish implementing .set;
+[] Add safe checks (user related);
+[] Add user test;
+[] Finish documentation of methods;
+[] Finish README example;
+[] Integrate with FEXC.
+
+
 Emotient Matlab SDK
 ===========
 
@@ -54,7 +70,7 @@ You can install emotient-matlab with [FexMetrica](fexmetrica.com), by following 
 Object Description
 ===============
 
-The main class used for interfacting with [Emotient Analytics API](https://analytics.emotient.com) is [emotient_api](emotient_api.m). The class can be constructed using the following code:
+The main class used for interfacing with [Emotient Analytics API](https://analytics.emotient.com) is [emotient_api](emotient_api.m). The class can be constructed using the following code:
 
 ```Matlab
 
@@ -63,14 +79,6 @@ eam = emotient_api();
 ```
 
 This creates a default **emotient_api** object, with these properties:
-
-
-```Matlab
-
->> eam = emotient_api();
-
-```
-The properties from **emotient_api** are described below:
 
 
 | Property    | Description                              |
@@ -89,7 +97,7 @@ The properties from **emotient_api** are described below:
 | options     | "WEBOPTION" objects used to define users |
 
 
-The field **option** is a [WEBOPTION](http://www.mathworks.com/help/matlab/ref/weboptions.html) isntance, and it is used to generate a user profile. This property has several options. The ones that can be modified by the user are:
+The field **option** is a [WEBOPTIONS](http://www.mathworks.com/help/matlab/ref/weboptions.html) isntance, and it is used to generate a user profile. This property has several options. The ones that can be modified by the user are:
 
 
 | Fields   | Description         |
@@ -111,6 +119,7 @@ obj = emotient_api();
 obj.set('user','Username','frossi','KeyValue','some-key')
 
 ```
+
 The method **.set** allows to add a user profile. Required arguments are 'Username' and 'KeyValue'. The first argument, 'user', tells **.set** which property is being set. When you set a user, a [user].mat file is automatically saved in the directory "users." If you want to use a user profile which already exists, you can construct the **emotient_api** object as follow:
 
 ```Matlab
