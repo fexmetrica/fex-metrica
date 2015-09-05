@@ -11,6 +11,10 @@ fexSDK/src/facet/cpp/osx/fexfacetexec
 fexSDK/src/facet/cpp/osx/CMakeLists.txt
 fexSDK/src/facet/cpp/osx/config.hpp
 
+# Ignore build and data for emotient-matlab
+fexSDK/src/emotient-matlab/_build
+fexSDK/src/emotient-matlab/users
+
 # Ignore test files
 fexSDK/test/test.json
 fexSDK/test/test.csv
