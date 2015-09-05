@@ -42,7 +42,8 @@ classdef emotient_api < handle
 % init - constructor helper.
 % argcheck - deafaults for argument check.
 % checkuser - helper for user constructor.
-%
+% finder - wraper for unix "find" command.
+% switch_env - patch for issue with Matlab copy of curl.
 %
 % Copyright (c) - 2014-2015 Filippo Rossi, Institute for Neural Computation,
 % University of California, San Diego. email: frossi@ucsd.edu
@@ -110,6 +111,9 @@ properties (Access = private)
     %
     % See also LIST, SET.
     page
+    % ENV_FLAG: Boolean value used to switch between DYLD_LIBRARY_PATH on
+    % OSX in order to address an issue with https.
+    env_flag 
 end
  
 
@@ -146,8 +150,10 @@ function self = set(self,prop,varargin)
 %
 % SET - set properties
 
-switch prop
-case 'user'
+self.report = 'updating';
+
+switch lower(prop)
+case {'user','users','u'}
     load(sprintf('%s/include/ea-headers.mat',self.apipath))
     if isempty(varargin)
         error('You need to provide more info.');
@@ -170,10 +176,18 @@ case 'user'
     end
 case {'video','videos','v'}
     if isempty(varargin)
-        self.videos = cellstr(fexwsearchg());
-    elseif ischar(varargin)
+        self.videos = self.finder();
+        warning('Selecting all files in the current directory.')
+    elseif length(varargin) == 1
         self.videos = cellstr(varargin);
+    else
+        self.videos = self.finder(varargin{:});
     end
+case {'outdir','dir'}
+    self.outdir = varargin{1};
+    if ~exist(self.outdir,'dir')
+        mkdir(self.outdir);
+    end     
 otherwise
    error('Only "user" implemented.');     
 end
@@ -185,6 +199,8 @@ end
 function self = list(self,fpp)
 %
 % LIST - Make a list of available media on your account.
+
+self.report = 'listing';
 
 if exist('fpp','var')
     self.page = fpp;
@@ -198,12 +214,17 @@ catch error
     warning(error.message);
     return
 end
-  
-t = struct2cell(temp.items);
-self.media.videos = t(4,:)';
-self.media.id     = t(7,:)';
 
- 
+if isempty(temp.items)
+    self.media.videos = [];
+    self.media.id     = [];
+    self.status       = nan;
+else
+    t = struct2cell(temp.items);
+    self.media.videos = t(4,:)';
+    self.media.id     = t(7,:)';
+    self.status = mean(ismember(t(1,:)','Analysis Complete'));
+end
 end
 
 % ++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -212,8 +233,12 @@ function self = grab(self,select)
 % 
 % GRAB - Download selected emotient analytic files
 %
-% FIXME: add select criterion.
 
+self.report = 'grabbing';
+% FIXME: add select criterion.
+if ~exist('select','var');
+    select = Nan;
+end
 
 % Make media list
 % ===================
@@ -223,24 +248,25 @@ end
 
 % Make selection based on videos
 % ====================
-if ~isempty(self.videos)
-    [~,name1] = cellfun(@fileparts,self.videos,'UniformOutput',0);
-    [~,name2] = cellfun(@fileparts,self.media.videos,'UniformOutput',0);
-    [~,ind] = ismember(name1,name2);
-else
-    ind = (1:length(self.media.videos))';
-end
+[ind,name2] = self.compare_videos();
 
-n = length(ind);
+% Start Tracking
+% ===================
+h = waitbar(0,'Downloading files ... ');
+n = length(ind); k = 1;
+self.files = cell(n,1);
 for i = ind(:)'
     clc; fprintf('downloading video %d / %d.\n',i,n);
     fid = sprintf('%s/v%d/analytics/%s',self.api_base,self.api_version,self.media.id{i});
     data = webread(fid,self.options);
     data = self.ea_convert(data);
     name = sprintf('%s/%s.mat',self.outdir,name2{i});
+    self.files{k,1} = name;
+    k = k + 1;
     save(name,'data');
-    clear data;
+    waitbar(k/n,h);
 end
+delete(h);
   
 end
 
@@ -250,7 +276,53 @@ function self = send(self,varargin)
 %
 % SEND - submitt videos to EA server.
 
+if isempty(self.videos)
+    error('Nothing to upload');
+else
+    self.switch_env(1);
+    for i = 1:length(self.videos);
+        cmd = self.curl_cmd('put',i);
+        [h,o] = system(cmd);
+        if h == 0
+            fprintf('Uploaded video %s.\n',o);
+        else
+            warning('Issues with video: %s.\n',self.video{i});
+        end
+    end
+    self.switch_env(2);
 end
+self.list();
+% NOTE: 
+% fid  = sprintf('%s/v%d/upload',self.api_base,self.api_version);
+% for i = 1:length(self.videos)
+%    [resp] = webwrite(fid','file',self.videos{i},self.options);
+% end
+end
+
+% ++++++++++++++++++++++++++++++++++++++++++++++++++
+function self = clean(self,varargin)
+%
+% CLEAN - remove videos from EA website.
+
+% FIXME: Implement selection!
+
+% Update list
+% ===============
+self.list();
+
+self.switch_env(1);
+for i = 1:length(self.media.id);
+    cmd = self.curl_cmd('delete',i);
+    [~,o] = system(cmd);
+    if o == 0
+        fprintf('Deleted video %s.\n',self.media.videos{i});
+    else
+        warning('Issues with video: %s.\n',self.media.videos{i});
+    end
+end
+self.switch_env(2);
+self.list();
+end 
 
 %===================================================
 %===================================================
@@ -262,7 +334,6 @@ methods (Access = private)
 function self = argcheck(self,args)
 %
 % ARGCHECK - helper function for argument parsing.
-
 
 % def_vals = importdata(sprintf('%s/include/ea_defaults.mat',self.apipath));
 self.init();
@@ -293,6 +364,8 @@ args.outdir = pwd;
 for k = fieldnames(args)'
     self.(k{1}) = args.(k{1});
 end
+% Initialize DYLD_LIBRARY_PATH
+self.env_flag.env = getenv('DYLD_LIBRARY_PATH');
 
 end
 
@@ -315,7 +388,40 @@ elseif ~exist(sprintf('%s/users/%s.mat',self.apipath,self.user),'file');
     warning('User "%s" does not extist.',self.user);
 else
     self.options = importdata(sprintf('%s/users/%s.mat',self.apipath,self.user));
+    self.list();
 end
+
+end
+
+% ++++++++++++++++++++++++++++++++++++++++++++++++++
+
+function [ind,name2,name1] = compare_videos(self,action)
+%
+% COMPARE_VIDEOS - Compare uploaded and locally selected videos.
+  
+switch action
+    case 'download'
+        if isempty(self.media.videos)
+            try self.list()
+                [~,name2] = cellfun(@fileparts,self.media.videos,'UniformOutput',0); 
+            catch errorid
+                errorid(errorid.message);
+            end
+        end
+        
+        if isempty(self.videos)
+            name1 = '';
+            ind = (1:length(self.media.videos))';
+        else
+            [~,name1] = cellfun(@fileparts,self.videos,'UniformOutput',0);
+            [~,ind] = ismember(name1,name2);
+        end
+    case 'upload'
+        fprintf('todo');
+    otherwise
+        error('Unrecognized action.');
+end
+
 
 end
 
@@ -328,13 +434,107 @@ function data = ea_convert(self,data)
 for k = 4:size(data,2)
     data.(data.Properties.VariableNames{k}) = cellfun(@str2double,data.(data.Properties.VariableNames{k}));
 end
+self.report = 'converting';
 
 end
 
 % ++++++++++++++++++++++++++++++++++++++++++++++++++
+function some_list = finder(self,varargin)
+%
+% FINDER - uses unix comand "find" to make a list of files.
+%
+% Usage:
+%
+% list = FINDER();
+% list = FINDER(dir);
+% list = FINDER(dir,ext);
+%
+% Example:
+%
+% list = FINDER(pwd,'*.csv');
+%
+% Copyright (c) - 2014-2015 Filippo Rossi, Institute for Neural Computation,
+% University of California, San Diego. email: frossi@ucsd.edu.
+%
+% This method is a copy of FEX_FIND.m from FexMetrica Toolbox
+% (fexmetrica.com).
+%
+% VERSION: 1.0.1 05-Sept-2015.
+
+
+% Assign arguments
+% ====================
+if isempty(varargin)
+    dirp = pwd;
+    extf = '*';
+elseif length(varargin) == 1;
+    dirp = varargin{1};
+    extf = '*';
+elseif length(varargin) >= 2;
+    dirp = varargin{1};
+    extf = varargin{2};
+end
+    
+% Issue unix command
+% ====================
+cmd = sprintf('find "%s" -name %s|sort',dirp,extf);
+[h,o] = system(cmd);
+
+% Output list
+% ====================
+if h ~= 0
+    error('Error code: %d.\n',h);
+else
+    some_list = cellstr(strsplit(o(1:end-1),'\n'))';
 end
 
+end
 
+% ++++++++++++++++++++++++++++++++++++++++++++++++++
+function self = switch_env(self,arg)
+%
+% SWITCH_ENV fixed an issue with curl and https on Matlab (tested on mac
+% only);
+%
+% FIXME: This was tested only on my machine. But there are several post
+% indicating problems with Matlab version of libcurl.4.dylib and https and
+% git.
+% 
+% References:
+%
+% http://benheavner.com/systemsbio/index.php?title=Matlab_git#Getting_Git_to_work_in_MATLAB_.28on_Mac.29
+% http://www.mathworks.com/matlabcentral/answers/17437-dyld_library_path-problem
+
+if ~strcmp(computer,'MACI64')
+    return
+end
+
+if arg == 1
+    self.env_flag.val = 1;
+    setenv('DYLD_LIBRARY_PATH','/usr/local/bin:/usr/bin:/usr/local/sbin');
+else
+    self.env_flag.val = 2;
+    setenv('DYLD_LIBRARY_PATH',self.env_flag.env);
+end
+
+end
+% ++++++++++++++++++++++++++++++++++++++++++++++++++
+
+function c = curl_cmd(self,task,k)
+% 
+% CURL_CMD - create curl command for Uploading and deleting files.
+
+if strcmp(task,'put')
+    c = sprintf('curl -X POST %s/v%d/upload -H ''Authorization: %s'' -F file=@%s',...
+        self.api_base,self.api_version,self.options.KeyValue,self.videos{k});
+else
+    c = sprintf('curl -X DELETE %s/v%d/media/%s -H ''Authorization: %s''',...
+        self.api_base,self.api_version,self.media.id{k},self.options.KeyValue);
+end
+
+end
+% ++++++++++++++++++++++++++++++++++++++++++++++++++
+end
 %===================================================
 end
 
