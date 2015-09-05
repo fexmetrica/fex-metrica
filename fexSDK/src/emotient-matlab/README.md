@@ -1,17 +1,17 @@
 TODO
 ============
 
-[] Add send method;
-[] Add delete method;
-[] Make fex-util functions internal;
-[] Add documentation;
-[] Add path storing in .file;
-[] Finish implementing .set;
-[] Add safe checks (user related);
-[] Add user test;
-[] Finish documentation of methods;
-[] Finish README example;
-[] Integrate with FEXC.
+[ ] Add send method;
+[ ] Add delete method;
+[ ] Make fex-util functions internal;
+[ ] Add documentation;
+[ ] Add path storing in .file;
+[ ] Finish implementing .set;
+[ ] Add safe checks (user related);
+[ ] Add user test;
+[ ] Finish documentation of methods;
+[ ] Finish README example;
+[ ] Integrate with FEXC.
 
 
 Emotient Matlab SDK
