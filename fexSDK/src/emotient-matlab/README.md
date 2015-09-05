@@ -1,25 +1,22 @@
 TODO
 ============
 
-[ ] Add send method;
-[ ] Add delete method;
-[ ] Make fex-util functions internal;
-[ ] Add documentation;
-[ ] Add path storing in .file;
-[ ] Finish implementing .set;
-[ ] Add safe checks (user related);
-[ ] Add user test;
-[ ] Finish documentation of methods;
-[ ] Finish README example;
-[ ] Integrate with FEXC.
+* Add documentation;
+* Add path storing in .file;
+* Finish implementing .set;
+* Add safe checks (user related);
+* Add user test;
+* Finish documentation of methods;
+* Finish README example;
+* Integrate with FEXC.
 
 
 Emotient Matlab SDK
 ===========
 
-This [Matlab](http://www.mathworks.com) library wraps the [Emotient Analytics API](https://analytics.emotient.com). The library share most of its functionality with [emotient-python](https://github.com/emotient/emotient-python).
+This [Matlab](http://www.mathworks.com) library wraps the [Emotient Analytics API](https://analytics.emotient.com). This library share some functionality with [emotient-python](https://github.com/emotient/emotient-python).
 
-This library is a module of [fex-metrica](fexmetrica.com), a toolbox developed to postprocess and analyze facial expression time series detected with system such as [Emotient Analytics](https://emotient.com).
+This library is a sub-module of [fex-metrica](fexmetrica.com), which is a toolbox developed to postprocess facial expression time series detected with systems such as [Emotient Analytics](https://emotient.com).
 
 Project Tree
 ========
@@ -36,13 +33,13 @@ Project Tree
 Installation & Requirements
 ===========
 
-Requirements
-------------
+**Requirements**
 
-The code was developped on OS X, and Ubuntu 12.04. Most functionality will work on Windows as well. However, some methods use Unix syntax. This code was tested on Matlab v2015a.
+The code was developped on OS X. Most functionality will work on Windows as well. However, some methods use unix shell scripting. This code was tested on Matlab v2015a.
 
-Installation from emotient-matlab repository
-------------
+=============
+
+**Installation from emotient-matlab repository**
 
 To install this library, go to a terminal and issue the following command:
 
@@ -53,18 +50,19 @@ cd emotient-matlab && install.sh
 
 ```
 
-In order to use the library, type the following on the Matlab command line:
+=============
 
-```Matlab
+**Installation with [FexMetrica](fexmetrica.com)**
 
-fex_init;
+You can install emotient-matlab from [FexMetrica](fexmetrica.com) by following these [instructions](fexmetrica.com).
 
-```
+=============
 
-Installation with [FexMetrica](fexmetrica.com)
-------------
+**Known Issues**
 
-You can install emotient-matlab with [FexMetrica](fexmetrica.com), by following these [instructions](fexmetrica.com).
+The class defined in [emotient_api](emotient_api.m) uses Matlab function WEBREAD in order to list and download .csv files from the Emotient website. However both uploading videos and deleting videos from EA server seems to be problematic with Matlab WEBWRITE.
+
+I implemented those operatons with [curl](http://curl.haxx.se). One issue, reported from various sources is that the version of libcurl.4.dylib included in Matlab does not support https. I added a temporary patch, where I temporary change the DYLD_LIBRARY_PATH in order to privilege a different installation of curl and libcurl.
 
 
 Object Description
@@ -169,5 +167,5 @@ To do ...
 
 ================
 
-This code was developped by Filippo Rossi (fexmetrica@gmail.com), [FexMetrica Toolbox](fexmetrica.com). Support for this research was provided by NSF SBE 1232676. Any opinions, findings, and conclusions or recommendations expressed in this material are those of the authors and do not necessarily reflect the views of NSF.
+This code was developped by Filippo Rossi as part of [FexMetrica Toolbox](fexmetrica.com) (contact: fexmetrica@gmail.com). Support for this research was provided by NSF SBE 1232676. Any opinions, findings, and conclusions or recommendations expressed in this material are those of the authors and do not necessarily reflect the views of NSF.
 
