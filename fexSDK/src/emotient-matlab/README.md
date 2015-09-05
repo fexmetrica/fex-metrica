@@ -106,10 +106,10 @@ The field **option** is a [WEBOPTIONS](http://www.mathworks.com/help/matlab/ref/
 | KeyValue | Authentication key  |
 
 
-Examples
+Quick Example
 ================
 
-1. Create a "user" profile
+**1. Create a "user" profile**
 
 ```Matlab
 
@@ -126,7 +126,7 @@ obj = emotient_api('user','frossi');
 
 ```
 
-2. Retrieve your media files
+**2. Retrieve your media files**
 
 The property **.media** is originally empty, but you can populate it with uploaded moviea names (i.e. obj.media.videos) and file unique id (i.e. obj.media.id). In order to populate this property, you can use the following code:
 
@@ -136,7 +136,7 @@ obj.list();
 
 ```
 
-3. Select a set of files to download
+**3. Select a set of files to download**
 
 After listing all the files in your Emotient directory, you can select to download a subset of them:
 
@@ -153,17 +153,24 @@ obj.grab();
 
 ```
 
-If the option property **obj.videos** is empty, the processed files from yor Emotient account will be downloaded.
+If the option property **obj.videos** is empty, all the processed files from yor Emotient account will be downloaded.
 
 
-4. Upload new media
+**4. Upload new media**
 
-To do ...
+```Matlab
 
-5. Delete media files
+obj.set('videos',use_videos);
+obj.send();
 
-To do ... 
+```
+**5. Delete media files**
 
+```Matlab
+
+obj.clean();
+
+```
 
 ================
 
