@@ -9,6 +9,7 @@ classdef fexc < handle
 % FEXC Properties:
 %
 % name - String with the name of the participant;
+% demographics - demographic information;
 % video - Path to a video file;
 % videoInfo - Vector with information about a video;
 % functional - Dataset with facial expressions time series;
@@ -78,6 +79,12 @@ properties
     % the name (without extension) of the video file. If no videofile
     % was provided, this name is set to "John Doe."
     name
+    % DEMOGRAPHICS: field contaning demographic information. For now, the
+    % only field in DEMOGRAPHICS is "isMale", a real vlaue score, which is
+    % positive for male, and negative for female.
+    %
+    % See also GET.
+    demographics
     % VIDEO: String containing the path to the video file currently
     % analyzed. This field can be left empty, however, some graphic
     % functionality are not available whithout a video file.
@@ -195,12 +202,12 @@ properties (Access = protected)
     %
     % See also UPDATE.
     verbose
-    % DEMOGRAPHICS: field contaning demographic information. For now, the
-    % only field in DEMOGRAPHICS is "isMale", a real vlaue score, which is
-    % positive for male, and negative for female.
+    % ENGINE: Emotient analytic engine: this is a structure with fields:
+    %   isapi
+    %   issdk
     %
-    % See also GET.
-    demographics
+    % NOTE: Not implemented yet.
+    engine
 end
 
 
@@ -613,6 +620,7 @@ function self = update(self,arg,val)
 % 5. 'video' ... 
 % 6. 'design' ...
 % 7. 'verbose' ... 
+% 8. 'baseline' ... 
 %
 %
 % NOTE that UPDATE for 'functional' and 'structural' don't work on stacks
@@ -715,7 +723,7 @@ case 'verbose'
         end
     end
 case {'demographics','demo'}
-    % FIXME: This has no safty check & it's ugly
+    % FIXME: This has no safty check & It won't work with EMOTIENT
     opt  = fieldnames(self(1).demographics);
     dict = containers.Map({'gender','ismale','male', 'age', 'race'},[1,1,1,2,3]);
     for j = fieldnames(val)
@@ -733,6 +741,15 @@ case {'demographics','demo'}
             end
         end
     end
+case 'baseline'
+    % New videos or image files to be processed
+    % New set of FEXC objects already processed
+    % New set of text / csv files 
+    % FIXME: Only the mean is used right now
+    
+    
+    
+    
 otherwise
     error('Unrecognized field "%s".',arg);
 end
@@ -1089,7 +1106,11 @@ switch lower(ReqArg)
     case 'landmarks'
         list = self.listf('land');
         for k = 1:length(self)
-            X = cat(1,X,self(k).structural(:,list));
+            try
+                X = cat(1,X,self(k).structural(:,list));
+            catch
+                X = cat(1,X,nan(size(self(k).structural,1),1));
+            end
         end
     case 'face'
         ind = cellfun(@isempty,strfind(self.structural.Properties.VarNames, 'Face'));
@@ -2831,8 +2852,14 @@ function self = normalize(self,varargin)
 % ---------------------------------------
 % Add backup for undo
 % ---------------------------------------
-
 self.beckupfex();
+
+% ---------------------------------------
+% Read arguments
+% ---------------------------------------
+% init_args = varargin;
+% args = fex_varargutil(init_args);
+
 
 % ---------------------------------------
 % Read arguments
@@ -3297,7 +3324,7 @@ end
 % Add version
 % -------------------------------------
 if ismember('version',args.data.Properties.VarNames)
-    self.version = args.data.version{1}(2:end-1);
+    self.version = args.data.version{1};
 end
 
 % -------------------------------------
