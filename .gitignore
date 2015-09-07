@@ -5,6 +5,10 @@
 # Ignore fex_init file & fexinfo.dat
 fexSDK/include/*
 
+# Ignore main _build file
+fexSDK/_build
+
+
 # Ignore build files
 fexSDK/src/facet/cpp/osx/build
 fexSDK/src/facet/cpp/osx/fexfacetexec
@@ -15,7 +19,6 @@ fexSDK/src/facet/cpp/osx/config.hpp
 fexSDK/src/emotient-matlab/_build
 fexSDK/src/emotient-matlab/users
 fexSDK/src/emotient-matlab/test
-
 
 # Ignore test files
 fexSDK/test/test.json
@@ -32,12 +35,11 @@ fexSDK/samples/*
 !fexSDK/samples/example1.m
 !fexSDK/samples/README.md
 
-# Ignore Paper
+# Ignore dump directory
 var
 
 # Ignore temp autosave
 fexSDK/src/*.m~
 fexSDK/src/util/*.m~
 
-# share private files
-fexSDK/shared/private
+
