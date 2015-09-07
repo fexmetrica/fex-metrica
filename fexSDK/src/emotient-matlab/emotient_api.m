@@ -288,7 +288,7 @@ else
         if h == 0
             fprintf('Uploaded video %s.\n',o);
         else
-            warning('Issues with video: %s.\n',self.video{i});
+            warning('Issues with video: %s.\n',self.videos{i});
         end
     end
     self.switch_env(2);
