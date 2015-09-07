@@ -55,9 +55,7 @@ coregister register face boxes to average face video location
 
 automatic documentation fexc()
 ------------------------------
-.. automodule:: fexSDK.src
-
-.. autoclass:: fexc
+.. automodule:: fexc
     :show-inheritance:
     :members:
 
