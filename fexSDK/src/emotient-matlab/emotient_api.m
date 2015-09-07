@@ -183,7 +183,7 @@ case {'video','videos','v'}
     else
         self.videos = self.finder(varargin{:});
     end
-case {'outdir','dir'}
+case {'outdir','dir','dirout'}
     self.outdir = varargin{1};
     if ~exist(self.outdir,'dir')
         mkdir(self.outdir);
@@ -237,7 +237,7 @@ function self = grab(self,select)
 self.report = 'grabbing';
 % FIXME: add select criterion.
 if ~exist('select','var');
-    select = Nan;
+    select = nan;
 end
 
 % Make media list
@@ -248,7 +248,7 @@ end
 
 % Make selection based on videos
 % ====================
-[ind,name2] = self.compare_videos();
+[ind,name2] = self.compare_videos('download');
 
 % Start Tracking
 % ===================
@@ -260,10 +260,12 @@ for i = ind(:)'
     fid = sprintf('%s/v%d/analytics/%s',self.api_base,self.api_version,self.media.id{i});
     data = webread(fid,self.options);
     data = self.ea_convert(data);
-    name = sprintf('%s/%s.mat',self.outdir,name2{i});
+%     name = sprintf('%s/%s.mat',self.outdir,name2{i});
+    name = sprintf('%s/%s.csv',self.outdir,name2{i});
     self.files{k,1} = name;
     k = k + 1;
-    save(name,'data');
+    export(table2dataset(data),'file',name,'delimiter',',');
+%     save(name,'data');
     waitbar(k/n,h);
 end
 delete(h);
@@ -317,7 +319,7 @@ for i = 1:length(self.media.id);
     if o == 0
         fprintf('Deleted video %s.\n',self.media.videos{i});
     else
-        warning('Issues with video: %s.\n',self.media.videos{i});
+        warning('Issues with video: %s: %s\n',self.media.videos{i},o);
     end
 end
 self.switch_env(2);
@@ -401,11 +403,12 @@ function [ind,name2,name1] = compare_videos(self,action)
   
 switch action
     case 'download'
-        if isempty(self.media.videos)
+        if ~isempty(self.media.videos)
             try self.list()
                 [~,name2] = cellfun(@fileparts,self.media.videos,'UniformOutput',0); 
             catch errorid
                 errorid(errorid.message);
+                name2 = '';
             end
         end
         
