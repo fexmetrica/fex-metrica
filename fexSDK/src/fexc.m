@@ -656,9 +656,11 @@ case {'name','video'}
     else
         for k = 1:length(self)
             try
-                self(k).(arg) = deblank(char(val(k,:)));
-            catch
+                % FIXME:
+                % self(k).(arg) = deblank(char(val(k,:)));
                 self(k).(arg) = val{k};
+            catch
+                self(k).(arg) = val(k,:);
             end
         end
     end
@@ -748,6 +750,7 @@ case 'baseline'
     % FIXME: Only the mean is used right now
     
     
+case 'time'
     
     
 otherwise
@@ -1140,7 +1143,11 @@ switch lower(ReqArg)
         for k = 1:length(self)
             X = cat(1,X,self(k).name);
         end
-        X = strtrim(X);
+        if ischar(X{1})
+            X = strtrim(X);
+        else
+            X = cell2mat(X);
+        end
     case {'video','videos','movie','movies'}
         X = {};
         for k = 1:length(self)
@@ -1727,7 +1734,7 @@ end
 % *************************************************************************          
        
 
-function self = setbaseline(self,StatName,StatSource,renew)
+function self = setbaseline(self,StatName,StatSource,renew,duration)
 %
 % SETBASELINE normalizes the data using a BASELINE.
 %
@@ -1788,6 +1795,11 @@ if renew
     self.descriptives();
 end
 
+if ~exist('duration','var')
+    duration = '00:00:01.000';
+end
+    
+
 if ~exist('StatSource','var')
    StatSource = '-local';
 end
@@ -1808,7 +1820,7 @@ if strcmpi(StatSource,'-local') && ~strcmpi(StatName,'neutral')
 elseif strcmpi(StatSource,'-local') && strcmpi(StatName,'neutral')
     h = waitbar(0,'Set Baseline ...');
     for k = 1:length(self)
-        n = ceil(60/mode(diff(self(k).time.TimeStamps)));
+        n = ceil(fex_strtime(duration)/mode(diff(self(k).time.TimeStamps)));
         Y = double(self(k).functional);
         N = self(k).functional.neutral;
         N(isnan(N)) = -10000;
@@ -1926,7 +1938,7 @@ G2(isnan(G2)) = 0;
 OBnames = {'mean','std','median','q25','q75'};
 for k = 1:length(self)
     self(k).descrstats.glob  = mat2dataset(G1,'VarNames',vnamesX,'ObsNames',OBnames);
-    self(k).descrstats.globp = mat2dataset(G2,'VarNames',vnamesP);
+    self(k).descrstats.globp = mat2dataset(G2(:,1:3),'VarNames',vnamesP(1:3));
 end
 
 % Output
@@ -2731,7 +2743,8 @@ end
                   'type' , type{length(param)},...
                   'output','real',...
                   'show',false,...
-                  'matrix','off');
+                  'matrix','off',...
+                  'update',false);
     % Read varargin
     argsn = fieldnames(args);
     for i = 1:length(argsn)
@@ -2773,8 +2786,15 @@ end
         TS = abs(ts.analytic).^2;
     elseif strcmp(args.output,'analytic')
         TS = ts.analytic;
+    elseif strcmp(args.output,'energy')
+        TS = sqrt(imag(ts.analytic).^2 + ts.real.^2);
     else
         error('Unknwon output type.');
+    end
+    
+    % Add update
+    if args.update
+        self.update('functional',TS);
     end
 
     if isa(args.matrix,'struct')
@@ -2998,7 +3018,7 @@ elseif length(varargin) == 1 && length(varargin{1}) > 1
     kk = varargin{1}./sum(varargin{1});
 elseif length(varargin) == 2
     pars = cell2mat(varargin);
-    kk = normpdf(linspace(-2,2,round(max(pars))),0,min(pars));
+    kk = normpdf(linspace(-2.5,2.5,round(max(pars))),0,min(pars));
     kk = kk./sum(kk);
 else
     error('Wrong arguments specification.');
@@ -3031,14 +3051,41 @@ self.derivesentiments();
 delete(h);
 end
 
+
 % *************************************************************************
-% *************************************************************************   
+% *************************************************************************  
 
+function self = morlet(self,s,f,c)
+%
+% S - Support in seconds;
+% F - vector of frequencies (Hz.);
+% C - vecror with Gaussian cycles;
+% ACTION - string ... 
+
+sr = mode(diff(self(1).time.TimeStamps));
+s  = linspace(-s/2,s/2,sr*s);
+
+filt = fex_mwavelet('time',s,'frequencies',f,'bandwidth',c,'constant','off');
+
+for k = 1:length(self)
+    
+    
+end
+    
+
+
+
+
+
+
+end 
+
+    
+
+% *************************************************************************
+% *************************************************************************  
+    
     function self = kernel(self)
-        fprintf('something');
-    end
-
-    function self = morlet(self)
         fprintf('something');
     end
 
