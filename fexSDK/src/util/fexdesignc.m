@@ -349,10 +349,6 @@ end
 newobj.timetag = self.timetag;  
 end
 
-% ------------------------------------------------------
-
-% ------------------------------------------------------
-
 function XX = align(self,ti)
 %
 % ALIGN - repeats rows of X in order to match FEXC timeseries size.
@@ -399,6 +395,10 @@ self.tidx = idx;
 XX = self.X(idx,:);
 
 end
+
+% ------------------------------------------------------
+
+% ------------------------------------------------------
 
 
 end

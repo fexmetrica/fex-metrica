@@ -241,7 +241,11 @@ case 2
     end
     % Start manual video cropping
     % -------------------------
-    self.drawbox({self.projtree.fexlfpsd.files}');
+    try
+        self.drawbox({self.projtree.fexlfpsd.files}');
+    catch
+        self.drawbox({self.projtree.fexlfpsd.files(2:end-1)}')
+    end
     % Crop the videos
     % -------------------------
     self.crop(1,'original');
