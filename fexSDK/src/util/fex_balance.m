@@ -8,6 +8,13 @@ function [X,y, selected] = fex_balance(X,y)
 % and the index of the selected datapoints.
 
 
+
+if isa(X,'dataset');
+    flag = 1;
+    vnames = X.Properties.VarNames;
+    X = double(X);
+end
+
 if sum(y == 0) > 0; y(y == 0) = -1; do_me = 'yes';
 else do_me = 'no'; end
 
@@ -45,3 +52,9 @@ if strcmp(do_me, 'yes'); balance(balance(:,end)==-1,end) = 0; end
 y = balance(:,end);
 
 selected = list(1:n);
+
+if flag
+    X = mat2dataset(X,'VarNames',vnames);
+end
+
+
