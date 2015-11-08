@@ -179,7 +179,7 @@ case {'video','videos','v'}
         self.videos = self.finder();
         warning('Selecting all files in the current directory.')
     elseif length(varargin) == 1
-        self.videos = cellstr(varargin);
+        self.videos = varargin{1};
     else
         self.videos = self.finder(varargin{:});
     end
@@ -250,13 +250,19 @@ end
 % ====================
 [ind,name2] = self.compare_videos('download');
 
+% FIXME: Add NAMES OPTION
+if ~isnan(select)
+    ind = ind(select);
+%     name2 = name2(select);
+end
+
 % Start Tracking
 % ===================
 h = waitbar(0,'Downloading files ... ');
 n = length(ind); k = 1;
 self.files = cell(n,1);
 for i = ind(:)'
-    clc; fprintf('downloading video %d / %d.\n',i,n);
+    clc; fprintf('downloading video %d / %d.\n',i,length(name2));
     fid = sprintf('%s/v%d/analytics/%s',self.api_base,self.api_version,self.media.id{i});
     data = webread(fid,self.options);
     data = self.ea_convert(data);
