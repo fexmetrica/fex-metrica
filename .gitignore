@@ -43,3 +43,8 @@ fexSDK/src/*.m~
 fexSDK/src/util/*.m~
 
 
+# Ignore paper except for pdf
+paper/*
+!paper/*.pdf
+
+
