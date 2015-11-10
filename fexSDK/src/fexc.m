@@ -751,10 +751,16 @@ case 'baseline'
     
     
 case 'time'
-    
-    
+% FIXME: this is a special case for the AB data
+    for k = 1:size(val,1)
+        nt = linspace(0,val(k),size(self(k).functional,1));
+        self(k).time.TimeStamps = nt';
+        self(k).time.StrTime = fex_strtime(nt');
+    end
+
 otherwise
     error('Unrecognized field "%s".',arg);
+    
 end
 
 end
@@ -1171,7 +1177,7 @@ switch lower(ReqArg)
                 X = mat2dataset(X,'VarNames',self(k).descrstats.hdrs{1}{1});
             end
             n = self.get('names');
-            X.Properties.ObsNames = n;
+            X.Properties.ObsNames = char(n);
         end
     case {'naninfo','nan'}
     % Read naninfo private property
@@ -1807,7 +1813,7 @@ end
 % Apply baseline
 if strcmpi(StatSource,'-local') && ~strcmpi(StatName,'neutral')
 % Local version computed on the current FEXC object from self.
-    h = waitbar(0,'Set Baseline ...');
+    h = waitbar(0,'Set Baseline ... ');
     for k = 1:length(self)
         Y = double(self(k).functional);
         NormVal = double(self(k).get(lower(StatName)));
