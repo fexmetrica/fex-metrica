@@ -1,4 +1,4 @@
-function list = fex_find(varargin)
+function [list,lname] = fex_find(varargin)
 %
 % FEX_FIND - uses unix comand "find" to make a list of files.
 %
@@ -50,5 +50,8 @@ else
     list = cellstr(strsplit(o(1:end-1),'\n'))';
 end
 
+% Output list with name only
+% ====================
+[~,lname] = cellfun(@fileparts,list,'UniformOutput',0);
 
 
