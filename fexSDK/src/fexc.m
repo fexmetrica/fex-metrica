@@ -390,7 +390,7 @@ tabinfo.Negative = [];
 for k = 1:length(self)
     tabinfo.Id = cat(1,tabinfo.Id,k);
     tabinfo.Duration = cat(1,tabinfo.Duration,self(k).time.TimeStamps(end));
-    tabinfo.Fps      = cat(1,tabinfo.Fps,self(k).videoInfo(1));
+    tabinfo.Fps      = cat(1,tabinfo.Fps,1/mean(diff(self(k).time.TimeStamps)));
     fp = sum(isnan(sum(self(k).get('emotions','double'),2)));
     fp = round(100*fp./size(self(k).functional,1));
     tabinfo.NullObs = cat(1,tabinfo.NullObs,fp);
@@ -401,9 +401,9 @@ tabinfo.Duration = char(fex_strtime(tabinfo.Duration,'short'));
 
 fprintf('\n%d-dimension FEXC object with the following properties:\n\n',length(self));
 tabinfo = struct2table(tabinfo);
-if nargout == 0
-    disp(tabinfo);
-end
+% if nargout == 0
+%     disp(tabinfo);
+% end
     
     
 end
@@ -752,12 +752,28 @@ case 'baseline'
     
 case 'time'
 % FIXME: this is a special case for the AB data
-    for k = 1:size(val,1)
-        nt = linspace(0,val(k),size(self(k).functional,1));
-        self(k).time.TimeStamps = nt';
-        self(k).time.StrTime = fex_strtime(nt');
+%     for k = 1:size(val,1)
+%         nt = linspace(0,val(k),size(self(k).functional,1));
+%         self(k).time.TimeStamps = nt';
+%         self(k).time.StrTime = fex_strtime(nt');
+%     end
+% FIXME: VAL is a list of 
+    for k = 1:length(val)
+        T = importdata(val{k});
+        if size(T,1) == size(self(k).functional,1)
+            nt = T.Time;
+        elseif (size(T,1) - size(self(k).functional,1)) >= -10
+            del = size(self(k).functional,1) - size(T,1);
+            del = cumsum(mean(diff(T.Time))*ones(del,1));
+            nt  = [T.Time; T.Time(end)+del];
+        elseif (size(T,1) - size(self(k).functional,1)) < -10
+            nt = linspace(mean(diff(T.Time)),T.Time(end),size(self(k).functional,1));
+        else
+            error('Dimension Mismatch.');
+        end
+        self(k).time.TimeStamps = nt(:);
+        self(k).time.StrTime = fex_strtime(nt(:));
     end
-
 otherwise
     error('Unrecognized field "%s".',arg);
     
@@ -1590,7 +1606,8 @@ ValS(ValS(:,1) == 3,5) = 0;
 % NOTE: Sentiments do not include nans
 self(k).sentiments = mat2dataset(ValS(:,[1:3,5]),'VarNames',{'Winner','Positive','Negative','Combined'});
 self(k).sentiments.TimeStamps = self(k).time.TimeStamps;
-I = ~isnan(sum(double(self(k).functional),2));
+% FIXME: THIS WILL HAVE A CASCADE EFFECT
+% I = ~isnan(sum(double(self(k).functional),2));
 
 if exist('emotrect','var')
 % Clean up emotions dataset
@@ -1607,7 +1624,8 @@ if exist('emotrect','var')
         self(k).functional.(i{1}) = temp;
     end
 end
-self(k).sentiments = self(k).sentiments(I,:);
+% FIXME: THIS WILL HAVE A CASCADE EFFECT
+% self(k).sentiments = self(k).sentiments(I,:);
 end
 
 end
