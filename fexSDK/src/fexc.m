@@ -368,7 +368,7 @@ end
 % CLASS UTILITIES
 % ================================================================
 
-function tabinfo = summary(self)
+function varargout = summary(self)
 %
 % SUMMARY - print information about current FEXC object.
 %
@@ -401,9 +401,12 @@ tabinfo.Duration = char(fex_strtime(tabinfo.Duration,'short'));
 
 fprintf('\n%d-dimension FEXC object with the following properties:\n\n',length(self));
 tabinfo = struct2table(tabinfo);
-% if nargout == 0
-%     disp(tabinfo);
-% end
+
+if nargout == 0;
+    disp(tabinfo);
+else
+    varargout{1} = tabinfo;
+end
     
     
 end
@@ -773,6 +776,10 @@ case 'time'
         end
         self(k).time.TimeStamps = nt(:);
         self(k).time.StrTime = fex_strtime(nt(:));
+        % Update videoinfo
+        self(k).videoInfo(1:3) = [1/mean(diff(self(k).time.TimeStamps)),...
+            self(k).time.TimeStamps(end),...
+            size(self(k).time,1)];
     end
 otherwise
     error('Unrecognized field "%s".',arg);
@@ -1583,9 +1590,12 @@ end
 ValS = [max(double(self(k).functional(:,indP)),[],2),...
         max(double(self(k).functional(:,indN)),[],2)];   
 % Neutral is defined as all features <= m (default is 0)
-ValS = cat(2,ValS,max(ValS,[],2) <= m);
+ValS    = cat(2,ValS,max(ValS,[],2) <= m);
+neutVal = abs(mean(self(k).get('emotions','double'),2));
+neutVal(ValS(:,3) == 0) = 0; 
 
 % Set to zero N/P for Neutal frames
+% FIXME: Why am I doing this??
 ValS(:,1:2) = ValS(:,1:2).*repmat(1-ValS(:,3),[1,2]);
 
 % Set to zero N/P loosing frames
@@ -1604,10 +1614,10 @@ ValS(ValS(:,1) == 2,5) = -ValS(ValS(:,1) == 2,5);
 ValS(ValS(:,1) == 3,5) = 0;
 
 % NOTE: Sentiments do not include nans
-self(k).sentiments = mat2dataset(ValS(:,[1:3,5]),'VarNames',{'Winner','Positive','Negative','Combined'});
+self(k).sentiments = mat2dataset([ValS(:,1:3),neutVal,ValS(:,5)],'VarNames',{'Winner','Positive','Negative','Neutral','Combined'});
 self(k).sentiments.TimeStamps = self(k).time.TimeStamps;
 % FIXME: THIS WILL HAVE A CASCADE EFFECT
-% I = ~isnan(sum(double(self(k).functional),2));
+I = ~isnan(sum(double(self(k).functional),2));
 
 if exist('emotrect','var')
 % Clean up emotions dataset
@@ -1626,6 +1636,16 @@ if exist('emotrect','var')
 end
 % FIXME: THIS WILL HAVE A CASCADE EFFECT
 % self(k).sentiments = self(k).sentiments(I,:);
+
+% FIXME: This overwrite the native positive, negative and neutral (assuming
+% they are there).
+for sn = {'Positive','Negative','Neutral'}
+    self(k).functional.(lower(sn{1})) = self(k).sentiments.(sn{1});
+end
+
+% FIXME: THIS WILL HAVE A CASCADE EFFECT
+self(k).sentiments = self(k).sentiments(I,:);
+
 end
 
 end
@@ -2366,7 +2386,7 @@ if NofNans < 0.90
     if ~isempty(self(k).diagnostics)
         self(k).diagnostics = self(k).diagnostics(nfr,:);
     end
-    % Updare history
+    % Update history
     self(k).history.interpolate = [self(k).time,self(k).naninfo,self(k).functional];
 else
     warning('Fexc object %d does not contain data.',k);
