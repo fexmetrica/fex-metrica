@@ -1643,9 +1643,10 @@ end
 
 % FIXME: This overwrite the native positive, negative and neutral (assuming
 % they are there).
-for sn = {'Positive','Negative','Neutral'}
-    self(k).functional.(lower(sn{1})) = self(k).sentiments.(sn{1});
-end
+% FIXME: This was taken out
+% for sn = {'Positive','Negative','Neutral'}
+%     self(k).functional.(lower(sn{1})) = self(k).sentiments.(sn{1});
+% end
 
 % FIXME: THIS WILL HAVE A CASCADE EFFECT
 self(k).sentiments = self(k).sentiments(I,:);
