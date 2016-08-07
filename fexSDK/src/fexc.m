@@ -489,7 +489,11 @@ if is_compact || length(self) == 1
 else
     save_as = cell(length(self),1);
     for k = 1:length(self)
-        save_as{k} = sprintf('%s/%s.fex',self(k).outdir,self(k).name);
+        if isa(self(k).name,'double')
+            save_as{k} = sprintf('%s/%d.fex',self(k).outdir,self(k).name);
+        else
+            save_as{k} = sprintf('%s/%s.fex',self(k).outdir,self(k).name);
+        end
         temp = self(k);
         save(save_as{k},'temp');
         clear temp
@@ -1869,7 +1873,7 @@ elseif strcmpi(StatSource,'-local') && strcmpi(StatName,'neutral')
         N = self(k).functional.neutral;
         N(isnan(N)) = -10000;
         [~,ind] = sort(N,'descend');
-        NormVal = nanmean(double(self(k).functional(ind(1:n),:)));
+        NormVal = nanmean(double(self(k).functional(ind(1:n),:)),1);
         self(k).baseline = NormVal;
         NormVal = repmat(NormVal,[size(Y,1),1]);
         self(k).update('functional',Y -NormVal);
@@ -2439,8 +2443,42 @@ self.derivesentiments();
 end
 
 % *************************************************************************
-% *************************************************************************        
+% *************************************************************************
 
+function [Y,M] = matrix2(self,varargin)
+%    
+% MATRIX2 - Genrates matrix for data analysis using FEXGRABC constructor.
+%
+% USAGE:
+%
+% X = self.MATRIX2(GrabObj)
+% X = self.MATRIX2('ArgName','ArgVal', ...)
+%
+% See also FEXGRABC
+
+% FIXME: Add safety procedures (in FEXGRABC);
+% =================
+if isa(varargin{1},'fexgrabc')
+    M = varargin{1};
+else
+    M = fexgrabc(varargin{:});
+end
+
+% Add FEXC data
+% =================
+if isempty(M.fex)
+    M = M.set('fex',self);
+end
+
+% Create Matrix output
+% =================
+Y = M.grab();
+
+end
+
+
+% *************************************************************************
+% *************************************************************************
 
 function M = matrix(self,index,varargin)
 %
@@ -3395,6 +3433,11 @@ function self = checkargs(self,args)
 % --------------------------------------
 load('fexheaders2.mat') 
 % FIXME: Wired Emotient Analytics thing
+% FIXME: all dataset should be table instead
+if isa(args.data,'table')
+    args.data = table2dataset(args.data);
+end
+
 fun = @(s)str2double(s(2:end-1));
 if ~isempty(args.data)
 for j = args.data.Properties.VarNames;
@@ -3470,10 +3513,10 @@ elseif isempty(self.time.TimeStamps) && ~isempty(self.videoInfo)
 elseif ~isempty(self.time.TimeStamps) && ~isempty(self.videoInfo)
     % Test timestamps consistency
     % FIXME: This assumes that you have only one face per frame.
-    [self.time.TimeStamps,ind]  = sort(self.time.TimeStamps);
+    [self.time.TimeStamps,indT]  = sort(self.time.TimeStamps);
     tt = unique(self.time.TimeStamps);
     if length(tt) < length(self.time.TimeStamps)
-        self.time.TimeStamps = linspace(1/self.videoInfo(1),self.videoInfo(2),length(ind))';
+        self.time.TimeStamps = linspace(1/self.videoInfo(1),self.videoInfo(2),length(indT))';
     end
 end
 
@@ -3498,13 +3541,13 @@ end
 % self.time = self.time(ind == 0,:);
 % end
 
-
-for p = {'functional','structural','diagnostics'}
-    if ~isempty(self.(p{1}))
-        self.(p{1}) = self.(p{1})(ind,:);
-      % self.(p{1}) = self.(p{1})(ind2,:);
-    end
-end
+% FIXME: commented this
+% for p = {'functional','structural','diagnostics'}
+%     if ~isempty(self.(p{1}))
+%         self.(p{1}) = self.(p{1})(ind,:);
+%       % self.(p{1}) = self.(p{1})(ind2,:);
+%     end
+% end
 
 self.time.FrameNumber = (1:size(self.time,1))';
 self.time.StrTime = fex_strtime(self.time.TimeStamps);
@@ -3530,7 +3573,7 @@ end
 if isempty(self.diagnostics) && ~isempty(self.functional)
     self.diagnostics.track_id = zeros(size(X,1),1) - self.naninfo.tag > 0;
 else
-    self.diagnostics = self.diagnostics(ind == 0,:);
+    self.diagnostics = [];%self.diagnostics(ind == 0,:);
 end
     
 % --------------------------------------

@@ -227,7 +227,7 @@ end
 
 %------------------------------------------------------------------
 
-function [obj,name] = export(self,k,des_temp)
+function [obj,name] = export(self,k,des_temp,isImotions)
 %
 % EXPORT - creates FEXC object.
 %
@@ -239,9 +239,13 @@ function [obj,name] = export(self,k,des_temp)
 %
 % See also FEXC.
 
-% Check argument
+% Check arguments
 if ~exist('des_temp','var')
     des_temp = '';
+end
+
+if ~exist('IsImotions','var')
+    isImotions = 0;
 end
 
 
@@ -282,8 +286,17 @@ else
     NK = k;
 end
 
+% CHECK HERE ISIMOTIONS ON FILE NAME
+test = importdata(self.files{1});
+try
+    if strcmp(test.textdata{1}(1:2),'#S')
+        isImotions = 1;
+    end
+catch
+end
+
 for k = NK
-    args = self.gen2fex(k,des_temp);
+    args = self.gen2fex(k,des_temp,isImotions);
     obj = cat(1,obj,fexc(args));
 end
 % save(name,'obj');
@@ -450,9 +463,13 @@ end
 
 %------------------------------------------------------------------
 
-function args = gen2fex(self,k,des_temp)
+function args = gen2fex(self,k,des_temp,isImotions)
 %
 % GEN2FEX - Creates the input argument for FEXC object
+
+if ~exist('isImotions','var')
+    isImotions = 0;
+end
 
 % Tunr off some warning
 warning('off','MATLAB:codetools:ModifiedVarnames');
@@ -490,7 +507,15 @@ switch ex
         [~,ind] = sort(ds.timestamp);
         args.data = ds(ind,:);
     case '.txt'
-        args.data = dataset('File',fname,'Delimiter','\t');
+        if isImotions
+            args.data = readtable(fname,'Delimiter','\t','HeaderLines',5);
+            args.data.FrameTime = args.data.FrameTime./1000;
+        else
+            args.data = dataset('File',fname,'Delimiter','\t');
+        end
+%         if size(args.data,2) == 1
+%            args.data = dataset('File',fname,'Delimiter','\t','HeaderLines',5); 
+%         end    
     case '.csv'
         args.data = dataset('File',fname,'Delimiter',',');
     case {'.xlsx','.xls'}
