@@ -446,7 +446,7 @@ end
 
 % *************************************************************************
 
-function fsave(self,is_compact,name_used)
+function fsave(self,is_compact,dir_out,name_used)
 %
 % SAVE saves the current FEXC handle.
 %
@@ -482,24 +482,30 @@ if ~exist('name_used','var')
     name_used = 'FexObj';
 end
 
+if ~exist('dir_out','var')
+    dir_out = self(1).outdir;
+elseif ~exist(dir_out,'dir')
+    mkdir(dir_out);
+end
+
 % Save FEXC
 if is_compact || length(self) == 1
-    save_as = sprintf('%s/%s.fex',self(1).outdir,name_used);
+    save_as = sprintf('%s/%s.fex',dir_out,name_used);
     save(save_as,'self');
 else
     save_as = cell(length(self),1);
     for k = 1:length(self)
         if isa(self(k).name,'double')
-            save_as{k} = sprintf('%s/%d.fex',self(k).outdir,self(k).name);
+            save_as{k} = sprintf('%s/%d.fex',dir_out,self(k).name);
         else
-            save_as{k} = sprintf('%s/%s.fex',self(k).outdir,self(k).name);
+            save_as{k} = sprintf('%s/%s.fex',dir_out,self(k).name);
         end
         temp = self(k);
         save(save_as{k},'temp');
         clear temp
     end
     % Store the list for loading
-    save(sprintf('%s/%s.fex',self(k).outdir,name_used),'save_as');
+    save(sprintf('%s/%s.fex',dir_out,name_used),'save_as');
 end
 
 end
